@@ -8,6 +8,7 @@ import java.lang.instrument.ClassFileTransformer
 import java.security.ProtectionDomain
 
 class HookTransformer : ClassFileTransformer {
+
     private val hooks = arrayOf<Hook>(
         InitHook()
     )
@@ -37,4 +38,5 @@ class HookTransformer : ClassFileTransformer {
 
         return cw.toByteArray()
     }
+
 }

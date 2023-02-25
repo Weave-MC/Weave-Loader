@@ -2,8 +2,12 @@ plugins {
     kotlin("jvm") version "1.8.0"
 }
 
-group = "club.maxstats"
-version = "1.0"
+val projectName:    String by project
+val projectVersion: String by project
+val projectGroup:   String by project
+
+group   = projectGroup
+version = projectVersion
 
 repositories.mavenCentral()
 
@@ -23,7 +27,7 @@ tasks.jar {
     }
 
     manifest.attributes(
-        "Premain-Class" to "club.maxstats.weave.loader.WeaveLoader",
+        "Premain-Class" to "${group}.weave.loader.WeaveLoader",
         "Can-Retransform-Classes" to true
     )
 }

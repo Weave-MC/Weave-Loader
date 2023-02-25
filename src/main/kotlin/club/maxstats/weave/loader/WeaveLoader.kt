@@ -4,6 +4,7 @@ import club.maxstats.weave.loader.hooks.HookTransformer
 import java.lang.instrument.Instrumentation
 
 object WeaveLoader {
+
     @JvmStatic
     fun premain(opt: String?, inst: Instrumentation) {
         inst.addTransformer(HookTransformer(), true)
@@ -15,4 +16,5 @@ object WeaveLoader {
     fun init(cl: ClassLoader) {
 
     }
+
 }

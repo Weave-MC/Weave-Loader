@@ -7,6 +7,7 @@ import org.objectweb.asm.Opcodes.*
 import org.objectweb.asm.tree.ClassNode
 
 class InitHook : Hook("net/minecraft/client/Minecraft") {
+
     override fun transform(cn: ClassNode) {
         val startGame = cn.methods.find { it.name == "startGame" }!!
 
@@ -27,4 +28,5 @@ class InitHook : Hook("net/minecraft/client/Minecraft") {
             }
         )
     }
+
 }

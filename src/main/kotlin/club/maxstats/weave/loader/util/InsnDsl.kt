@@ -7,6 +7,7 @@ import org.objectweb.asm.tree.*
 
 @Suppress("unused", "SpellCheckingInspection", "PropertyName", "FunctionName", "MemberVisibilityCanBePrivate")
 abstract class InsnBuilder {
+
     abstract operator fun AbstractInsnNode.unaryPlus()
     abstract operator fun InsnList.unaryPlus()
 
@@ -205,6 +206,7 @@ abstract class InsnBuilder {
         in Short.MIN_VALUE..Short.MAX_VALUE -> sipush(n)
         else -> ldc(n)
     }
+
 }
 
 fun asm(f: InsnBuilder.() -> Unit): InsnList {
