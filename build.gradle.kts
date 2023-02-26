@@ -2,19 +2,16 @@ plugins {
     kotlin("jvm") version "1.8.0"
 }
 
-val projectName:    String by project
-val projectVersion: String by project
-val projectGroup:   String by project
+group = "club.maxstats"
+version = "1.0.0"
 
-group   = projectGroup
-version = projectVersion
-
-repositories.mavenCentral()
+repositories {
+    mavenCentral()
+    maven("https://jitpack.io")
+}
 
 dependencies {
-    implementation("org.ow2.asm:asm:9.4")
-    implementation("org.ow2.asm:asm-tree:9.4")
-    implementation("org.jetbrains.kotlin:kotlin-reflect:1.8.0")
+    implementation("com.github.Weave-MC:Weave-Api:eaa143c17b")
 }
 
 kotlin {
@@ -27,7 +24,7 @@ tasks.jar {
     }
 
     manifest.attributes(
-        "Premain-Class" to "${group}.weave.loader.WeaveLoader",
+        "Premain-Class" to "club.maxstats.weave.loader.WeaveLoader",
         "Can-Retransform-Classes" to true
     )
 }

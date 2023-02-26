@@ -1,13 +1,12 @@
 package club.maxstats.weave.loader.hooks.impl
 
+import club.maxstats.weave.api.hook.Hook
 import club.maxstats.weave.loader.WeaveLoader
-import club.maxstats.weave.loader.hooks.Hook
 import club.maxstats.weave.loader.util.asm
 import org.objectweb.asm.Opcodes.*
 import org.objectweb.asm.tree.ClassNode
 
 class InitHook : Hook("net/minecraft/client/Minecraft") {
-
     override fun transform(cn: ClassNode) {
         val startGame = cn.methods.find { it.name == "startGame" }!!
 

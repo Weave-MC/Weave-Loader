@@ -1,2 +1,1 @@
-val projectName: String by settings
-rootProject.name = projectName
+rootProject.name = "Weave Loader"
