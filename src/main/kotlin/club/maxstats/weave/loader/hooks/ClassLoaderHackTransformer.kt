@@ -20,16 +20,16 @@ class ClassLoaderHackTransformer : ClassFileTransformer {
         classBeingRedefined: Class<*>?,
         protectionDomain: ProtectionDomain?,
         originalClass: ByteArray
-    ): ByteArray {
+    ): ByteArray? {
         val cr = ClassReader(originalClass)
-        if (cr.superName != Type.getInternalName(URLClassLoader::class.java)) return originalClass
+        if (cr.superName != Type.getInternalName(URLClassLoader::class.java)) return null
 
         val cn = ClassNode()
         cr.accept(cn, 0)
 
         val loadClass = cn.methods.find {
             it.name == "loadClass" && it.desc == "(Ljava/lang/String;Z)Ljava/lang/Class;"
-        } ?: return originalClass
+        } ?: return null
 
         loadClass.instructions.insert(asm {
             val end = LabelNode()

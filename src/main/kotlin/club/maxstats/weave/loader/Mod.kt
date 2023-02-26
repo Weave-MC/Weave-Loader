@@ -24,7 +24,11 @@ class Mod(jar: JarFile, cl: URLClassLoader) {
             ?: error("Entry does not extend from ModInitializer")
     }
 
+    fun preinit(hookManager: HookManager) {
+        instance.preinit(hookManager)
+    }
+
     fun init() {
-        instance.init(WeaveLoader.hookManager)
+        instance.init()
     }
 }

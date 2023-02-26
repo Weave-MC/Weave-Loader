@@ -14,7 +14,7 @@ import java.util.stream.Collectors
 import kotlin.io.path.*
 
 object WeaveLoader {
-    val hookManager = HookManagerImpl()
+    private val hookManager = HookManagerImpl()
     private lateinit var mods: List<Mod>
 
     @JvmStatic
@@ -32,13 +32,11 @@ object WeaveLoader {
             .listDirectoryEntries("*.jar")
             .filter { it.isRegularFile() }
             .map { Mod(JarFile(it.toFile()), cl as URLClassLoader) }
+            .onEach { it.preinit(hookManager) }
     }
 
     /** @see [club.maxstats.weave.loader.hooks.impl.InitHook] */
     fun init(cl: ClassLoader) {
-        println("WEAVE INIT")
-        println(mods.size)
-
         for (mod in this.mods) {
             mod.init()
         }

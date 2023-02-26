@@ -11,7 +11,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.github.Weave-MC:Weave-Api:eaa143c17b")
+    implementation("com.github.Weave-MC:Weave-Api:552b206a3b")
 }
 
 kotlin {
