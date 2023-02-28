@@ -1,1 +1,1 @@
-rootProject.name = "Weave Loader"
+rootProject.name = "Weave-Loader"
