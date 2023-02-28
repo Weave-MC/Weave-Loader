@@ -10,7 +10,7 @@ import org.objectweb.asm.tree.MethodInsnNode
 import org.objectweb.asm.tree.MethodNode
 
 class InputEventHook : Hook("net/minecraft/client/Minecraft") {
-    override fun transform(cn: ClassNode, callback: Callback) {
+    override fun transform(cn: ClassNode, conf: AssemblerConfig) {
         //added a new method to make doing frames easier
         val mn = MethodNode(
             Opcodes.ACC_PUBLIC,

@@ -1,7 +1,7 @@
 package club.maxstats.weave.loader
 
+import club.maxstats.weave.loader.api.HookManager
 import club.maxstats.weave.loader.hooks.ClassLoaderHackTransformer
-import club.maxstats.weave.loader.hooks.HookManagerImpl
 import java.lang.instrument.ClassFileTransformer
 import java.lang.instrument.Instrumentation
 import java.net.URLClassLoader
@@ -13,7 +13,7 @@ import java.util.jar.JarFile
 import kotlin.io.path.*
 
 object WeaveLoader {
-    private val hookManager = HookManagerImpl()
+    private val hookManager = HookManager()
     private lateinit var mods: List<Mod>
 
     @JvmStatic
