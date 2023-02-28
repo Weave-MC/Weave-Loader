@@ -1,12 +1,11 @@
 package club.maxstats.weave.loader
 
-import club.maxstats.weave.api.ModInitializer
-import club.maxstats.weave.api.hook.HookManager
+import club.maxstats.weave.loader.api.HookManager
+import club.maxstats.weave.loader.api.ModInitializer
 import java.io.File
 import java.net.URL
 import java.net.URLClassLoader
 import java.util.jar.JarFile
-import kotlin.system.exitProcess
 
 class Mod(jar: JarFile, cl: URLClassLoader) {
     private val instance: ModInitializer
@@ -26,9 +25,5 @@ class Mod(jar: JarFile, cl: URLClassLoader) {
 
     fun preinit(hookManager: HookManager) {
         instance.preinit(hookManager)
-    }
-
-    fun init() {
-        instance.init()
     }
 }

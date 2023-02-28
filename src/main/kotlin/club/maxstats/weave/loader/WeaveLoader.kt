@@ -2,15 +2,14 @@ package club.maxstats.weave.loader
 
 import club.maxstats.weave.loader.hooks.ClassLoaderHackTransformer
 import club.maxstats.weave.loader.hooks.HookManagerImpl
-import club.maxstats.weave.loader.hooks.PreinitTransformer
+import java.lang.instrument.ClassFileTransformer
 import java.lang.instrument.Instrumentation
-import java.net.URL
 import java.net.URLClassLoader
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.security.ProtectionDomain
 import java.util.jar.JarFile
-import java.util.stream.Collectors
 import kotlin.io.path.*
 
 object WeaveLoader {
@@ -19,12 +18,12 @@ object WeaveLoader {
 
     @JvmStatic
     fun premain(opt: String?, inst: Instrumentation) {
-        inst.addTransformer(PreinitTransformer(inst), false)
+        inst.addPreinitHook()
         inst.addTransformer(ClassLoaderHackTransformer(), true)
         inst.addTransformer(hookManager.Transformer(), true)
     }
 
-    /** @see [club.maxstats.weave.loader.hooks.PreinitTransformer] */
+    /** @see [addPreinitHook] */
     fun preinit(cl: ClassLoader) {
         assert(cl is URLClassLoader)
 
@@ -33,13 +32,6 @@ object WeaveLoader {
             .filter { it.isRegularFile() }
             .map { Mod(JarFile(it.toFile()), cl as URLClassLoader) }
             .onEach { it.preinit(hookManager) }
-    }
-
-    /** @see [club.maxstats.weave.loader.hooks.impl.InitHook] */
-    fun init(cl: ClassLoader) {
-        for (mod in this.mods) {
-            mod.init()
-        }
     }
 
     private fun getOrCreateModDirectory(): Path {
@@ -51,5 +43,24 @@ object WeaveLoader {
             dir.createDirectories()
         }
         return dir
+    }
+
+    private fun Instrumentation.addPreinitHook() {
+        addTransformer(object : ClassFileTransformer {
+            override fun transform(
+                loader: ClassLoader,
+                className: String,
+                classBeingRedefined: Class<*>?,
+                protectionDomain: ProtectionDomain?,
+                classfileBuffer: ByteArray?
+            ): ByteArray? {
+                if (className.startsWith("net/minecraft/")) {
+                    preinit(loader)
+                    removeTransformer(this)
+                }
+
+                return null
+            }
+        })
     }
 }
