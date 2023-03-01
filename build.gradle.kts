@@ -2,7 +2,7 @@ plugins {
     kotlin("jvm") version "1.8.0"
     `java-library`
     `maven-publish`
-    id("com.github.weave-mc.weave") version "e533e7846c"
+    id("com.github.weave-mc.weave") version "3ad11a0fd5"
 }
 
 group = "club.maxstats"
