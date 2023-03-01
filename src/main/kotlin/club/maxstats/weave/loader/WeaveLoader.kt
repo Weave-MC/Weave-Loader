@@ -2,6 +2,7 @@ package club.maxstats.weave.loader
 
 import club.maxstats.weave.loader.api.HookManager
 import club.maxstats.weave.loader.hooks.ClassLoaderHackTransformer
+import org.objectweb.asm.Opcodes
 import java.lang.instrument.ClassFileTransformer
 import java.lang.instrument.Instrumentation
 import java.net.URLClassLoader
@@ -13,6 +14,8 @@ import java.util.jar.JarFile
 import kotlin.io.path.*
 import kotlin.system.exitProcess
 
+val asmAPILevel = Opcodes.ASM8
+
 object WeaveLoader {
     private val hookManager = HookManager()
     private lateinit var mods: List<Mod>
@@ -20,18 +23,18 @@ object WeaveLoader {
     @JvmStatic
     fun premain(opt: String?, inst: Instrumentation) {
         inst.addPreinitHook()
-        inst.addTransformer(ClassLoaderHackTransformer(), true)
+        inst.addTransformer(ClassLoaderHackTransformer, true)
         inst.addTransformer(hookManager.Transformer(), true)
     }
 
     /** @see [addPreinitHook] */
     fun preinit(cl: ClassLoader) = runCatching {
-        assert(cl is URLClassLoader)
+        require(cl is URLClassLoader) { "Non-URLClassLoader is not supported by Weave!" }
 
-        this.mods = getOrCreateModDirectory()
+        mods = getOrCreateModDirectory()
             .listDirectoryEntries("*.jar")
             .filter { it.isRegularFile() }
-            .map { Mod(JarFile(it.toFile()), cl as URLClassLoader) }
+            .map { Mod(JarFile(it.toFile()), cl) }
             .onEach { it.preinit(hookManager) }
     }.onFailure {
         it.printStackTrace()

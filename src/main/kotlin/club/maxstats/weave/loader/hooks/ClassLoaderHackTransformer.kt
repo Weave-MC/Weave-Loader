@@ -1,36 +1,29 @@
 package club.maxstats.weave.loader.hooks
 
-import club.maxstats.weave.loader.util.asm
+import club.maxstats.weave.loader.util.*
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
-import org.objectweb.asm.Opcodes
-import org.objectweb.asm.Type
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
-import org.objectweb.asm.tree.MethodNode
-import java.io.File
 import java.lang.instrument.ClassFileTransformer
 import java.net.URLClassLoader
 import java.security.ProtectionDomain
 
-class ClassLoaderHackTransformer : ClassFileTransformer {
+object ClassLoaderHackTransformer : ClassFileTransformer {
     override fun transform(
         loader: ClassLoader,
         className: String,
         classBeingRedefined: Class<*>?,
-        protectionDomain: ProtectionDomain?,
+        protectionDomain: ProtectionDomain,
         originalClass: ByteArray
     ): ByteArray? {
-        val cr = ClassReader(originalClass)
-        if (cr.superName != Type.getInternalName(URLClassLoader::class.java)) return null
+        val reader = ClassReader(originalClass)
+        if (reader.superName != internalNameOf<URLClassLoader>()) return null
 
-        val cn = ClassNode()
-        cr.accept(cn, 0)
+        val node = ClassNode()
+        reader.accept(node, 0)
 
-        val loadClass = cn.methods.find {
-            it.name == "loadClass" && it.desc == "(Ljava/lang/String;Z)Ljava/lang/Class;"
-        } ?: return null
-
+        val loadClass = node.methods.similar(URLClassLoader::loadClass) ?: return null
         loadClass.instructions.insert(asm {
             val end = LabelNode()
 
@@ -42,35 +35,21 @@ class ClassLoaderHackTransformer : ClassFileTransformer {
             aload(0)
             aload(1)
             iconst_0
-            invokespecial(
-                Type.getInternalName(URLClassLoader::class.java),
-                "loadClass",
-                "(Ljava/lang/String;Z)Ljava/lang/Class;"
-            )
-            areturn
+            invokeMethod(URLClassLoader::loadClass)
 
+            areturn
             +end
         })
 
-        val addUrl = MethodNode(
-            Opcodes.ACC_PUBLIC,
-            "weave_addURL",
-            "(Ljava/net/URL;)V",
-            null,
-            null
-        ).apply {
-            instructions = asm {
-                aload(0)
-                aload(1)
-                invokevirtual(cn.name, "addURL", "(Ljava/net/URL;)V")
-                _return
-            }
-        }
+//        node.methods.add(node.generateMethod(name = "weave_addURL", desc = "(Ljava/net/URL;)V") {
+//            aload(0)
+//            aload(1)
+//            invokevirtual(node.name, "addURL", "(Ljava/net/URL;)V")
+//            _return
+//        })
 
-        cn.methods.add(addUrl)
-
-        val cw = ClassWriter(cr, ClassWriter.COMPUTE_FRAMES)
-        cn.accept(cw)
-        return cw.toByteArray()
+        val writer = ClassWriter(reader, ClassWriter.COMPUTE_FRAMES)
+        node.accept(writer)
+        return writer.toByteArray()
     }
 }
