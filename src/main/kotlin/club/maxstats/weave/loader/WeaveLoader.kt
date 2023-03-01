@@ -11,6 +11,7 @@ import java.nio.file.Paths
 import java.security.ProtectionDomain
 import java.util.jar.JarFile
 import kotlin.io.path.*
+import kotlin.system.exitProcess
 
 object WeaveLoader {
     private val hookManager = HookManager()
@@ -24,7 +25,7 @@ object WeaveLoader {
     }
 
     /** @see [addPreinitHook] */
-    fun preinit(cl: ClassLoader) {
+    fun preinit(cl: ClassLoader) = runCatching {
         assert(cl is URLClassLoader)
 
         this.mods = getOrCreateModDirectory()
@@ -32,6 +33,9 @@ object WeaveLoader {
             .filter { it.isRegularFile() }
             .map { Mod(JarFile(it.toFile()), cl as URLClassLoader) }
             .onEach { it.preinit(hookManager) }
+    }.onFailure {
+        it.printStackTrace()
+        exitProcess(1)
     }
 
     private fun getOrCreateModDirectory(): Path {
