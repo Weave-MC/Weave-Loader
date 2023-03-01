@@ -2,6 +2,7 @@ plugins {
     kotlin("jvm") version "1.8.0"
     `java-library`
     `maven-publish`
+    id("com.github.weave-mc.weave") version "e533e7846c"
 }
 
 group = "club.maxstats"
@@ -18,6 +19,11 @@ dependencies {
 
 kotlin {
     jvmToolchain(8)
+}
+
+minecraft {
+    version = "1.8.9"
+    mappings = "stable_22"
 }
 
 tasks.jar {
