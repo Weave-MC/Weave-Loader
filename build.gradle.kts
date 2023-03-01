@@ -14,10 +14,11 @@ repositories {
 dependencies {
     api("org.ow2.asm:asm:9.4")
     api("org.ow2.asm:asm-tree:9.4")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:1.8.0")
 }
 
 kotlin {
-    jvmToolchain(8)
+    jvmToolchain(16)
 }
 
 tasks.jar {
