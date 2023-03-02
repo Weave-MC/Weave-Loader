@@ -1,6 +1,7 @@
 package club.maxstats.weave.loader
 
 import club.maxstats.weave.loader.api.HookManager
+import club.maxstats.weave.loader.api.ModInitializer
 import club.maxstats.weave.loader.util.addURL
 import java.io.File
 import java.net.URLClassLoader
@@ -25,8 +26,4 @@ class Mod(jar: JarFile, cl: URLClassLoader) {
     fun preinit(hookManager: HookManager) {
         instance.preinit(hookManager)
     }
-}
-
-interface ModInitializer {
-    fun preinit(hookManager: HookManager)
 }

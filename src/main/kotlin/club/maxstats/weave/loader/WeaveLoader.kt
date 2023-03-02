@@ -14,8 +14,6 @@ import java.util.jar.JarFile
 import kotlin.io.path.*
 import kotlin.system.exitProcess
 
-val asmAPILevel = Opcodes.ASM8
-
 object WeaveLoader {
 
     private val hookManager = HookManager()
@@ -24,8 +22,8 @@ object WeaveLoader {
     @JvmStatic
     fun premain(opt: String?, inst: Instrumentation) {
         inst.addPreinitHook()
-        inst.addTransformer(ClassLoaderHackTransformer, true)
-        inst.addTransformer(hookManager.Transformer(), true)
+        inst.addTransformer(ClassLoaderHackTransformer)
+        inst.addTransformer(hookManager.Transformer())
     }
 
     /**
