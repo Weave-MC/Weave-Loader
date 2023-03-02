@@ -177,7 +177,6 @@ sealed interface InsnBuilder {
     fun aload(`var`: Int)           = +VarInsnNode(ALOAD, `var`)
     fun istore(`var`: Int)          = +VarInsnNode(ISTORE, `var`)
     fun lstore(`var`: Int)          = +VarInsnNode(LSTORE, `var`)
-    fun lstore(`var`: Int)          = +VarInsnNode(LSTORE, `var`)
     fun fstore(`var`: Int)          = +VarInsnNode(FSTORE, `var`)
     fun dstore(`var`: Int)          = +VarInsnNode(DSTORE, `var`)
     fun astore(`var`: Int)          = +VarInsnNode(ASTORE, `var`)
