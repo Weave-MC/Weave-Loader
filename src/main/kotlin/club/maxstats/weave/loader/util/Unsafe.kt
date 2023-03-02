@@ -14,7 +14,9 @@ val theUnsafe by lazy {
 @Suppress("DEPRECATION")
 fun Unsafe.getStaticField(field: Field): Any = getObject(staticFieldBase(field), staticFieldOffset(field))
 
-val trustedLookup by lazy { theUnsafe.getStaticField(Lookup::class.java.getDeclaredField("IMPL_LOOKUP")) as Lookup }
+val trustedLookup by lazy {
+    theUnsafe.getStaticField(Lookup::class.java.getDeclaredField("IMPL_LOOKUP")) as Lookup
+}
 
 private val addURLHandle by lazy {
     trustedLookup.findVirtual(URLClassLoader::class.java, "addURL", MethodType.methodType(Void.TYPE, URL::class.java))
