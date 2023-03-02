@@ -41,8 +41,7 @@ jobs:
                         $HOME/.gradle/caches
                         $HOME/.gradle/wrapper
                     keys: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-                    restore-keys: |
-                        ${{ runner.os }}-gradle-
+                    restore-keys: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
             - run: chmod +x ./gradlew
             - run: ./gradlew --no-daemon build
             
