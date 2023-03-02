@@ -47,6 +47,6 @@ jobs:
             
             - name: Upload Build Output
               uses: actions/upload-artifact@v2
-                with:
+              with:
                     name: weaveloader-artifacts
                     path: build/libs/
