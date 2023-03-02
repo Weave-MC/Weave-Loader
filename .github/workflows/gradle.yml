@@ -33,6 +33,10 @@ jobs:
             - uses: gradle/wrapper-validation-action@v1
             - uses: actions/setup-java@v2
                 with:
+                    distribution: "temurin"
+                    java-version: "17"
+            - uses: actions/cache@v2
+                with:
                     path: |
                         $HOME/.gradle/caches
                         $HOME/.gradle/wrapper
