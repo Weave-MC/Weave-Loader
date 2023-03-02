@@ -28,7 +28,9 @@ object WeaveLoader {
         inst.addTransformer(hookManager.Transformer(), true)
     }
 
-    /** @see [addPreinitHook] */
+    /**
+     * @see [addPreinitHook]
+     */
     fun preinit(cl: ClassLoader) = runCatching {
         require(cl is URLClassLoader) { "Non-URLClassLoader is not supported by Weave!" }
 
