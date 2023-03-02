@@ -9,6 +9,7 @@ import java.lang.reflect.Method
 import kotlin.reflect.KFunction
 
 fun MethodVisitor.loadConstant(value: Any?) = when (value) {
+
     null -> visitInsn(ACONST_NULL)
     true -> visitInsn(ICONST_1)
     false -> visitInsn(ICONST_0)

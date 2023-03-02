@@ -9,6 +9,7 @@ import org.objectweb.asm.Opcodes.*
 import org.objectweb.asm.tree.LabelNode
 
 internal fun HookManager.registerDefaultHooks() {
+
     register("net/minecraft/client/Minecraft") {
         val handlerMethod = node.generateMethod(desc = "()V") {
             val endOfIf = LabelNode()
@@ -69,4 +70,5 @@ internal fun HookManager.registerDefaultHooks() {
             )
         }
     }
+
 }

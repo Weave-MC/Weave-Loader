@@ -13,7 +13,7 @@ class Mod(jar: JarFile, cl: URLClassLoader) {
         val entry = jar.manifest.mainAttributes.getValue("Weave-Entry")
             ?: error("No entry defined in ${jar.name}")
 
-//        cl.javaClass.getDeclaredMethod("weave_addURL", URL::class.java)(cl, File(jar.name).toURI().toURL())
+//      cl.javaClass.getDeclaredMethod("weave_addURL", URL::class.java)(cl, File(jar.name).toURI().toURL())
         cl.addURL(File(jar.name).toURI().toURL())
 
         instance = cl.loadClass(entry)

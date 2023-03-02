@@ -10,6 +10,7 @@ import java.net.URLClassLoader
 import java.security.ProtectionDomain
 
 object ClassLoaderHackTransformer : ClassFileTransformer {
+
     override fun transform(
         loader: ClassLoader,
         className: String,
@@ -41,15 +42,16 @@ object ClassLoaderHackTransformer : ClassFileTransformer {
             +end
         })
 
-//        node.methods.add(node.generateMethod(name = "weave_addURL", desc = "(Ljava/net/URL;)V") {
-//            aload(0)
-//            aload(1)
-//            invokevirtual(node.name, "addURL", "(Ljava/net/URL;)V")
-//            _return
-//        })
+//      node.methods.add(node.generateMethod(name = "weave_addURL", desc = "(Ljava/net/URL;)V") {
+//          aload(0)
+//          aload(1)
+//          invokevirtual(node.name, "addURL", "(Ljava/net/URL;)V")
+//          _return
+//      })
 
         val writer = ClassWriter(reader, ClassWriter.COMPUTE_FRAMES)
         node.accept(writer)
         return writer.toByteArray()
     }
+
 }

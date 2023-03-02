@@ -17,6 +17,7 @@ import kotlin.system.exitProcess
 val asmAPILevel = Opcodes.ASM8
 
 object WeaveLoader {
+
     private val hookManager = HookManager()
     private lateinit var mods: List<Mod>
 
@@ -70,4 +71,5 @@ object WeaveLoader {
             }
         })
     }
+
 }
