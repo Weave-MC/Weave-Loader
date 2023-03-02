@@ -27,7 +27,7 @@ concurrency:
 jobs:
     build:
         name: "Build"
-        runs-on: "Ubuntu-latest"
+        runs-on: "ubuntu-latest"
         steps:
             - uses: actions/checkout@v2
             - uses: gradle/wrapper-validation-action@v1
