@@ -46,7 +46,7 @@ jobs:
             - run: ./gradlew --no-daemon build
             
             - name: Upload Build Output
-                uses: actions/upload-artifact@v2
+              uses: actions/upload-artifact@v2
                 with:
                     name: weaveloader-artifacts
                     path: build/libs/
