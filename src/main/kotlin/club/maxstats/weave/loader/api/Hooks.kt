@@ -11,6 +11,7 @@ import java.lang.instrument.ClassFileTransformer
 import java.security.ProtectionDomain
 
 class HookManager {
+
     private val hooks = mutableListOf<HookInfo>()
 
     fun register(hook: JavaHook) {
@@ -53,27 +54,33 @@ class HookManager {
             return writer.toByteArray()
         }
     }
+
 }
 
 abstract class JavaHook(val targetName: String) {
+
     abstract fun transform(node: ClassNode): AssemblerConfiguration
+
     data class AssemblerConfiguration(val computeFrames: Boolean = false) {
         internal fun apply(ctx: HookContext) {
             if (computeFrames) ctx.computeFrames()
         }
     }
+
 }
 
 data class HookInfo(val targetName: String, val hook: HookContext.() -> Unit)
 
-typealias ClassVisitorWrapper = (parent: ClassVisitor) -> ClassVisitor
+typealias ClassVisitorWrapper  = (parent: ClassVisitor)  -> ClassVisitor
 typealias MethodVisitorWrapper = (parent: MethodVisitor) -> MethodVisitor
 
-fun List<ClassVisitorWrapper>.fold(parent: ClassVisitor) = fold(parent) { acc, curr -> curr(acc) }
+fun List<ClassVisitorWrapper>.fold(parent: ClassVisitor)   = fold(parent) { acc, curr -> curr(acc) }
 fun List<MethodVisitorWrapper>.fold(parent: MethodVisitor) = fold(parent) { acc, curr -> curr(acc) }
 
 class HookContext(val node: ClassNode) {
+
     internal val visitors = mutableListOf<ClassVisitorWrapper>()
+
     internal var computeFrames = false
         private set
 
@@ -102,9 +109,11 @@ class HookContext(val node: ClassNode) {
 
     inline fun methodTransform(method: MethodNode, crossinline builder: MethodVisitorBuilder.() -> Unit) =
         methodVisitor(method) { parent -> MethodVisitorBuilder().apply(builder).build(parent) }
+
 }
 
 class MethodVisitorBuilder {
+
     private val visitors = mutableListOf<MethodVisitorWrapper>()
 
     fun overwrite(impl: MethodVisitor.() -> Unit) {
@@ -280,4 +289,5 @@ class MethodVisitorBuilder {
     }
 
     fun build(parent: MethodVisitor) = visitors.fold(parent)
+
 }
