@@ -26,6 +26,7 @@ import kotlin.reflect.jvm.javaMethod
  */
 @Suppress("unused", "PropertyName", "FunctionName", "INAPPLICABLE_JVM_NAME")
 sealed interface InsnBuilder {
+
     operator fun AbstractInsnNode.unaryPlus()
     operator fun InsnList.unaryPlus()
 
@@ -223,6 +224,7 @@ sealed interface InsnBuilder {
         in Short.MIN_VALUE..Short.MAX_VALUE -> sipush(n)
         else -> ldc(n)
     }
+
 }
 
 class InsnListBuilder : InsnBuilder {
