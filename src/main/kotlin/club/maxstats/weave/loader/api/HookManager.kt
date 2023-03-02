@@ -1,5 +1,6 @@
 package club.maxstats.weave.loader.api
 
+import club.maxstats.weave.loader.hooks.SafeTransformer
 import club.maxstats.weave.loader.hooks.registerDefaultHooks
 import org.objectweb.asm.*
 import org.objectweb.asm.tree.ClassNode
@@ -31,12 +32,10 @@ class HookManager {
         block.accept(cn)
     }
 
-    internal inner class Transformer : ClassFileTransformer {
+    internal inner class Transformer : SafeTransformer() {
         override fun transform(
             loader: ClassLoader,
             className: String,
-            classBeingRedefined: Class<*>?,
-            protectionDomain: ProtectionDomain?,
             originalClass: ByteArray
         ): ByteArray? {
             val hooks = hooks.filter { it.targetClassName == className }

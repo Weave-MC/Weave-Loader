@@ -2,17 +2,14 @@ package club.maxstats.weave.loader
 
 import club.maxstats.weave.loader.api.HookManager
 import club.maxstats.weave.loader.hooks.ClassLoaderHackTransformer
-import org.objectweb.asm.Opcodes
-import java.lang.instrument.ClassFileTransformer
+import club.maxstats.weave.loader.hooks.SafeTransformer
 import java.lang.instrument.Instrumentation
 import java.net.URLClassLoader
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.security.ProtectionDomain
 import java.util.jar.JarFile
 import kotlin.io.path.*
-import kotlin.system.exitProcess
 
 object WeaveLoader {
 
@@ -22,14 +19,14 @@ object WeaveLoader {
     @JvmStatic
     fun premain(opt: String?, inst: Instrumentation) {
         inst.addPreinitHook()
-        inst.addTransformer(ClassLoaderHackTransformer)
+        inst.addTransformer(ClassLoaderHackTransformer())
         inst.addTransformer(hookManager.Transformer())
     }
 
     /**
      * @see [addPreinitHook]
      */
-    fun preinit(cl: ClassLoader) = runCatching {
+    fun preinit(cl: ClassLoader) {
         require(cl is URLClassLoader) { "Non-URLClassLoader is not supported by Weave!" }
 
         mods = getOrCreateModDirectory()
@@ -37,9 +34,6 @@ object WeaveLoader {
             .filter { it.isRegularFile() }
             .map { Mod(JarFile(it.toFile()), cl) }
             .onEach { it.preinit(hookManager) }
-    }.onFailure {
-        it.printStackTrace()
-        exitProcess(1)
     }
 
     private fun getOrCreateModDirectory(): Path {
@@ -54,13 +48,11 @@ object WeaveLoader {
     }
 
     private fun Instrumentation.addPreinitHook() {
-        addTransformer(object : ClassFileTransformer {
+        addTransformer(object : SafeTransformer() {
             override fun transform(
                 loader: ClassLoader,
                 className: String,
-                classBeingRedefined: Class<*>?,
-                protectionDomain: ProtectionDomain?,
-                classfileBuffer: ByteArray?
+                originalClass: ByteArray
             ): ByteArray? {
                 if (className.startsWith("net/minecraft/")) {
                     preinit(loader)

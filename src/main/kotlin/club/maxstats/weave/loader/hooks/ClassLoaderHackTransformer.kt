@@ -5,17 +5,12 @@ import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
-import java.lang.instrument.ClassFileTransformer
 import java.net.URLClassLoader
-import java.security.ProtectionDomain
 
-object ClassLoaderHackTransformer : ClassFileTransformer {
-
+class ClassLoaderHackTransformer : SafeTransformer() {
     override fun transform(
         loader: ClassLoader,
         className: String,
-        classBeingRedefined: Class<*>?,
-        protectionDomain: ProtectionDomain,
         originalClass: ByteArray
     ): ByteArray? {
         val reader = ClassReader(originalClass)
