@@ -1,10 +1,7 @@
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-
 plugins {
     kotlin("jvm") version "1.8.0"
     `java-library`
     `maven-publish`
-    id("com.github.johnrengelman.shadow") version "8.1.0"
     id("com.github.weave-mc.weave") version "3ad11a0fd5"
 }
 
@@ -29,12 +26,14 @@ minecraft {
     mappings = "stable_22"
 }
 
-val agent by tasks.creating(ShadowJar::class) {
+val agent by tasks.creating(Jar::class) {
     archiveAppendix.set("Agent")
     group = "build"
 
     from(sourceSets.main.get().output)
-    configurations += project.configurations.runtimeClasspath.get()
+    from({ configurations.runtimeClasspath.get().map { zipTree(it) } }) {
+        exclude("**/module-info.class")
+    }
 
     manifest.attributes(
         "Premain-Class" to "club.maxstats.weave.loader.WeaveLoader"
