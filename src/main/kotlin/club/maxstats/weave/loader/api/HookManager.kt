@@ -1,22 +1,21 @@
 package club.maxstats.weave.loader.api
 
 import club.maxstats.weave.loader.hooks.SafeTransformer
-import club.maxstats.weave.loader.hooks.registerDefaultHooks
-import org.objectweb.asm.*
+import club.maxstats.weave.loader.hooks.impl.InputEventHook
+import club.maxstats.weave.loader.hooks.impl.ShutdownEventHook
+import org.objectweb.asm.ClassReader
+import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.tree.ClassNode
-import java.lang.instrument.ClassFileTransformer
-import java.security.ProtectionDomain
 import java.util.function.BiConsumer
 import java.util.function.Consumer
 
 class HookManager {
-    private val hooks = mutableListOf<Hook>()
+    private val hooks = mutableListOf(
+        InputEventHook(),
+        ShutdownEventHook()
+    )
 
-    init {
-        registerDefaultHooks()
-    }
-
-    fun register(hook: Hook) {
+    fun register(vararg hook: Hook) {
         hooks += hook
     }
 
