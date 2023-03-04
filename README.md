@@ -1,6 +1,18 @@
-# Weave-Loader
+<img 
+    align="right" alt="title" width="200px"
+    src="https://static.wikia.nocookie.net/minecraft_gamepedia/images/d/d7/Loom_%28S%29_JE1_BE1.png/revision/latest?cb=20210116072516"
+/>
 
-Weave-Loader is a tool designed to simplify the process of modding Minecraft. It allows developers to easily create mods by providing a simple and intuitive API for interacting with Minecraft's codebase. Weave-Loader is written in Kotlin and uses Java Agents to attach to Minecraft processes and modify the game's classes at runtime.
+### Weave Loader, a Lunar Client Mod Loader
+
+<img
+     align="left" alt="Worlflow Badge"
+     src="https://github.com/Weave-MC/Weave-Loader/actions/workflows/gradle.yml/badge.svg"
+/>
+
+---
+
+Weave Loader is a tool designed to simplify the process of modding Minecraft, and specifically Lunar Client. It allows developers to easily create mods by providing a simple and intuitive API for interacting with Minecraft's codebase, while injecting into clients that are somewhat closed-off to developers. Weave-Loader is written in Kotlin and uses Java Agents to attach to Lunar's processes and modify the game's classes at runtime.
 
 ## Getting Started
 
