@@ -1,4 +1,4 @@
-package club.maxstats.weave.loader.hooks
+package club.maxstats.weave.loader.transformer
 
 import club.maxstats.weave.loader.util.*
 import org.objectweb.asm.ClassReader
@@ -7,7 +7,7 @@ import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
 import java.net.URLClassLoader
 
-class ClassLoaderHackTransformer : SafeTransformer() {
+class ClassLoaderHackTransformer : SafeTransformer {
     override fun transform(
         loader: ClassLoader,
         className: String,

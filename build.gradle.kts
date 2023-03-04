@@ -15,6 +15,7 @@ repositories {
 dependencies {
     api("org.ow2.asm:asm:9.4")
     api("org.ow2.asm:asm-tree:9.4")
+    api("org.ow2.asm:asm-util:9.4")
 }
 
 kotlin {

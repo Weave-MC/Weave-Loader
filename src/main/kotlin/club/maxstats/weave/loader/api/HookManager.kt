@@ -1,9 +1,6 @@
 package club.maxstats.weave.loader.api
 
-import club.maxstats.weave.loader.hooks.SafeTransformer
-import club.maxstats.weave.loader.hooks.impl.ChatReceivedEventHook
-import club.maxstats.weave.loader.hooks.impl.InputEventHook
-import club.maxstats.weave.loader.hooks.impl.ShutdownEventHook
+import club.maxstats.weave.loader.transformer.SafeTransformer
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.tree.ClassNode
@@ -11,11 +8,7 @@ import java.util.function.BiConsumer
 import java.util.function.Consumer
 
 class HookManager {
-    private val hooks = mutableListOf(
-        InputEventHook(),
-        ShutdownEventHook(),
-        ChatReceivedEventHook()
-    )
+    private val hooks = mutableListOf<Hook>()
 
     fun register(vararg hook: Hook) {
         hooks += hook
@@ -29,11 +22,12 @@ class HookManager {
         }
     }
 
-    fun register(name: String, block: Consumer<ClassNode>) = register(name) { cn, _ ->
-        block.accept(cn)
-    }
+    fun register(name: String, block: HookContext.() -> Unit) =
+        register(name) { node, cfg -> HookContext(node, cfg).block() }
 
-    internal inner class Transformer : SafeTransformer() {
+    fun register(name: String, block: Consumer<ClassNode>) = register(name) { cn, _ -> block.accept(cn) }
+
+    internal inner class Transformer : SafeTransformer {
         override fun transform(
             loader: ClassLoader,
             className: String,
@@ -60,3 +54,5 @@ class HookManager {
         }
     }
 }
+
+class HookContext(val node: ClassNode, val config: Hook.AssemblerConfig)

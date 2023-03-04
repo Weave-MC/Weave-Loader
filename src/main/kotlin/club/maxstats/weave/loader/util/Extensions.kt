@@ -5,6 +5,9 @@ import org.objectweb.asm.Type
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.FieldNode
 import org.objectweb.asm.tree.MethodNode
+import org.objectweb.asm.tree.analysis.Analyzer
+import org.objectweb.asm.tree.analysis.BasicInterpreter
+import java.lang.reflect.Field
 import java.lang.reflect.Method
 
 fun List<MethodNode>.named(name: String) = find { it.name == name }!!
@@ -19,12 +22,24 @@ val Method.isProtected get() = modifiers and ACC_PROTECTED != 0
 val Method.isPublic get() = modifiers and ACC_PUBLIC != 0
 val Method.isAbstract get() = modifiers and ACC_ABSTRACT != 0
 
+val Field.isStatic get() = modifiers and ACC_STATIC != 0
+val Field.isPrivate get() = modifiers and ACC_PRIVATE != 0
+val Field.isFinal get() = modifiers and ACC_FINAL != 0
+val Field.isProtected get() = modifiers and ACC_PROTECTED != 0
+val Field.isPublic get() = modifiers and ACC_PUBLIC != 0
+
 val MethodNode.isStatic get() = access and ACC_STATIC != 0
 val MethodNode.isPrivate get() = access and ACC_PRIVATE != 0
 val MethodNode.isFinal get() = access and ACC_FINAL != 0
 val MethodNode.isProtected get() = access and ACC_PROTECTED != 0
 val MethodNode.isPublic get() = access and ACC_PUBLIC != 0
 val MethodNode.isAbstract get() = access and ACC_ABSTRACT != 0
+
+val FieldNode.isStatic get() = access and ACC_STATIC != 0
+val FieldNode.isPrivate get() = access and ACC_PRIVATE != 0
+val FieldNode.isFinal get() = access and ACC_FINAL != 0
+val FieldNode.isProtected get() = access and ACC_PROTECTED != 0
+val FieldNode.isPublic get() = access and ACC_PUBLIC != 0
 
 fun ClassNode.generateMethod(
     name: String = generateMethodName(),

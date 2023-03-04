@@ -1,4 +1,4 @@
-package club.maxstats.weave.loader.hooks.impl
+package club.maxstats.weave.loader.hooks
 
 import club.maxstats.weave.loader.api.Hook
 import org.objectweb.asm.tree.ClassNode

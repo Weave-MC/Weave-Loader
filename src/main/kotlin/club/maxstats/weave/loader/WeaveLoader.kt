@@ -2,8 +2,8 @@ package club.maxstats.weave.loader
 
 import club.maxstats.weave.loader.api.HookManager
 import club.maxstats.weave.loader.api.ModInitializer
-import club.maxstats.weave.loader.hooks.ClassLoaderHackTransformer
-import club.maxstats.weave.loader.hooks.SafeTransformer
+import club.maxstats.weave.loader.transformer.ClassLoaderHackTransformer
+import club.maxstats.weave.loader.transformer.SafeTransformer
 import club.maxstats.weave.loader.util.addURL
 import java.lang.instrument.Instrumentation
 import java.net.URLClassLoader
@@ -19,15 +19,15 @@ object WeaveLoader {
 
     @JvmStatic
     fun premain(opt: String?, inst: Instrumentation) {
-        inst.addPreinitHook()
+        inst.addPreInitHook()
         inst.addTransformer(ClassLoaderHackTransformer())
         inst.addTransformer(hookManager.Transformer())
     }
 
     /**
-     * @see [addPreinitHook]
+     * @see [addPreInitHook]
      */
-    fun preinit(cl: ClassLoader) {
+    fun preInit(cl: ClassLoader) {
         require(cl is URLClassLoader) { "Non-URLClassLoader is not supported by Weave!" }
 
         getOrCreateModDirectory()
@@ -45,7 +45,7 @@ object WeaveLoader {
                     .newInstance() as? ModInitializer
                     ?: error("$entry does not implement ModInitializer")
 
-                instance.preinit(hookManager)
+                instance.preInit(hookManager)
             }
     }
 
@@ -56,15 +56,15 @@ object WeaveLoader {
         return dir
     }
 
-    private fun Instrumentation.addPreinitHook() {
-        addTransformer(object : SafeTransformer() {
+    private fun Instrumentation.addPreInitHook() {
+        addTransformer(object : SafeTransformer {
             override fun transform(
                 loader: ClassLoader,
                 className: String,
                 originalClass: ByteArray
             ): ByteArray? {
                 if (className.startsWith("net/minecraft/")) {
-                    preinit(loader)
+                    preInit(loader)
                     removeTransformer(this)
                 }
 
