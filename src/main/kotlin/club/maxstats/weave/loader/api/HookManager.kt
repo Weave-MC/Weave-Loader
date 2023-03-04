@@ -1,6 +1,7 @@
 package club.maxstats.weave.loader.api
 
 import club.maxstats.weave.loader.hooks.SafeTransformer
+import club.maxstats.weave.loader.hooks.impl.ChatReceivedEventHook
 import club.maxstats.weave.loader.hooks.impl.InputEventHook
 import club.maxstats.weave.loader.hooks.impl.ShutdownEventHook
 import org.objectweb.asm.ClassReader
@@ -12,7 +13,8 @@ import java.util.function.Consumer
 class HookManager {
     private val hooks = mutableListOf(
         InputEventHook(),
-        ShutdownEventHook()
+        ShutdownEventHook(),
+        ChatReceivedEventHook()
     )
 
     fun register(vararg hook: Hook) {

@@ -5,6 +5,6 @@ import net.minecraft.util.IChatComponent
 
 class TickEvent : Event()
 class InputEvent(val keyCode: Int) : Event()
-class ChatReceivedEvent(val message: IChatComponent) : Event()
+class ChatReceivedEvent(val message: IChatComponent) : CancellableEvent()
 class GuiOpenEvent(val screen: GuiScreen?) : Event()
 class ShutdownEvent : Event()

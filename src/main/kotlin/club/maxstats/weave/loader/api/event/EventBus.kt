@@ -47,3 +47,12 @@ private class ReflectEventHandler(val obj: Any, val method: Method) : Consumer<E
 annotation class SubscribeEvent
 
 abstract class Event
+abstract class CancellableEvent : Event() {
+    private var cancelled = false
+
+    fun setCancelled(cancelled: Boolean) {
+        this.cancelled = cancelled
+    }
+
+    fun isCancelled() = cancelled
+}
