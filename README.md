@@ -84,7 +84,7 @@ Before submitting a pull request, please make sure your changes are in line with
 
 <div align="right">
 
-Weave-Loader is licensed under the [MIT License][license]. 
+Weave-Loader is licensed under the [GNU General Public License Version 3][license]. 
 
 </div>
 
