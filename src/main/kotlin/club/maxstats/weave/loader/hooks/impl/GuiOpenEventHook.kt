@@ -8,6 +8,7 @@ import org.objectweb.asm.tree.ClassNode
 
 class GuiOpenEventHook : Hook("net/minecraft/client/Minecraft") {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
+
         node.methods.named("displayGuiScreen").instructions.insert(asm {
             new("club/maxstats/weave/loader/api/event/GuiOpenEvent")
             dup
@@ -22,4 +23,5 @@ class GuiOpenEventHook : Hook("net/minecraft/client/Minecraft") {
             )
         })
     }
+
 }

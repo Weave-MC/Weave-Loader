@@ -11,6 +11,7 @@ import club.maxstats.weave.loader.util.named
 import org.objectweb.asm.tree.ClassNode
 
 class ShutdownEventHook : Hook("net/minecraft/client/Minecraft") {
+
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         node.methods.named("shutdownMinecraftApplet").instructions.insert(
             asm {
@@ -26,4 +27,5 @@ class ShutdownEventHook : Hook("net/minecraft/client/Minecraft") {
             }
         )
     }
+
 }

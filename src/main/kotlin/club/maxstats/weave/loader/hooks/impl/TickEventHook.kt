@@ -7,6 +7,7 @@ import club.maxstats.weave.loader.util.*
 import org.objectweb.asm.tree.ClassNode
 
 class TickEventHook : Hook("net/minecraft/client/Minecraft") {
+
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         node.methods.named("runTick").instructions.insert(asm {
             new("club/maxstats/weave/loader/api/event/TickEvent")
@@ -21,4 +22,5 @@ class TickEventHook : Hook("net/minecraft/client/Minecraft") {
             )
         })
     }
+
 }

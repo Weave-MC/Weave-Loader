@@ -10,6 +10,7 @@ import org.objectweb.asm.tree.LabelNode
 import org.objectweb.asm.tree.MethodInsnNode
 
 class InputEventHook : Hook("net/minecraft/client/Minecraft") {
+
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         val handler = node.generateMethod(desc = "()V") {
             val endOfIf = LabelNode()
@@ -68,4 +69,5 @@ class InputEventHook : Hook("net/minecraft/client/Minecraft") {
             )
         }
     }
+
 }
