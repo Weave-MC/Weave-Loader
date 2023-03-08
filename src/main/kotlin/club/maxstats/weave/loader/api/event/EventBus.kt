@@ -36,7 +36,7 @@ object EventBus {
 
 private class ReflectEventHandler(val obj: Any, val method: Method) : Consumer<Event> {
     override fun accept(t: Event) {
-        method(obj, method)
+        method(obj, t)
     }
 }
 
@@ -47,6 +47,7 @@ annotation class SubscribeEvent
 abstract class Event
 abstract class CancellableEvent : Event() {
     var cancelled = false
+    fun isCancelled() = cancelled
     fun cancel() {
         cancelled = true
     }
