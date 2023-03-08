@@ -3,6 +3,7 @@ package club.maxstats.weave.loader.hooks
 import club.maxstats.weave.loader.api.HookManager
 import club.maxstats.weave.loader.api.event.Event
 import club.maxstats.weave.loader.api.event.EventBus
+import club.maxstats.weave.loader.api.event.InputEvent
 import club.maxstats.weave.loader.util.*
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.LabelNode
@@ -37,10 +38,14 @@ fun HookManager.registerInputHook() = register("net/minecraft/client/Minecraft")
         +end
         f_same1(Opcodes.INTEGER)
 
-        new("club/maxstats/weave/loader/api/event/InputEvent")
+        new(internalNameOf<InputEvent>())
         dup_x1
         swap
-        invokespecial("club/maxstats/weave/loader/api/event/InputEvent", "<init>", "(I)V")
+        invokespecial(
+            internalNameOf<InputEvent>(),
+            "<init>",
+            "(I)V"
+        )
 
         getSingleton<EventBus>()
         swap
