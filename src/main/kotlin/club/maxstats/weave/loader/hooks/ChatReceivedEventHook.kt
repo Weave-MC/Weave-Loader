@@ -1,6 +1,7 @@
 package club.maxstats.weave.loader.hooks
 
 import club.maxstats.weave.loader.api.HookManager
+import club.maxstats.weave.loader.api.event.CancellableEvent
 import club.maxstats.weave.loader.api.event.ChatReceivedEvent
 import club.maxstats.weave.loader.api.event.Event
 import club.maxstats.weave.loader.api.event.EventBus
@@ -27,7 +28,7 @@ fun HookManager.registerChatReceivedHook() = register("net/minecraft/client/gui/
 
         val end = LabelNode()
 
-        invokevirtual(internalNameOf<ChatReceivedEvent>(), "isCancelled", "()Z")
+        invokevirtual(internalNameOf<CancellableEvent>(), "isCancelled", "()Z")
         ifeq(end)
 
         _return
