@@ -1,5 +1,6 @@
 package club.maxstats.weave.loader.api
 
+import club.maxstats.weave.loader.hooks.registerDefaultHooks
 import club.maxstats.weave.loader.transformer.SafeTransformer
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
@@ -9,6 +10,10 @@ import java.util.function.Consumer
 
 class HookManager {
     private val hooks = mutableListOf<Hook>()
+
+    init {
+        registerDefaultHooks()
+    }
 
     fun register(vararg hook: Hook) {
         hooks += hook
