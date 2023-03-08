@@ -7,6 +7,9 @@ fun HookManager.registerDefaultHooks() {
     registerInputHook()
     registerTickHook()
     registerGuiOpenHook()
+    registerEntityListAddHook()
+    registerEntityListRemoveHook()
+    registerPlayerListEventHook()
     registerChatReceivedHook()
     registerRenderLivingHook()
 }
