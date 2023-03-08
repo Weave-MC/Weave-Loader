@@ -8,4 +8,5 @@ fun HookManager.registerDefaultHooks() {
     registerTickHook()
     registerGuiOpenHook()
     registerChatReceivedHook()
+    registerRenderLivingHook()
 }
