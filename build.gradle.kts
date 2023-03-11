@@ -2,7 +2,7 @@ plugins {
     kotlin("jvm") version "1.8.0"
     `java-library`
     `maven-publish`
-    id("com.github.weave-mc.weave") version "3ad11a0fd5"
+    id("com.github.weave-mc.weave") version "85846a675a"
 }
 
 group = "club.maxstats"
@@ -23,11 +23,10 @@ kotlin {
 }
 
 minecraft {
-    version = "1.8.9"
-    mappings = "stable_22"
+    version.set("1.8.9")
 }
 
-val agent by tasks.creating(Jar::class) {
+val agent by tasks.registering(Jar::class) {
     archiveAppendix.set("Agent")
     group = "build"
 
