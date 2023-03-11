@@ -10,11 +10,12 @@ import net.minecraft.util.IChatComponent
 import net.minecraft.world.World
 import net.minecraft.world.WorldSettings.GameType
 
-class TickEvent : Event()
+object TickEvent : Event()
 class InputEvent(val keyCode: Int) : Event()
 class ChatReceivedEvent(val message: IChatComponent) : CancellableEvent()
+class ChatSentEvent(val message: String) : CancellableEvent()
 class GuiOpenEvent(val screen: GuiScreen?) : CancellableEvent()
-abstract class RenderGameOverlayEvent(val partialTicks: Float) : Event() {
+sealed class RenderGameOverlayEvent(val partialTicks: Float) : Event() {
     class Pre(partialTicks: Float) : RenderGameOverlayEvent(partialTicks)
     class Post(partialTicks: Float) : RenderGameOverlayEvent(partialTicks)
 }
@@ -30,4 +31,8 @@ sealed class RenderLivingEvent(val renderer: RendererLivingEntity<EntityLivingBa
     class Pre(renderer: RendererLivingEntity<EntityLivingBase>, entity: EntityLivingBase, x: Double, y: Double, z: Double, partialTicks: Float) : RenderLivingEvent(renderer, entity, x, y, z, partialTicks)
     class Post(renderer: RendererLivingEntity<EntityLivingBase>, entity: EntityLivingBase, x: Double, y: Double, z: Double, partialTicks: Float) : RenderLivingEvent(renderer, entity, x, y, z, partialTicks)
 }
-class ShutdownEvent : Event()
+sealed class StartGameEvent : Event() {
+    object Pre : StartGameEvent()
+    object Post : StartGameEvent()
+}
+object ShutdownEvent : Event()
