@@ -5,7 +5,7 @@ import club.maxstats.weave.loader.api.HookManager
 fun HookManager.registerDefaultHooks() {
     registerStartGameHook()
     registerShutdownHook()
-    registerInputHook()
+    registerKeyboardHook()
     registerTickHook()
     registerGuiOpenHook()
     registerRenderGameOverlayHook()
@@ -17,4 +17,5 @@ fun HookManager.registerDefaultHooks() {
     registerRenderLivingHook()
     registerRenderWorldHook()
     registerRenderHandHook()
+    registerMouseHook()
 }

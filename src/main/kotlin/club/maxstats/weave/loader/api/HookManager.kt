@@ -1,7 +1,7 @@
 package club.maxstats.weave.loader.api
 
 import club.maxstats.weave.loader.hooks.registerDefaultHooks
-import club.maxstats.weave.loader.transformer.SafeTransformer
+import club.maxstats.weave.loader.bootstrap.SafeTransformer
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.tree.ClassNode

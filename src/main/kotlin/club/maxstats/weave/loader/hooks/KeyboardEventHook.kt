@@ -1,53 +1,32 @@
 package club.maxstats.weave.loader.hooks
 
 import club.maxstats.weave.loader.api.HookManager
-import club.maxstats.weave.loader.api.event.InputEvent
+import club.maxstats.weave.loader.api.event.KeyboardEvent
 import club.maxstats.weave.loader.util.*
-import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.LabelNode
 import org.objectweb.asm.tree.MethodInsnNode
 
-fun HookManager.registerInputHook() = register("net/minecraft/client/Minecraft") {
+fun HookManager.registerKeyboardHook() = register("net/minecraft/client/Minecraft") {
     val handler = node.generateMethod(desc = "()V") {
-        val endOfIf = LabelNode()
+        val end = LabelNode()
 
         invokestatic("org/lwjgl/input/Keyboard", "getEventKeyState", "()Z")
-        ifeq(endOfIf)
+        ifeq(end)
 
         aload(0)
         getfield("net/minecraft/client/Minecraft", "currentScreen", "Lnet/minecraft/client/gui/GuiScreen;")
-        ifnonnull(endOfIf)
+        ifnonnull(end)
 
-        val lambda = LabelNode()
-        val end = LabelNode()
-
-        invokestatic("org/lwjgl/input/Keyboard", "getEventKey", "()I")
-        ifne(lambda)
-
-        invokestatic("org/lwjgl/input/Keyboard", "getEventCharacter", "()C")
-        sipush(256)
-        iadd
-        goto(end)
-
-        +lambda
-        f_same()
-
-        invokestatic("org/lwjgl/input/Keyboard", "getEventKey", "()I")
-        +end
-        f_same1(Opcodes.INTEGER)
-
-        new(internalNameOf<InputEvent>())
-        dup_x1
-        swap
+        new(internalNameOf<KeyboardEvent>())
+        dup
         invokespecial(
-            internalNameOf<InputEvent>(),
+            internalNameOf<KeyboardEvent>(),
             "<init>",
-            "(I)V"
+            "()V"
         )
-
         callEvent()
 
-        +endOfIf
+        +end
         f_same()
         _return
     }

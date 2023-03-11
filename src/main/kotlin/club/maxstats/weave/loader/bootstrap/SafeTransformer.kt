@@ -1,4 +1,4 @@
-package club.maxstats.weave.loader.transformer
+package club.maxstats.weave.loader.bootstrap
 
 import java.lang.instrument.ClassFileTransformer
 import java.security.ProtectionDomain

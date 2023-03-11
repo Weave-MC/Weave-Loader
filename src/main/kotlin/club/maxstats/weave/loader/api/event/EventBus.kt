@@ -43,12 +43,3 @@ private class ReflectEventHandler(val obj: Any, val method: Method) : Consumer<E
 @Retention(AnnotationRetention.RUNTIME)
 @Target(AnnotationTarget.FUNCTION)
 annotation class SubscribeEvent
-
-abstract class Event
-abstract class CancellableEvent : Event() {
-    var cancelled = false
-    fun isCancelled() = cancelled
-    fun cancel() {
-        cancelled = true
-    }
-}

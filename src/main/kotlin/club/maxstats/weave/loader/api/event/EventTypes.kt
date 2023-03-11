@@ -6,9 +6,48 @@ import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.network.play.server.S38PacketPlayerListItem.AddPlayerData
 import net.minecraft.util.IChatComponent
+import org.lwjgl.input.Keyboard
+import org.lwjgl.input.Mouse
+
+abstract class Event
+abstract class CancellableEvent : Event() {
+    @get:JvmName("isCancelled")
+    var cancelled = false
+}
+
 
 object TickEvent : Event()
-class InputEvent(val keyCode: Int) : Event()
+class KeyboardEvent(val keyCode: Int) : Event() {
+    constructor() : this(
+        if (Keyboard.getEventKey() == 0)
+            Keyboard.getEventCharacter().code + 256
+        else
+            Keyboard.getEventKey()
+    )
+}
+
+class MouseEvent(
+    val x: Int,
+    val y: Int,
+    @get:JvmName("getDX") val dx: Int,
+    @get:JvmName("getDY") val dy: Int,
+    @get:JvmName("getDWheel") val dwheel: Int,
+    val button: Int,
+    @get:JvmName("getButtonState") val buttonstate: Boolean,
+    val nanoseconds: Long
+) : CancellableEvent() {
+    constructor() : this(
+        Mouse.getEventX(),
+        Mouse.getEventY(),
+        Mouse.getEventDX(),
+        Mouse.getEventDY(),
+        Mouse.getEventDWheel(),
+        Mouse.getEventButton(),
+        Mouse.getEventButtonState(),
+        Mouse.getEventNanoseconds()
+    )
+}
+
 class ChatReceivedEvent(val message: IChatComponent) : CancellableEvent()
 class ChatSentEvent(val message: String) : CancellableEvent()
 class GuiOpenEvent(val screen: GuiScreen?) : CancellableEvent()
@@ -28,9 +67,31 @@ sealed class PlayerListEvent(val playerData: AddPlayerData) : Event() {
     class Remove(playerData: AddPlayerData) : PlayerListEvent(playerData)
 }
 
-sealed class RenderLivingEvent(val renderer: RendererLivingEntity<EntityLivingBase>, val entity: EntityLivingBase, val x: Double, val y: Double, val z: Double, val partialTicks: Float) : CancellableEvent() {
-    class Pre(renderer: RendererLivingEntity<EntityLivingBase>, entity: EntityLivingBase, x: Double, y: Double, z: Double, partialTicks: Float) : RenderLivingEvent(renderer, entity, x, y, z, partialTicks)
-    class Post(renderer: RendererLivingEntity<EntityLivingBase>, entity: EntityLivingBase, x: Double, y: Double, z: Double, partialTicks: Float) : RenderLivingEvent(renderer, entity, x, y, z, partialTicks)
+sealed class RenderLivingEvent(
+    val renderer: RendererLivingEntity<EntityLivingBase>,
+    val entity: EntityLivingBase,
+    val x: Double,
+    val y: Double,
+    val z: Double,
+    val partialTicks: Float
+) : CancellableEvent() {
+    class Pre(
+        renderer: RendererLivingEntity<EntityLivingBase>,
+        entity: EntityLivingBase,
+        x: Double,
+        y: Double,
+        z: Double,
+        partialTicks: Float
+    ) : RenderLivingEvent(renderer, entity, x, y, z, partialTicks)
+
+    class Post(
+        renderer: RendererLivingEntity<EntityLivingBase>,
+        entity: EntityLivingBase,
+        x: Double,
+        y: Double,
+        z: Double,
+        partialTicks: Float
+    ) : RenderLivingEvent(renderer, entity, x, y, z, partialTicks)
 }
 
 class RenderWorldEvent(val partialTicks: Float) : Event()
