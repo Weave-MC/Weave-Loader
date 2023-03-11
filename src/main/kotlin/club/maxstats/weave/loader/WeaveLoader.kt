@@ -50,9 +50,9 @@ object WeaveLoader {
     }
 
     private fun getOrCreateModDirectory(): Path {
-        val dir = Paths.get(System.getProperty("user.home"), "MaxStats", "Mods")
+        val dir = Paths.get(System.getProperty("user.home"), ".lunarclient", "mods")
         if (dir.exists() && !dir.isDirectory()) Files.delete(dir)
-        if (!dir.exists()) dir.createDirectories()
+        if (!dir.exists()) dir.createDirectory()
         return dir
     }
 
