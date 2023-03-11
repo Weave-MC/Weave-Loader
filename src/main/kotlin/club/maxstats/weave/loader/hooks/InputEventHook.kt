@@ -1,8 +1,6 @@
 package club.maxstats.weave.loader.hooks
 
 import club.maxstats.weave.loader.api.HookManager
-import club.maxstats.weave.loader.api.event.Event
-import club.maxstats.weave.loader.api.event.EventBus
 import club.maxstats.weave.loader.api.event.InputEvent
 import club.maxstats.weave.loader.util.*
 import org.objectweb.asm.Opcodes
@@ -53,7 +51,6 @@ fun HookManager.registerInputHook() = register("net/minecraft/client/Minecraft")
         f_same()
         _return
     }
-    node.methods.add(handler)
 
     node.methods.named("runTick").let { mn ->
         mn.instructions.insert(

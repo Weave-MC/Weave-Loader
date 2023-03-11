@@ -15,4 +15,6 @@ fun HookManager.registerDefaultHooks() {
     registerChatReceivedHook()
     registerChatSentHook()
     registerRenderLivingHook()
+    registerRenderWorldHook()
+    registerRenderHandHook()
 }
