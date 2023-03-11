@@ -11,11 +11,8 @@ import club.maxstats.weave.loader.util.named
 
 fun HookManager.registerTickHook() = register("net/minecraft/client/Minecraft") {
     node.methods.named("runTick").instructions.insert(asm {
-        new(internalNameOf<TickEvent>())
-        dup
-        invokespecial(internalNameOf<TickEvent>(), "<init>", "()V")
         getSingleton<EventBus>()
-        swap
+        getSingleton<TickEvent>()
         invokevirtual(
             internalNameOf<EventBus>(),
             "callEvent",
