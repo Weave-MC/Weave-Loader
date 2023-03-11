@@ -47,13 +47,7 @@ fun HookManager.registerInputHook() = register("net/minecraft/client/Minecraft")
             "(I)V"
         )
 
-        getSingleton<EventBus>()
-        swap
-        invokevirtual(
-            internalNameOf<EventBus>(),
-            "callEvent",
-            "(L${internalNameOf<Event>()};)V"
-        )
+        callEvent()
 
         +endOfIf
         f_same()

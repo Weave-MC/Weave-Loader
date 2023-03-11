@@ -2,11 +2,7 @@ package club.maxstats.weave.loader.hooks
 
 import club.maxstats.weave.loader.api.HookManager
 import club.maxstats.weave.loader.api.event.*
-import club.maxstats.weave.loader.util.asm
-import club.maxstats.weave.loader.util.getSingleton
-import club.maxstats.weave.loader.util.internalNameOf
-import club.maxstats.weave.loader.util.named
-import net.minecraft.client.gui.GuiScreen
+import club.maxstats.weave.loader.util.*
 import org.objectweb.asm.tree.LabelNode
 
 fun HookManager.registerGuiOpenHook() = register("net/minecraft/client/Minecraft") {
@@ -20,14 +16,7 @@ fun HookManager.registerGuiOpenHook() = register("net/minecraft/client/Minecraft
             "<init>",
             "(Lnet/minecraft/client/gui/GuiScreen;)V"
         )
-        getSingleton<EventBus>()
-        swap
-
-        invokevirtual(
-            internalNameOf<EventBus>(),
-            "callEvent",
-            "(L${internalNameOf<Event>()};)V"
-        )
+        callEvent()
 
         val end = LabelNode()
 

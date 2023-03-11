@@ -2,10 +2,7 @@ package club.maxstats.weave.loader.hooks
 
 import club.maxstats.weave.loader.api.HookManager
 import club.maxstats.weave.loader.api.event.*
-import club.maxstats.weave.loader.util.asm
-import club.maxstats.weave.loader.util.getSingleton
-import club.maxstats.weave.loader.util.internalNameOf
-import club.maxstats.weave.loader.util.named
+import club.maxstats.weave.loader.util.*
 import org.objectweb.asm.Opcodes
 
 fun HookManager.registerRenderGameOverlayHook() = register("net/minecraft/client/gui/GuiIngame") {
@@ -18,14 +15,7 @@ fun HookManager.registerRenderGameOverlayHook() = register("net/minecraft/client
             "<init>",
             "(F)V"
         )
-        getSingleton<EventBus>()
-        swap
-
-        invokevirtual(
-            internalNameOf<EventBus>(),
-            "callEvent",
-            "(L${internalNameOf<Event>()};)V"
-        )
+        callEvent()
     }
 
     val postInsn = asm {
@@ -37,14 +27,7 @@ fun HookManager.registerRenderGameOverlayHook() = register("net/minecraft/client
             "<init>",
             "(F)V"
         )
-        getSingleton<EventBus>()
-        swap
-
-        invokevirtual(
-            internalNameOf<EventBus>(),
-            "callEvent",
-            "(L${internalNameOf<Event>()};)V"
-        )
+        callEvent()
     }
 
     val mn = node.methods.named("renderGameOverlay")

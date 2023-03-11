@@ -2,15 +2,8 @@ package club.maxstats.weave.loader.hooks
 
 import club.maxstats.weave.loader.api.HookManager
 import club.maxstats.weave.loader.api.event.CancellableEvent
-import club.maxstats.weave.loader.api.event.Event
-import club.maxstats.weave.loader.api.event.EventBus
 import club.maxstats.weave.loader.api.event.RenderLivingEvent
-import club.maxstats.weave.loader.util.asm
-import club.maxstats.weave.loader.util.getSingleton
-import club.maxstats.weave.loader.util.internalNameOf
-import club.maxstats.weave.loader.util.named
-import net.minecraft.client.renderer.entity.RendererLivingEntity
-import net.minecraft.entity.EntityLivingBase
+import club.maxstats.weave.loader.util.*
 import org.objectweb.asm.tree.LabelNode
 
 fun HookManager.registerRenderLivingHook() = register("net/minecraft/client/renderer/entity/RendererLivingEntity") {
@@ -34,14 +27,7 @@ fun HookManager.registerRenderLivingHook() = register("net/minecraft/client/rend
                     "D" +
                     "F)V"
         )
-        getSingleton<EventBus>()
-        swap
-
-        invokevirtual(
-            internalNameOf<EventBus>(),
-            "callEvent",
-            "(L${internalNameOf<Event>()};)V"
-        )
+        callEvent()
 
         val end = LabelNode()
 

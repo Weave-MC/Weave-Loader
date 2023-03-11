@@ -1,5 +1,7 @@
 package club.maxstats.weave.loader.util
 
+import club.maxstats.weave.loader.api.event.Event
+import club.maxstats.weave.loader.api.event.EventBus
 import org.objectweb.asm.Handle
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes.*
@@ -7,7 +9,7 @@ import org.objectweb.asm.tree.*
 
 @Suppress("PropertyName", "unused", "FunctionName", "SpellCheckingInspection")
 sealed interface InsnBuilder {
-    
+
     operator fun AbstractInsnNode.unaryPlus()
     operator fun InsnList.unaryPlus()
 
@@ -149,9 +151,9 @@ sealed interface InsnBuilder {
     fun goto(label: LabelNode)      = +JumpInsnNode(GOTO, label)
     fun ifnull(label: LabelNode)    = +JumpInsnNode(IFNULL, label)
     fun ifnonnull(label: LabelNode) = +JumpInsnNode(IFNONNULL, label)
-    
+
     fun invokedynamic(name: String, desc: String, bsm: Handle, vararg bsmArgs: Any) =
-        +InvokeDynamicInsnNode(name, desc, bsm, bsmArgs)    
+        +InvokeDynamicInsnNode(name, desc, bsm, bsmArgs)
 
     fun invokevirtual(owner: String, name: String, desc: String) =
         +MethodInsnNode(INVOKEVIRTUAL, owner, name, desc, false)
@@ -205,7 +207,7 @@ sealed interface InsnBuilder {
         in Short.MIN_VALUE..Short.MAX_VALUE -> sipush(n)
         else -> ldc(n)
     }
-    
+
 }
 
 private class InsnListBuilder : InsnBuilder {
@@ -224,3 +226,13 @@ fun MethodVisitor.visitAsm(block: InsnBuilder.() -> Unit) = VisitorInsnBuilder(t
 
 inline fun <reified T : Any> InsnBuilder.getSingleton() =
     getstatic(internalNameOf<T>(), "INSTANCE", "L${internalNameOf<T>()};")
+
+fun InsnBuilder.callEvent() {
+    getSingleton<EventBus>()
+    swap
+    invokevirtual(
+        internalNameOf<EventBus>(),
+        "callEvent",
+        "(L${internalNameOf<Event>()};)V"
+    )
+}

@@ -1,13 +1,8 @@
 package club.maxstats.weave.loader.hooks
 
 import club.maxstats.weave.loader.api.HookManager
-import club.maxstats.weave.loader.api.event.Event
-import club.maxstats.weave.loader.api.event.EventBus
 import club.maxstats.weave.loader.api.event.PlayerListEvent
-import club.maxstats.weave.loader.util.asm
-import club.maxstats.weave.loader.util.getSingleton
-import club.maxstats.weave.loader.util.internalNameOf
-import club.maxstats.weave.loader.util.named
+import club.maxstats.weave.loader.util.*
 import org.objectweb.asm.tree.MethodInsnNode
 
 fun HookManager.registerPlayerListEventHook() = register("net/minecraft/client/network/NetHandlerPlayClient") {
@@ -20,14 +15,7 @@ fun HookManager.registerPlayerListEventHook() = register("net/minecraft/client/n
             "<init>",
             "(Lnet/minecraft/network/play/server/S38PacketPlayerListItem\$AddPlayerData;)V"
         )
-        getSingleton<EventBus>()
-        swap
-
-        invokevirtual(
-            internalNameOf<EventBus>(),
-            "callEvent",
-            "(L${internalNameOf<Event>()};)V"
-        )
+        callEvent()
     }
 
     val removeInsn = asm {
@@ -39,14 +27,7 @@ fun HookManager.registerPlayerListEventHook() = register("net/minecraft/client/n
             "<init>",
             "(Lnet/minecraft/network/play/server/S38PacketPlayerListItem\$AddPlayerData;)V"
         )
-        getSingleton<EventBus>()
-        swap
-
-        invokevirtual(
-            internalNameOf<EventBus>(),
-            "callEvent",
-            "(L${internalNameOf<Event>()};)V"
-        )
+        callEvent()
     }
 
     val mn = node.methods.named("handlePlayerListItem")
