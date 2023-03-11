@@ -7,6 +7,7 @@ fun HookManager.registerDefaultHooks() {
     registerInputHook()
     registerTickHook()
     registerGuiOpenHook()
+    registerRenderGameOverlayHook()
     registerEntityListAddHook()
     registerEntityListRemoveHook()
     registerPlayerListEventHook()

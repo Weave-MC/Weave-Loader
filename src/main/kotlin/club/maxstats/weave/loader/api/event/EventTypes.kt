@@ -14,7 +14,10 @@ class TickEvent : Event()
 class InputEvent(val keyCode: Int) : Event()
 class ChatReceivedEvent(val message: IChatComponent) : CancellableEvent()
 class GuiOpenEvent(val screen: GuiScreen?) : CancellableEvent()
-class RenderGameOverlayEvent : Event()
+abstract class RenderGameOverlayEvent(val partialTicks: Float) : Event() {
+    class Pre(partialTicks: Float) : RenderGameOverlayEvent(partialTicks)
+    class Post(partialTicks: Float) : RenderGameOverlayEvent(partialTicks)
+}
 sealed class EntityListEvent(val entity: Entity) : Event() {
     class Add(entity: Entity) : EntityListEvent(entity)
     class Remove(entity: Entity) : EntityListEvent(entity)
