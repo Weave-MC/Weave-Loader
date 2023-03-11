@@ -36,7 +36,7 @@ fun HookManager.registerEntityListRemoveHook() = register("net/minecraft/client/
     mn.instructions.insert(mn.instructions.find { it.opcode == Opcodes.IFNULL }, asm {
         new(internalNameOf<EntityListEvent.Remove>())
         dup
-        aload(1)
+        aload(2)
         invokespecial(
             internalNameOf<EntityListEvent.Remove>(),
             "<init>",

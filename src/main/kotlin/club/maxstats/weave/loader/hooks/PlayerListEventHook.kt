@@ -14,7 +14,7 @@ fun HookManager.registerPlayerListEventHook() = register("net/minecraft/client/n
     val addInsn = asm {
         new(internalNameOf<PlayerListEvent.Add>())
         dup
-        aload(1)
+        aload(3)
         invokespecial(
             internalNameOf<PlayerListEvent.Add>(),
             "<init>",
@@ -33,7 +33,7 @@ fun HookManager.registerPlayerListEventHook() = register("net/minecraft/client/n
     val removeInsn = asm {
         new(internalNameOf<PlayerListEvent.Remove>())
         dup
-        aload(1)
+        aload(3)
         invokespecial(
             internalNameOf<PlayerListEvent.Remove>(),
             "<init>",
