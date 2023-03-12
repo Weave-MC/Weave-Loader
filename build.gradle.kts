@@ -2,13 +2,13 @@ plugins {
     kotlin("jvm") version "1.8.0"
     `java-library`
     `maven-publish`
-    id("com.github.weave-mc.weave") version "7cc0e879eb"
+    id("com.github.weave-mc.weave") version "8b70bcc707"
 }
 
 group = "club.maxstats"
 version = "1.0.0"
 
-minecraft.version.set("1.8.9")
+minecraft.version("1.8.9")
 
 repositories {
     mavenCentral()
