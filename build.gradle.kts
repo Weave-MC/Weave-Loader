@@ -2,11 +2,13 @@ plugins {
     kotlin("jvm") version "1.8.0"
     `java-library`
     `maven-publish`
-    id("com.github.weave-mc.weave") version "85846a675a"
+    id("com.github.weave-mc.weave") version "7cc0e879eb"
 }
 
 group = "club.maxstats"
 version = "1.0.0"
+
+minecraft.version.set("1.8.9")
 
 repositories {
     mavenCentral()
@@ -18,13 +20,7 @@ dependencies {
     api("org.ow2.asm:asm-util:9.4")
 }
 
-kotlin {
-    jvmToolchain(11)
-}
-
-minecraft {
-    version.set("1.8.9")
-}
+kotlin.jvmToolchain(11)
 
 val agent by tasks.registering(Jar::class) {
     archiveAppendix.set("Agent")
