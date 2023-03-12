@@ -2,6 +2,7 @@ package club.maxstats.weave.loader
 
 import club.maxstats.weave.loader.api.HookManager
 import club.maxstats.weave.loader.api.ModInitializer
+import club.maxstats.weave.loader.api.CommandBus
 import club.maxstats.weave.loader.util.addURL
 import java.lang.instrument.Instrumentation
 import java.net.URLClassLoader
@@ -41,6 +42,8 @@ object WeaveLoader {
 
                 instance.preInit(hookManager)
             }
+
+        CommandBus.registerCommandHook()
     }
 
     private fun getOrCreateModDirectory(): Path {

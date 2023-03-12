@@ -15,14 +15,11 @@ abstract class CancellableEvent : Event() {
     var cancelled = false
 }
 
-
 object TickEvent : Event()
 class KeyboardEvent(val keyCode: Int) : Event() {
     constructor() : this(
-        if (Keyboard.getEventKey() == 0)
-            Keyboard.getEventCharacter().code + 256
-        else
-            Keyboard.getEventKey()
+        if (Keyboard.getEventKey() == 0) Keyboard.getEventCharacter().code + 256
+        else Keyboard.getEventKey()
     )
 }
 
