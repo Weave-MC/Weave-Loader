@@ -11,8 +11,9 @@ fun premain(opt: String?, inst: Instrumentation) {
                 //load the rest of the loader using lunars classloader
                 //allows us to access minecraft classes throughout the project
 
-                val weave = loader.loadClass("club.maxstats.weave.loader.WeaveLoader")
-                weave.getDeclaredMethod("preInit", Instrumentation::class.java).invoke(weave, inst)
+                loader.loadClass("club.maxstats.weave.loader.WeaveLoader")
+                    .getDeclaredMethod("preInit", Instrumentation::class.java)
+                    .invoke(null, inst)
             }
 
             return null
