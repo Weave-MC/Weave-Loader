@@ -4,9 +4,6 @@ import club.maxstats.weave.loader.api.event.ChatSentEvent
 import club.maxstats.weave.loader.api.event.EventBus
 import net.minecraft.client.Minecraft
 import net.minecraft.util.ChatComponentText
-import net.minecraft.util.ChatStyle
-import net.minecraft.util.EnumChatFormatting
-import net.minecraft.util.IChatComponent
 
 private val whitespaceRegex = """\s+""".toRegex()
 
@@ -35,7 +32,8 @@ object CommandBus {
 
 }
 
-private fun Command.matches(name: String) = this.name.equals(name, ignoreCase = true) || name in aliases
+private fun Command.matches(name: String) =
+    (this.aliases + this.name).any { it.equals(name, ignoreCase = true) }
 
 abstract class Command {
 
@@ -49,10 +47,6 @@ abstract class Command {
             postfix = ">"
         ) { it.name }
 
-    fun registerSubCommand(command: Command) {
-        subCommands += command
-    }
-
     open fun handle(args: List<String>) {
         when {
             args.isEmpty() -> return printUsage()
@@ -60,9 +54,10 @@ abstract class Command {
         }
     }
 
-    fun printUsage() {
-        val component = component("usage: $name $usage") { color = EnumChatFormatting.RED }
-        Minecraft.getMinecraft().thePlayer.addChatMessage(component)
+    private fun printUsage() {
+        Minecraft.getMinecraft().thePlayer.addChatMessage(
+            ChatComponentText("§4usage: $name $usage")
+        )
     }
 
 }
@@ -112,15 +107,4 @@ class CommandBuilder(private val name: String) {
 
 }
 
-class CommandContext(val args: List<String>) {
-
-    val player get()                       = Minecraft.getMinecraft().thePlayer
-
-    fun message(message: String)           = player.addChatMessage(component(message))
-    fun message(component: IChatComponent) = player.addChatMessage(component)
-    fun errorMessage(message: String)      = message(component(message) { color = EnumChatFormatting.RED })
-
-}
-
-inline fun component(text: String, builder: ChatStyle.() -> Unit = {}) =
-    ChatComponentText(text).apply { chatStyle.builder() }
+class CommandContext(val args: List<String>)
