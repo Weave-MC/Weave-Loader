@@ -1,6 +1,3 @@
-val projectName: String by settings
-rootProject.name = projectName
-
 pluginManagement {
     repositories {
         mavenCentral()
@@ -8,3 +5,6 @@ pluginManagement {
         maven(url = "https://jitpack.io")
     }
 }
+
+val projectName: String by settings
+rootProject.name = projectName
