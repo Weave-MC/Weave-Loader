@@ -1,8 +1,11 @@
 package club.maxstats.weave.loader.hooks
 
 import club.maxstats.weave.loader.api.HookManager
-import club.maxstats.weave.loader.api.event.*
-import club.maxstats.weave.loader.util.*
+import club.maxstats.weave.loader.api.event.RenderGameOverlayEvent
+import club.maxstats.weave.loader.util.asm
+import club.maxstats.weave.loader.util.callEvent
+import club.maxstats.weave.loader.util.internalNameOf
+import club.maxstats.weave.loader.util.named
 import org.objectweb.asm.Opcodes
 
 fun HookManager.registerRenderGameOverlayHook() = register("net/minecraft/client/gui/GuiIngame") {
@@ -32,5 +35,5 @@ fun HookManager.registerRenderGameOverlayHook() = register("net/minecraft/client
 
     val mn = node.methods.named("renderGameOverlay")
     mn.instructions.insert(preInsn)
-    mn.instructions.insertBefore(mn.instructions.find { it.opcode == Opcodes.RETURN}, postInsn)
+    mn.instructions.insertBefore(mn.instructions.find { it.opcode == Opcodes.RETURN }, postInsn)
 }

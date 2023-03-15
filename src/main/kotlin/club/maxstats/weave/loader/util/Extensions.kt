@@ -16,31 +16,31 @@ fun List<FieldNode>.named(name: String) = find { it.name == name }!!
 
 inline fun <reified T : Any> internalNameOf(): String = Type.getInternalName(T::class.java)
 
-val Method.isStatic get() = modifiers and ACC_STATIC != 0
-val Method.isPrivate get() = modifiers and ACC_PRIVATE != 0
-val Method.isFinal get() = modifiers and ACC_FINAL != 0
-val Method.isProtected get() = modifiers and ACC_PROTECTED != 0
-val Method.isPublic get() = modifiers and ACC_PUBLIC != 0
-val Method.isAbstract get() = modifiers and ACC_ABSTRACT != 0
+val Method.isStatic get()        = modifiers and ACC_STATIC != 0
+val Method.isPrivate get()       = modifiers and ACC_PRIVATE != 0
+val Method.isFinal get()         = modifiers and ACC_FINAL != 0
+val Method.isProtected get()     = modifiers and ACC_PROTECTED != 0
+val Method.isPublic get()        = modifiers and ACC_PUBLIC != 0
+val Method.isAbstract get()      = modifiers and ACC_ABSTRACT != 0
 
-val Field.isStatic get() = modifiers and ACC_STATIC != 0
-val Field.isPrivate get() = modifiers and ACC_PRIVATE != 0
-val Field.isFinal get() = modifiers and ACC_FINAL != 0
-val Field.isProtected get() = modifiers and ACC_PROTECTED != 0
-val Field.isPublic get() = modifiers and ACC_PUBLIC != 0
+val Field.isStatic get()         = modifiers and ACC_STATIC != 0
+val Field.isPrivate get()        = modifiers and ACC_PRIVATE != 0
+val Field.isFinal get()          = modifiers and ACC_FINAL != 0
+val Field.isProtected get()      = modifiers and ACC_PROTECTED != 0
+val Field.isPublic get()         = modifiers and ACC_PUBLIC != 0
 
-val MethodNode.isStatic get() = access and ACC_STATIC != 0
-val MethodNode.isPrivate get() = access and ACC_PRIVATE != 0
-val MethodNode.isFinal get() = access and ACC_FINAL != 0
+val MethodNode.isStatic get()    = access and ACC_STATIC != 0
+val MethodNode.isPrivate get()   = access and ACC_PRIVATE != 0
+val MethodNode.isFinal get()     = access and ACC_FINAL != 0
 val MethodNode.isProtected get() = access and ACC_PROTECTED != 0
-val MethodNode.isPublic get() = access and ACC_PUBLIC != 0
-val MethodNode.isAbstract get() = access and ACC_ABSTRACT != 0
+val MethodNode.isPublic get()    = access and ACC_PUBLIC != 0
+val MethodNode.isAbstract get()  = access and ACC_ABSTRACT != 0
 
-val FieldNode.isStatic get() = access and ACC_STATIC != 0
-val FieldNode.isPrivate get() = access and ACC_PRIVATE != 0
-val FieldNode.isFinal get() = access and ACC_FINAL != 0
-val FieldNode.isProtected get() = access and ACC_PROTECTED != 0
-val FieldNode.isPublic get() = access and ACC_PUBLIC != 0
+val FieldNode.isStatic get()     = access and ACC_STATIC != 0
+val FieldNode.isPrivate get()    = access and ACC_PRIVATE != 0
+val FieldNode.isFinal get()      = access and ACC_FINAL != 0
+val FieldNode.isProtected get()  = access and ACC_PROTECTED != 0
+val FieldNode.isPublic get()     = access and ACC_PUBLIC != 0
 
 fun ClassNode.generateMethod(
     name: String = generateMethodName(),
@@ -59,18 +59,18 @@ fun ClassNode.generateMethod(
 inline fun <reified T : AbstractInsnNode> AbstractInsnNode.next(p: (T) -> Boolean = { true }): T? {
     var insn = this
 
-    while (true){
+    while (true) {
         insn = insn.next ?: return null
-        if(insn is T && p(insn)) return insn
+        if (insn is T && p(insn)) return insn
     }
 }
 
 inline fun <reified T : AbstractInsnNode> AbstractInsnNode.prev(p: (T) -> Boolean = { true }): T? {
     var insn = this
 
-    while (true){
+    while (true) {
         insn = insn.previous ?: return null
-        if(insn is T && p(insn)) return insn
+        if (insn is T && p(insn)) return insn
     }
 }
 

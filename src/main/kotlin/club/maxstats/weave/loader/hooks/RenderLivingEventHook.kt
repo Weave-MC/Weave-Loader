@@ -3,7 +3,10 @@ package club.maxstats.weave.loader.hooks
 import club.maxstats.weave.loader.api.HookManager
 import club.maxstats.weave.loader.api.event.CancellableEvent
 import club.maxstats.weave.loader.api.event.RenderLivingEvent
-import club.maxstats.weave.loader.util.*
+import club.maxstats.weave.loader.util.asm
+import club.maxstats.weave.loader.util.callEvent
+import club.maxstats.weave.loader.util.internalNameOf
+import club.maxstats.weave.loader.util.named
 import org.objectweb.asm.tree.LabelNode
 
 fun HookManager.registerRenderLivingHook() = register("net/minecraft/client/renderer/entity/RendererLivingEntity") {
@@ -21,11 +24,11 @@ fun HookManager.registerRenderLivingHook() = register("net/minecraft/client/rend
             internalNameOf<RenderLivingEvent.Pre>(),
             "<init>",
             "(Lnet/minecraft/client/renderer/entity/RendererLivingEntity;" +
-                    "Lnet/minecraft/entity/EntityLivingBase;" +
-                    "D" +
-                    "D" +
-                    "D" +
-                    "F)V"
+                "Lnet/minecraft/entity/EntityLivingBase;" +
+                "D" +
+                "D" +
+                "D" +
+                "F)V"
         )
         callEvent()
 

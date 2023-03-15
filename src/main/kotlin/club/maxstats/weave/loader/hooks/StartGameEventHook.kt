@@ -2,7 +2,10 @@ package club.maxstats.weave.loader.hooks
 
 import club.maxstats.weave.loader.api.HookManager
 import club.maxstats.weave.loader.api.event.StartGameEvent
-import club.maxstats.weave.loader.util.*
+import club.maxstats.weave.loader.util.asm
+import club.maxstats.weave.loader.util.callEvent
+import club.maxstats.weave.loader.util.getSingleton
+import club.maxstats.weave.loader.util.named
 import org.objectweb.asm.Opcodes
 
 fun HookManager.registerStartGameHook() = register("net/minecraft/client/Minecraft") {

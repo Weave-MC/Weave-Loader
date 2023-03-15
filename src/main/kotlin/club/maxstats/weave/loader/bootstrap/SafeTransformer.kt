@@ -5,6 +5,7 @@ import java.security.ProtectionDomain
 import kotlin.system.exitProcess
 
 interface SafeTransformer : ClassFileTransformer {
+
     fun transform(loader: ClassLoader, className: String, originalClass: ByteArray): ByteArray?
 
     override fun transform(
@@ -19,4 +20,5 @@ interface SafeTransformer : ClassFileTransformer {
         e.printStackTrace()
         exitProcess(1)
     }
+
 }

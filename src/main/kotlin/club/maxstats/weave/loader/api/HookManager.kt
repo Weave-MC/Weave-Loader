@@ -1,7 +1,7 @@
 package club.maxstats.weave.loader.api
 
-import club.maxstats.weave.loader.hooks.registerDefaultHooks
 import club.maxstats.weave.loader.bootstrap.SafeTransformer
+import club.maxstats.weave.loader.hooks.registerDefaultHooks
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.tree.ClassNode
@@ -9,6 +9,7 @@ import java.util.function.BiConsumer
 import java.util.function.Consumer
 
 class HookManager {
+
     private val hooks = mutableListOf<Hook>()
 
     init {
@@ -33,6 +34,7 @@ class HookManager {
     fun register(name: String, block: Consumer<ClassNode>) = register(name) { cn, _ -> block.accept(cn) }
 
     internal inner class Transformer : SafeTransformer {
+
         override fun transform(
             loader: ClassLoader,
             className: String,
@@ -58,6 +60,7 @@ class HookManager {
             return writer.toByteArray()
         }
     }
+
 }
 
 class HookContext(val node: ClassNode, val config: Hook.AssemblerConfig)

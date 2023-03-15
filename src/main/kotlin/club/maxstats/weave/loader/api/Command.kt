@@ -11,6 +11,7 @@ import net.minecraft.util.IChatComponent
 private val whitespaceRegex = """\s+""".toRegex()
 
 object CommandBus {
+
     private val commands = mutableListOf<Command>()
 
     fun register(command: Command) {
@@ -31,19 +32,22 @@ object CommandBus {
         e.cancelled = true
         command.handle(partialArgs.drop(1))
     }
+
 }
 
 private fun Command.matches(name: String) = this.name.equals(name, ignoreCase = true) || name in aliases
 
 abstract class Command {
+
     abstract val name: String
     open val aliases = listOf<String>()
     open val subCommands = mutableListOf<Command>()
-    open val usage get() = if (subCommands.isEmpty()) "no usage" else subCommands.joinToString(
-        separator = "|",
-        prefix = "<",
-        postfix = ">"
-    ) { it.name }
+    open val usage
+        get() = if (subCommands.isEmpty()) "no usage" else subCommands.joinToString(
+            separator = "|",
+            prefix = "<",
+            postfix = ">"
+        ) { it.name }
 
     fun registerSubCommand(command: Command) {
         subCommands += command
@@ -60,6 +64,7 @@ abstract class Command {
         val component = component("usage: $name $usage") { color = EnumChatFormatting.RED }
         Minecraft.getMinecraft().thePlayer.addChatMessage(component)
     }
+
 }
 
 inline fun simpleCommand(name: String, crossinline handler: CommandContext.() -> Unit) = object : Command() {
@@ -72,6 +77,7 @@ inline fun simpleCommand(name: String, crossinline handler: CommandContext.() ->
 inline fun command(name: String, builder: CommandBuilder.() -> Unit) = CommandBuilder(name).also(builder).toCommand()
 
 class CommandBuilder(private val name: String) {
+
     var usage: String? = null
     private var handler: (CommandContext.() -> Unit)? = null
     private val aliases = mutableListOf<String>()
@@ -94,23 +100,26 @@ class CommandBuilder(private val name: String) {
     }
 
     fun toCommand() = object : Command() {
-        override val name = this@CommandBuilder.name
-        override val usage = this@CommandBuilder.usage ?: super.usage
-        override val aliases = this@CommandBuilder.aliases
+        override val name        = this@CommandBuilder.name
+        override val usage       = this@CommandBuilder.usage ?: super.usage
+        override val aliases     = this@CommandBuilder.aliases
         override val subCommands = this@CommandBuilder.subCommands
 
         override fun handle(args: List<String>) {
             (handler ?: return super.handle(args))(CommandContext(args))
         }
     }
+
 }
 
 class CommandContext(val args: List<String>) {
-    val player get() = Minecraft.getMinecraft().thePlayer
 
-    fun message(message: String) = player.addChatMessage(component(message))
+    val player get()                       = Minecraft.getMinecraft().thePlayer
+
+    fun message(message: String)           = player.addChatMessage(component(message))
     fun message(component: IChatComponent) = player.addChatMessage(component)
-    fun errorMessage(message: String) = message(component(message) { color = EnumChatFormatting.RED })
+    fun errorMessage(message: String)      = message(component(message) { color = EnumChatFormatting.RED })
+
 }
 
 inline fun component(text: String, builder: ChatStyle.() -> Unit = {}) =

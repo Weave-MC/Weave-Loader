@@ -11,6 +11,7 @@ import org.lwjgl.input.Mouse
 
 abstract class Event
 abstract class CancellableEvent : Event() {
+
     @get:JvmName("isCancelled")
     var cancelled = false
 }

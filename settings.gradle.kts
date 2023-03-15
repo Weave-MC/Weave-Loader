@@ -1,4 +1,5 @@
-rootProject.name = "Weave-Loader"
+val projectName: String by settings
+rootProject.name = projectName
 
 pluginManagement {
     repositories {

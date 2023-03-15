@@ -4,6 +4,7 @@ import java.lang.reflect.Method
 import java.util.function.Consumer
 
 object EventBus {
+
     private val map = hashMapOf<Class<*>, MutableList<Consumer<*>>>()
     private val Class<*>.listeners get() = map.getOrPut(this) { mutableListOf() }
 
@@ -32,12 +33,15 @@ object EventBus {
             e.printStackTrace()
         }
     }
+
 }
 
 private class ReflectEventHandler(val obj: Any, val method: Method) : Consumer<Event> {
+
     override fun accept(t: Event) {
         method(obj, t)
     }
+
 }
 
 @Retention(AnnotationRetention.RUNTIME)
