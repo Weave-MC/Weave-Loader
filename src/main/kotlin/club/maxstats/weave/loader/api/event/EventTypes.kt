@@ -17,10 +17,14 @@ abstract class CancellableEvent : Event() {
 }
 
 object TickEvent : Event()
-class KeyboardEvent(val keyCode: Int) : Event() {
+class KeyboardEvent(
+    val keyCode: Int,
+    val keyState: Boolean
+) : Event() {
     constructor() : this(
         if (Keyboard.getEventKey() == 0) Keyboard.getEventCharacter().code + 256
-        else Keyboard.getEventKey()
+        else Keyboard.getEventKey(),
+        Keyboard.getEventKeyState()
     )
 }
 
@@ -31,7 +35,7 @@ class MouseEvent(
     @get:JvmName("getDY") val dy: Int,
     @get:JvmName("getDWheel") val dwheel: Int,
     val button: Int,
-    @get:JvmName("getButtonState") val buttonstate: Boolean,
+    val buttonState: Boolean,
     val nanoseconds: Long
 ) : CancellableEvent() {
     constructor() : this(
