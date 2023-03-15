@@ -5,8 +5,12 @@ plugins {
     id("com.github.weave-mc.weave") version "8b70bcc707"
 }
 
-group = "club.maxstats"
-version = "1.0.0"
+val projectName:    String by project
+val projectVersion: String by project
+val projectGroup:   String by project
+
+group   = projectGroup
+version = projectVersion
 
 minecraft.version("1.8.9")
 
@@ -15,9 +19,9 @@ repositories {
 }
 
 dependencies {
-    api("org.ow2.asm:asm:9.4")
-    api("org.ow2.asm:asm-tree:9.4")
-    api("org.ow2.asm:asm-util:9.4")
+    api(libs.asm)
+    api(libs.asmtree)
+    api(libs.asmutil)
 }
 
 kotlin.jvmToolchain(11)
