@@ -3,9 +3,7 @@ package club.maxstats.weave.loader
 import club.maxstats.weave.loader.api.CommandBus
 import club.maxstats.weave.loader.api.HookManager
 import club.maxstats.weave.loader.api.ModInitializer
-import club.maxstats.weave.loader.util.addURL
 import java.lang.instrument.Instrumentation
-import java.net.URLClassLoader
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -20,10 +18,7 @@ object WeaveLoader {
      * @see [club.maxstats.weave.loader.bootstrap.premain]
      */
     @JvmStatic
-    fun preInit(inst: Instrumentation) {
-        val cl = this.javaClass.classLoader
-        require(cl is URLClassLoader) { "Non-URLClassLoader is not supported by Weave!" }
-
+    fun preInit(inst: Instrumentation, classLoader: ClassLoader) {
         inst.addTransformer(hookManager.Transformer())
 
         getOrCreateModDirectory()
@@ -31,12 +26,13 @@ object WeaveLoader {
             .filter { it.isRegularFile() }
             .map { it.toFile() }
             .forEach { mod ->
-                val entry = JarFile(mod).manifest.mainAttributes.getValue("Weave-Entry")
+                val jar = JarFile(mod)
+                val entry = jar.manifest.mainAttributes.getValue("Weave-Entry")
                     ?: error("Weave-Entry not defined in ${mod.path}")
 
-                cl.addURL(mod.toURI().toURL())
+                inst.appendToSystemClassLoaderSearch(jar)
 
-                val instance = cl.loadClass(entry)
+                val instance = classLoader.loadClass(entry)
                     .getConstructor()
                     .newInstance() as? ModInitializer
                     ?: error("$entry does not implement ModInitializer")

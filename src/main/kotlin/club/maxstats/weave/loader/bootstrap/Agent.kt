@@ -13,8 +13,8 @@ fun premain(opt: String?, inst: Instrumentation) {
                 //allows us to access minecraft classes throughout the project
 
                 loader.loadClass("club.maxstats.weave.loader.WeaveLoader")
-                    .getDeclaredMethod("preInit", Instrumentation::class.java)
-                    .invoke(null, inst)
+                    .getDeclaredMethod("preInit", Instrumentation::class.java, ClassLoader::class.java)
+                    .invoke(null, inst, loader)
             }
 
             return null
