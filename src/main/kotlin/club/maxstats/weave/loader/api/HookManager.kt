@@ -8,7 +8,6 @@ import org.objectweb.asm.tree.ClassNode
 import java.util.function.Consumer
 
 class HookManager {
-
     private val hooks = mutableListOf(
         ChatReceivedEventHook(),
         ChatSentEventHook(),
@@ -69,7 +68,4 @@ class HookManager {
             return writer.toByteArray()
         }
     }
-
 }
-
-class HookContext(val node: ClassNode, val config: Hook.AssemblerConfig)
