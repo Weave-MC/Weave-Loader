@@ -1,25 +1,28 @@
 package club.maxstats.weave.loader.hooks
 
-import club.maxstats.weave.loader.api.HookManager
+import club.maxstats.weave.loader.api.Hook
 import club.maxstats.weave.loader.api.event.KeyboardEvent
 import club.maxstats.weave.loader.util.*
-import org.objectweb.asm.tree.LabelNode
+import net.minecraft.client.Minecraft
+import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodInsnNode
 
-fun HookManager.registerKeyboardHook() = register("net/minecraft/client/Minecraft") {
-    node.methods.named("runTick").let { mn ->
-        mn.instructions.insert(
-            mn.instructions.find { it is MethodInsnNode && it.name == "dispatchKeypresses" },
-            asm {
-                new(internalNameOf<KeyboardEvent>())
-                dup
-                invokespecial(
-                    internalNameOf<KeyboardEvent>(),
-                    "<init>",
-                    "()V"
-                )
-                callEvent()
-            }
-        )
+class KeyboardEventHook : Hook(Minecraft::class) {
+    override fun transform(node: ClassNode, cfg: AssemblerConfig) {
+        node.methods.named("runTick").let { mn ->
+            mn.instructions.insert(
+                mn.instructions.find { it is MethodInsnNode && it.name == "dispatchKeypresses" },
+                asm {
+                    new(internalNameOf<KeyboardEvent>())
+                    dup
+                    invokespecial(
+                        internalNameOf<KeyboardEvent>(),
+                        "<init>",
+                        "()V"
+                    )
+                    callEvent()
+                }
+            )
+        }
     }
 }

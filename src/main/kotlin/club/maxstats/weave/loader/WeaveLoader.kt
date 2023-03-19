@@ -11,7 +11,6 @@ import java.util.jar.JarFile
 import kotlin.io.path.*
 
 object WeaveLoader {
-
     private val hookManager = HookManager()
 
     /**
@@ -20,6 +19,11 @@ object WeaveLoader {
     @JvmStatic
     fun preInit(inst: Instrumentation, classLoader: ClassLoader) {
         inst.addTransformer(hookManager.Transformer())
+        CommandBus.init()
+
+        hookManager.register("amogus") {
+            it.methods.clear()
+        }
 
         getOrCreateModDirectory()
             .listDirectoryEntries("*.jar")
@@ -39,8 +43,6 @@ object WeaveLoader {
 
                 instance.preInit(hookManager)
             }
-
-        CommandBus.registerCommandHook()
     }
 
     private fun getOrCreateModDirectory(): Path {
@@ -49,5 +51,4 @@ object WeaveLoader {
         if (!dir.exists()) dir.createDirectory()
         return dir
     }
-
 }

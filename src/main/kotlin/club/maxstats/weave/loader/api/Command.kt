@@ -20,7 +20,7 @@ object CommandBus {
     inline fun registerSimple(name: String, crossinline handler: CommandContext.() -> Unit) =
         register(simpleCommand(name, handler))
 
-    internal fun registerCommandHook() = EventBus.subscribe<ChatSentEvent> { e ->
+    internal fun init() = EventBus.subscribe<ChatSentEvent> { e ->
         if (!e.message.startsWith('/')) return@subscribe
 
         val commandPart = e.message.drop(1)
