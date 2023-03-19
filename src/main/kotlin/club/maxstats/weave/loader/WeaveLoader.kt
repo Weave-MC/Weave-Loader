@@ -21,18 +21,16 @@ object WeaveLoader {
         inst.addTransformer(hookManager.Transformer())
         CommandBus.init()
 
-        hookManager.register("amogus") {
-            it.methods.clear()
-        }
-
         getOrCreateModDirectory()
             .listDirectoryEntries("*.jar")
             .filter { it.isRegularFile() }
             .map { it.toFile() }
-            .forEach { mod ->
-                val jar = JarFile(mod)
+            .forEach { modFile ->
+                println("[Weave] Loading ${modFile.name}")
+                val jar = JarFile(modFile)
+
                 val entry = jar.manifest.mainAttributes.getValue("Weave-Entry")
-                    ?: error("Weave-Entry not defined in ${mod.path}")
+                    ?: error("Weave-Entry not defined in ${modFile.name}")
 
                 inst.appendToSystemClassLoaderSearch(jar)
 

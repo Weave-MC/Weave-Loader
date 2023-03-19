@@ -4,10 +4,8 @@ import club.maxstats.weave.loader.bootstrap.SafeTransformer
 import club.maxstats.weave.loader.hooks.*
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
-import org.objectweb.asm.Type
 import org.objectweb.asm.tree.ClassNode
 import java.util.function.Consumer
-import kotlin.reflect.KClass
 
 class HookManager {
 
@@ -39,12 +37,6 @@ class HookManager {
             }
         }
     )
-
-    fun register(clazz: Class<*>, block: Consumer<ClassNode>) =
-        register(Type.getInternalName(clazz), block)
-
-    fun register(clazz: KClass<*>, block: Consumer<ClassNode>) =
-        register(clazz.java, block)
 
     internal inner class Transformer : SafeTransformer {
 

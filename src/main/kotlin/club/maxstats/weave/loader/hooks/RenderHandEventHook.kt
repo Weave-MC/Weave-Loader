@@ -4,13 +4,12 @@ import club.maxstats.weave.loader.api.Hook
 import club.maxstats.weave.loader.api.event.CancellableEvent
 import club.maxstats.weave.loader.api.event.RenderHandEvent
 import club.maxstats.weave.loader.util.*
-import net.minecraft.client.renderer.EntityRenderer
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.JumpInsnNode
 import org.objectweb.asm.tree.LdcInsnNode
 
-class RenderHandEventHook : Hook(EntityRenderer::class) {
+class RenderHandEventHook : Hook("net/minecraft/client/renderer/EntityRenderer") {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         val renderWorldPass = node.methods.named("renderWorldPass")
 

@@ -7,12 +7,10 @@ import club.maxstats.weave.loader.util.asm
 import club.maxstats.weave.loader.util.callEvent
 import club.maxstats.weave.loader.util.internalNameOf
 import club.maxstats.weave.loader.util.named
-import net.minecraft.client.entity.EntityPlayerSP
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
 
-class ChatSentEventHook : Hook(EntityPlayerSP::class) {
-
+class ChatSentEventHook : Hook("net/minecraft/client/entity/EntityPlayerSP") {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         node.methods.named("sendChatMessage").instructions.insert(asm {
             new(internalNameOf<ChatSentEvent>())

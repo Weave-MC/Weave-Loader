@@ -6,11 +6,10 @@ import club.maxstats.weave.loader.util.asm
 import club.maxstats.weave.loader.util.callEvent
 import club.maxstats.weave.loader.util.internalNameOf
 import club.maxstats.weave.loader.util.named
-import net.minecraft.client.gui.GuiIngame
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.ClassNode
 
-class RenderGameOverlayHook : Hook(GuiIngame::class) {
+class RenderGameOverlayHook : Hook("net/minecraft/client/gui/GuiIngame") {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         val preInsn = asm {
             new(internalNameOf<RenderGameOverlayEvent.Pre>())

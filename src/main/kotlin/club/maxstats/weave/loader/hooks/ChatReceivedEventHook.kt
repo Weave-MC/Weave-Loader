@@ -7,11 +7,10 @@ import club.maxstats.weave.loader.util.asm
 import club.maxstats.weave.loader.util.callEvent
 import club.maxstats.weave.loader.util.internalNameOf
 import club.maxstats.weave.loader.util.named
-import net.minecraft.client.gui.GuiNewChat
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
 
-class ChatReceivedEventHook : Hook(GuiNewChat::class) {
+class ChatReceivedEventHook : Hook("net/minecraft/client/gui/GuiNewChat") {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         node.methods.named("printChatMessageWithOptionalDeletion").instructions.insert(asm {
             new(internalNameOf<ChatReceivedEvent>())

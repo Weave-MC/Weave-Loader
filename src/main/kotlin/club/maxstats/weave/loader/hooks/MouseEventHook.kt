@@ -7,13 +7,12 @@ import club.maxstats.weave.loader.util.asm
 import club.maxstats.weave.loader.util.callEvent
 import club.maxstats.weave.loader.util.internalNameOf
 import club.maxstats.weave.loader.util.named
-import net.minecraft.client.Minecraft
 import org.lwjgl.input.Mouse
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
 import org.objectweb.asm.tree.MethodInsnNode
 
-class MouseEventHook : Hook(Minecraft::class) {
+class MouseEventHook : Hook("net/minecraft/client/Minecraft") {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         val mn = node.methods.named("runTick")
 

@@ -3,11 +3,10 @@ package club.maxstats.weave.loader.hooks
 import club.maxstats.weave.loader.api.Hook
 import club.maxstats.weave.loader.api.event.KeyboardEvent
 import club.maxstats.weave.loader.util.*
-import net.minecraft.client.Minecraft
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodInsnNode
 
-class KeyboardEventHook : Hook(Minecraft::class) {
+class KeyboardEventHook : Hook("net/minecraft/client/Minecraft") {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         node.methods.named("runTick").let { mn ->
             mn.instructions.insert(

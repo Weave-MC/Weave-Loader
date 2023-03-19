@@ -7,11 +7,10 @@ import club.maxstats.weave.loader.util.asm
 import club.maxstats.weave.loader.util.callEvent
 import club.maxstats.weave.loader.util.internalNameOf
 import club.maxstats.weave.loader.util.named
-import net.minecraft.client.renderer.entity.RendererLivingEntity
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
 
-class RenderLivingEventHook : Hook(RendererLivingEntity::class) {
+class RenderLivingEventHook : Hook("net/minecraft/client/renderer/entity/RendererLivingEntity") {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         node.methods.named("doRender").instructions.insert(asm {
             new(internalNameOf<RenderLivingEvent.Pre>())
