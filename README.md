@@ -1,6 +1,6 @@
 <img
     align="right" alt="title" width="200px"
-    src="https://raw.githubusercontent.com/Weave-MC/.github/master/assets/logo.svg"
+    src="https://raw.githubusercontent.com/Weave-MC/.github/master/assets/icon.png"
 />
 
 ### Weave Loader, a Lunar Client Mod Loader
