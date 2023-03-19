@@ -7,17 +7,19 @@ import club.maxstats.weave.loader.util.*
 import net.minecraft.client.renderer.EntityRenderer
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.ClassNode
+import org.objectweb.asm.tree.JumpInsnNode
 import org.objectweb.asm.tree.LdcInsnNode
 
 class RenderHandEventHook : Hook(EntityRenderer::class) {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         val renderWorldPass = node.methods.named("renderWorldPass")
 
-        renderWorldPass.instructions.insertBefore(
-            renderWorldPass.instructions.find {
-                it is LdcInsnNode && it.cst == "hand"
-            }!!.next { it.opcode == Opcodes.IFEQ },
+        val ifeq = renderWorldPass.instructions.find {
+            it is LdcInsnNode && it.cst == "hand"
+        }!!.next<JumpInsnNode> { it.opcode == Opcodes.IFEQ }!!
 
+        renderWorldPass.instructions.insert(
+            ifeq,
             asm {
                 new(internalNameOf<RenderHandEvent>())
                 dup; dup
@@ -26,11 +28,8 @@ class RenderHandEventHook : Hook(EntityRenderer::class) {
 
                 callEvent()
 
-                //this.renderHand & ~event.isCancelled()
                 invokevirtual(internalNameOf<CancellableEvent>(), "isCancelled", "()Z")
-                iconst_1
-                ixor
-                iand
+                ifne(ifeq.label)
             }
         )
     }
