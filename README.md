@@ -1,6 +1,6 @@
 <img
     align="right" alt="title" width="200px"
-    src="https://static.wikia.nocookie.net/minecraft_gamepedia/images/d/d7/Loom_%28S%29_JE1_BE1.png/revision/latest?cb=20210116072516"
+    src="https://raw.githubusercontent.com/Weave-MC/.github/master/assets/logo.svg"
 />
 
 ### Weave Loader, a Lunar Client Mod Loader
