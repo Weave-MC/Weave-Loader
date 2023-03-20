@@ -6,12 +6,18 @@ import club.maxstats.weave.loader.util.asm
 import club.maxstats.weave.loader.util.callEvent
 import club.maxstats.weave.loader.util.internalNameOf
 import club.maxstats.weave.loader.util.named
-import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.ClassNode
+import org.objectweb.asm.tree.MethodInsnNode
 
-class RenderGameOverlayHook : Hook("net/minecraft/client/gui/GuiIngame") {
+class RenderGameOverlayHook : Hook("net/minecraft/client/renderer/EntityRenderer") {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
-        val preInsn = asm {
+        val mn = node.methods.named("updateCameraAndRender")
+
+        val renderGameOverlayCall = mn.instructions.find {
+            it is MethodInsnNode && it.name == "renderGameOverlay"
+        }
+
+        mn.instructions.insertBefore(renderGameOverlayCall, asm {
             new(internalNameOf<RenderGameOverlayEvent.Pre>())
             dup
             fload(1)
@@ -21,9 +27,9 @@ class RenderGameOverlayHook : Hook("net/minecraft/client/gui/GuiIngame") {
                 "(F)V"
             )
             callEvent()
-        }
+        })
 
-        val postInsn = asm {
+        mn.instructions.insert(renderGameOverlayCall, asm {
             new(internalNameOf<RenderGameOverlayEvent.Post>())
             dup
             fload(1)
@@ -33,10 +39,6 @@ class RenderGameOverlayHook : Hook("net/minecraft/client/gui/GuiIngame") {
                 "(F)V"
             )
             callEvent()
-        }
-
-        val mn = node.methods.named("renderGameOverlay")
-        mn.instructions.insert(preInsn)
-        mn.instructions.insertBefore(mn.instructions.find { it.opcode == Opcodes.RETURN }, postInsn)
+        })
     }
 }
