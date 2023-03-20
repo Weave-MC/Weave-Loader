@@ -20,6 +20,7 @@ class HookManager {
         RenderHandEventHook(),
         RenderLivingEventHook(),
         RenderWorldEventHook(),
+        ServerConnectEventHook(),
         ShutdownEventHook(),
         StartGameEventHook(),
         TickEventHook(),
