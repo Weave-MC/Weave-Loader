@@ -1,6 +1,8 @@
 package club.maxstats.weave.loader.api.event
 
+import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiScreen
+import net.minecraft.client.multiplayer.ServerData
 import net.minecraft.client.renderer.entity.RendererLivingEntity
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityLivingBase
@@ -99,6 +101,13 @@ sealed class RenderLivingEvent(
 class RenderWorldEvent(val partialTicks: Float) : Event()
 
 class RenderHandEvent(val partialTicks: Float) : CancellableEvent()
+
+class ServerConnectEvent(
+    val ip: String,
+    val port: Int,
+) : Event() {
+    val serverData: ServerData = Minecraft.getMinecraft().currentServerData
+}
 
 sealed class StartGameEvent : Event() {
     object Pre : StartGameEvent()
