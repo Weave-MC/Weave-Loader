@@ -14,13 +14,12 @@ private lateinit var modList: List<Class<*>>
 
 @Suppress("UNUSED_PARAMETER")
 fun premain(opt: String?, inst: Instrumentation) {
+    if (!initialised) {
+        modList = getModList(inst)
+        initialised = true
+    }
     inst.addTransformer(object : SafeTransformer {
         override fun transform(loader: ClassLoader, className: String, originalClass: ByteArray): ByteArray? {
-            if (!initialised) {
-                modList = getModList(inst, loader)
-                initialised = true
-            }
-
             if (className.startsWith("net/minecraft/")) {
                 inst.removeTransformer(this)
 
@@ -39,7 +38,7 @@ fun premain(opt: String?, inst: Instrumentation) {
     })
 }
 
-private fun getModList(inst: Instrumentation, classLoader: ClassLoader) =
+private fun getModList(inst: Instrumentation) =
     getOrCreateModDirectory()
         .listDirectoryEntries("*.jar")
         .asSequence()
@@ -47,6 +46,8 @@ private fun getModList(inst: Instrumentation, classLoader: ClassLoader) =
         .map { it.toFile() }
         .map { modFile ->
             println("[Weave] Preloading ${modFile.name}")
+            val classLoader = ClassLoader.getSystemClassLoader()
+
             val jar = JarFile(modFile)
 
             val premainClass = jar.manifest.mainAttributes.getValue("Weave-Premain-Class")
