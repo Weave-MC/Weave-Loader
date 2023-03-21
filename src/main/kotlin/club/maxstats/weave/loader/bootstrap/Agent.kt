@@ -8,9 +8,11 @@ fun premain(opt: String?, inst: Instrumentation) {
         override fun transform(loader: ClassLoader, className: String, originalClass: ByteArray): ByteArray? {
             if (className.startsWith("net/minecraft/")) {
                 inst.removeTransformer(this)
-
-                //load the rest of the loader using lunars classloader
-                //allows us to access minecraft classes throughout the project
+                
+                /* 
+                 * Load the rest of the loader using Lunar's own class loader.
+                 * This allows us access to Minecraft's classes throughout the project.
+                 */
 
                 loader.loadClass("club.maxstats.weave.loader.WeaveLoader")
                     .getDeclaredMethod("preInit", Instrumentation::class.java, ClassLoader::class.java)
