@@ -4,51 +4,30 @@ import club.maxstats.weave.loader.api.CommandBus
 import club.maxstats.weave.loader.api.HookManager
 import club.maxstats.weave.loader.api.ModInitializer
 import java.lang.instrument.Instrumentation
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.Paths
-import java.util.jar.JarFile
-import kotlin.io.path.*
 
 object WeaveLoader {
-
     private val hookManager = HookManager()
 
     /**
      * @see [club.maxstats.weave.loader.bootstrap.premain]
      */
     @JvmStatic
-    fun preInit(inst: Instrumentation, classLoader: ClassLoader) {
+    fun preInit(inst: Instrumentation, classLoader: ClassLoader, modList: List<Class<*>>) {
         inst.addTransformer(hookManager.Transformer())
         CommandBus.init()
 
-        getOrCreateModDirectory()
-            .listDirectoryEntries("*.jar")
-            .filter { it.isRegularFile() }
-            .map { it.toFile() }
-            .forEach { modFile ->
-                println("[Weave] Loading ${modFile.name}")
-                val jar = JarFile(modFile)
+        modList
+            .forEach { clazz ->
+            println("[Weave] Loading ${clazz.name}")
 
-                val entry = jar.manifest.mainAttributes.getValue("Weave-Entry")
-                    ?: error("Weave-Entry not defined in ${modFile.name}")
-
-                inst.appendToSystemClassLoaderSearch(jar)
-
-                val instance = classLoader.loadClass(entry)
+                val instance = classLoader
+                    .loadClass(clazz.name)
                     .getConstructor()
-                    .newInstance() as? ModInitializer
-                    ?: error("$entry does not implement ModInitializer")
+                    .newInstance()
+                    as? ModInitializer
+                    ?: error("${clazz.name} does not implement ModInitializer")
 
-                instance.preInit(hookManager)
-            }
+            instance.preInit(hookManager)
+        }
     }
-
-    private fun getOrCreateModDirectory(): Path {
-        val dir = Paths.get(System.getProperty("user.home"), ".lunarclient", "mods")
-        if (dir.exists() && !dir.isDirectory()) Files.delete(dir)
-        if (!dir.exists()) dir.createDirectory()
-        return dir
-    }
-    
 }
