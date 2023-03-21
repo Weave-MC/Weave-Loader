@@ -11,6 +11,7 @@ import java.util.jar.JarFile
 import kotlin.io.path.*
 
 object WeaveLoader {
+
     private val hookManager = HookManager()
 
     /**
@@ -49,4 +50,5 @@ object WeaveLoader {
         if (!dir.exists()) dir.createDirectory()
         return dir
     }
+    
 }
