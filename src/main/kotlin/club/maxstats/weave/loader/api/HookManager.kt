@@ -39,13 +39,12 @@ class HookManager {
     )
 
     internal inner class Transformer : SafeTransformer {
-
         override fun transform(
             loader: ClassLoader,
             className: String,
             originalClass: ByteArray
         ): ByteArray? {
-            val hooks = hooks.filter { it.targetClassName == className }
+            val hooks = hooks.filter { it.targetClassesName?.contains(className) ?: (it.check?.invoke(originalClass) ?: error("Can't filter hook at class $className")) }
             if (hooks.isEmpty()) return null
 
             val node = ClassNode()
