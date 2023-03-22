@@ -4,7 +4,7 @@ import java.lang.instrument.ClassFileTransformer
 import java.security.ProtectionDomain
 import kotlin.system.exitProcess
 
-interface SafeTransformer : ClassFileTransformer {
+internal interface SafeTransformer : ClassFileTransformer {
 
     fun transform(loader: ClassLoader, className: String, originalClass: ByteArray): ByteArray?
 

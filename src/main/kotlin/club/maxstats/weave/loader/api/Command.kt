@@ -7,18 +7,21 @@ import net.minecraft.util.ChatComponentText
 
 private val whitespaceRegex = """\s+""".toRegex()
 
-object CommandBus {
+public object CommandBus {
 
     private val commands = mutableListOf<Command>()
 
-    fun register(command: Command) {
+    public fun register(command: Command) {
         commands += command
     }
 
-    fun register(name: String, builder: CommandBuilder.() -> Unit) = register(command(name, builder))
+    public fun register(name: String, builder: CommandBuilder.() -> Unit) {
+        register(command(name, builder))
+    }
 
-    inline fun registerSimple(name: String, crossinline handler: CommandContext.() -> Unit) =
+    public inline fun registerSimple(name: String, crossinline handler: CommandContext.() -> Unit) {
         register(simpleCommand(name, handler))
+    }
 
     internal fun init() = EventBus.subscribe<ChatSentEvent> { e ->
         if (!e.message.startsWith('/')) return@subscribe
@@ -35,19 +38,19 @@ object CommandBus {
 private fun Command.matches(name: String) =
     (this.aliases + this.name).any { it.equals(name, ignoreCase = true) }
 
-abstract class Command {
+public abstract class Command {
 
-    abstract val name: String
-    open val aliases = listOf<String>()
-    open val subCommands = mutableListOf<Command>()
-    open val usage
+    public abstract val name: String
+    public open val aliases: List<String> = listOf()
+    public open val subCommands: List<Command> = listOf()
+    public open val usage: String
         get() = if (subCommands.isEmpty()) "no usage" else subCommands.joinToString(
             separator = "|",
             prefix = "<",
             postfix = ">"
         ) { it.name }
 
-    open fun handle(args: List<String>) {
+    public open fun handle(args: List<String>) {
         when {
             args.isEmpty() -> return printUsage()
             else -> (subCommands.find { it.matches(args.first()) } ?: return printUsage()).handle(args.drop(1))
@@ -62,42 +65,44 @@ abstract class Command {
 
 }
 
-inline fun simpleCommand(name: String, crossinline handler: CommandContext.() -> Unit) = object : Command() {
-    override val name = name
-    override fun handle(args: List<String>) {
-        handler(CommandContext(args))
+public inline fun simpleCommand(name: String, crossinline handler: CommandContext.() -> Unit): Command =
+    object : Command() {
+        override val name = name
+        override fun handle(args: List<String>) {
+            handler(CommandContext(args))
+        }
     }
-}
 
-inline fun command(name: String, builder: CommandBuilder.() -> Unit) = CommandBuilder(name).also(builder).toCommand()
+public inline fun command(name: String, builder: CommandBuilder.() -> Unit): Command =
+    CommandBuilder(name).also(builder).toCommand()
 
-class CommandBuilder(private val name: String) {
+public class CommandBuilder(private val name: String) {
 
-    var usage: String? = null
+    public var usage: String? = null
     private var handler: (CommandContext.() -> Unit)? = null
     private val aliases = mutableListOf<String>()
     private val subCommands = mutableListOf<Command>()
 
-    fun alias(vararg alias: String) {
+    public fun alias(alias: String) {
         aliases += alias
     }
 
-    fun subCommand(name: String, builder: CommandBuilder.() -> Unit) {
+    public fun subCommand(name: String, builder: CommandBuilder.() -> Unit) {
         subCommands += command(name, builder)
     }
 
-    fun simpleSubCommand(name: String, handler: CommandContext.() -> Unit) {
+    public fun simpleSubCommand(name: String, handler: CommandContext.() -> Unit) {
         subCommands += simpleCommand(name, handler)
     }
 
-    fun handle(handler: CommandContext.() -> Unit) {
+    public fun handle(handler: CommandContext.() -> Unit) {
         this.handler = handler
     }
 
-    fun toCommand() = object : Command() {
-        override val name        = this@CommandBuilder.name
-        override val usage       = this@CommandBuilder.usage ?: super.usage
-        override val aliases     = this@CommandBuilder.aliases
+    public fun toCommand(): Command = object : Command() {
+        override val name = this@CommandBuilder.name
+        override val usage = this@CommandBuilder.usage ?: super.usage
+        override val aliases = this@CommandBuilder.aliases
         override val subCommands = this@CommandBuilder.subCommands
 
         override fun handle(args: List<String>) {
@@ -107,4 +112,4 @@ class CommandBuilder(private val name: String) {
 
 }
 
-class CommandContext(val args: List<String>)
+public class CommandContext(public val args: List<String>)

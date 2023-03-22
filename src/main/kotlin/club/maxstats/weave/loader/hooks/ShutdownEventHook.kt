@@ -2,13 +2,13 @@ package club.maxstats.weave.loader.hooks
 
 import club.maxstats.weave.loader.api.Hook
 import club.maxstats.weave.loader.api.event.ShutdownEvent
-import club.maxstats.weave.loader.util.asm
+import club.maxstats.weave.loader.api.util.asm
 import club.maxstats.weave.loader.util.callEvent
 import club.maxstats.weave.loader.util.getSingleton
 import club.maxstats.weave.loader.util.named
 import org.objectweb.asm.tree.ClassNode
 
-class ShutdownEventHook : Hook("net/minecraft/client/Minecraft") {
+internal class ShutdownEventHook : Hook("net/minecraft/client/Minecraft") {
 
     /**
      * Inserts a singleton shutdown call at the head of
@@ -22,5 +22,4 @@ class ShutdownEventHook : Hook("net/minecraft/client/Minecraft") {
             callEvent()
         })
     }
-
 }

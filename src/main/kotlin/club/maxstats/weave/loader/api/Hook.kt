@@ -2,12 +2,10 @@ package club.maxstats.weave.loader.api
 
 import org.objectweb.asm.tree.ClassNode
 
-abstract class Hook(val targetClassName: String) {
+public abstract class Hook(public val targetClassName: String) {
+    public abstract fun transform(node: ClassNode, cfg: AssemblerConfig)
 
-    abstract fun transform(node: ClassNode, cfg: AssemblerConfig)
-
-    abstract class AssemblerConfig {
-        abstract fun computeFrames()
+    public abstract class AssemblerConfig {
+        public abstract fun computeFrames()
     }
-    
 }

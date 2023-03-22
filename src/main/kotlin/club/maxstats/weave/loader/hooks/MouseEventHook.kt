@@ -3,7 +3,7 @@ package club.maxstats.weave.loader.hooks
 import club.maxstats.weave.loader.api.Hook
 import club.maxstats.weave.loader.api.event.CancellableEvent
 import club.maxstats.weave.loader.api.event.MouseEvent
-import club.maxstats.weave.loader.util.asm
+import club.maxstats.weave.loader.api.util.asm
 import club.maxstats.weave.loader.util.callEvent
 import club.maxstats.weave.loader.util.internalNameOf
 import club.maxstats.weave.loader.util.named
@@ -12,8 +12,7 @@ import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
 import org.objectweb.asm.tree.MethodInsnNode
 
-class MouseEventHook : Hook("net/minecraft/client/Minecraft") {
-
+internal class MouseEventHook : Hook("net/minecraft/client/Minecraft") {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         val mn = node.methods.named("runTick")
 
@@ -33,5 +32,4 @@ class MouseEventHook : Hook("net/minecraft/client/Minecraft") {
             ifne(top)
         })
     }
-
 }

@@ -10,15 +10,14 @@ import java.nio.file.Paths
 import java.util.jar.JarFile
 import kotlin.io.path.*
 
-object WeaveLoader {
-
+public object WeaveLoader {
     private val hookManager = HookManager()
 
     /**
      * @see [club.maxstats.weave.loader.bootstrap.premain]
      */
     @JvmStatic
-    fun preInit(inst: Instrumentation, classLoader: ClassLoader) {
+    public fun preInit(inst: Instrumentation, classLoader: ClassLoader) {
         inst.addTransformer(hookManager.Transformer())
         CommandBus.init()
 
@@ -50,5 +49,4 @@ object WeaveLoader {
         if (!dir.exists()) dir.createDirectory()
         return dir
     }
-    
 }

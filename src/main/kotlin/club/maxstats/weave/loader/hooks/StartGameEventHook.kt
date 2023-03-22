@@ -2,14 +2,14 @@ package club.maxstats.weave.loader.hooks
 
 import club.maxstats.weave.loader.api.Hook
 import club.maxstats.weave.loader.api.event.StartGameEvent
-import club.maxstats.weave.loader.util.asm
+import club.maxstats.weave.loader.api.util.asm
 import club.maxstats.weave.loader.util.callEvent
 import club.maxstats.weave.loader.util.getSingleton
 import club.maxstats.weave.loader.util.named
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.ClassNode
 
-class StartGameEventHook : Hook("net/minecraft/client/Minecraft") {
+internal class StartGameEventHook : Hook("net/minecraft/client/Minecraft") {
 
     /**
      * Inserts a call to [net.minecraft.client.Minecraft.startGame] to post the
@@ -32,5 +32,4 @@ class StartGameEventHook : Hook("net/minecraft/client/Minecraft") {
         mn.instructions.insert(preInsn)
         mn.instructions.insertBefore(mn.instructions.find { it.opcode == Opcodes.RETURN }, postInsn)
     }
-
 }

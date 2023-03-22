@@ -3,15 +3,14 @@ package club.maxstats.weave.loader.hooks
 import club.maxstats.weave.loader.api.Hook
 import club.maxstats.weave.loader.api.event.CancellableEvent
 import club.maxstats.weave.loader.api.event.GuiOpenEvent
-import club.maxstats.weave.loader.util.asm
+import club.maxstats.weave.loader.api.util.asm
 import club.maxstats.weave.loader.util.callEvent
 import club.maxstats.weave.loader.util.internalNameOf
 import club.maxstats.weave.loader.util.named
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
 
-class GuiOpenEventHook : Hook("net/minecraft/client/Minecraft") {
-
+internal class GuiOpenEventHook : Hook("net/minecraft/client/Minecraft") {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         node.methods.named("displayGuiScreen").instructions.insert(asm {
             new(internalNameOf<GuiOpenEvent>())
@@ -36,5 +35,4 @@ class GuiOpenEventHook : Hook("net/minecraft/client/Minecraft") {
             f_same()
         })
     }
-
 }

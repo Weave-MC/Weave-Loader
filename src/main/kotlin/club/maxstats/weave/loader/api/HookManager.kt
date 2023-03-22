@@ -7,7 +7,7 @@ import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.tree.ClassNode
 import java.util.function.Consumer
 
-class HookManager {
+public class HookManager {
     private val hooks = mutableListOf(
         ChatReceivedEventHook(),
         ChatSentEventHook(),
@@ -26,17 +26,17 @@ class HookManager {
         TickEventHook(),
     )
 
-    fun register(vararg hooks: Hook) {
+    public fun register(vararg hooks: Hook) {
         this.hooks += hooks
     }
 
-    fun register(name: String, block: Consumer<ClassNode>) = hooks.add(
-        object : Hook(name) {
+    public fun register(name: String, block: Consumer<ClassNode>) {
+        hooks += object : Hook(name) {
             override fun transform(node: ClassNode, cfg: AssemblerConfig) {
                 block.accept(node)
             }
         }
-    )
+    }
 
     internal inner class Transformer : SafeTransformer {
 

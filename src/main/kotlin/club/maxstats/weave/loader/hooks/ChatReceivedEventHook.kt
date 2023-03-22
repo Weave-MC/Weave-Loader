@@ -3,18 +3,14 @@ package club.maxstats.weave.loader.hooks
 import club.maxstats.weave.loader.api.Hook
 import club.maxstats.weave.loader.api.event.CancellableEvent
 import club.maxstats.weave.loader.api.event.ChatReceivedEvent
-import club.maxstats.weave.loader.util.asm
+import club.maxstats.weave.loader.api.util.asm
 import club.maxstats.weave.loader.util.callEvent
 import club.maxstats.weave.loader.util.internalNameOf
 import club.maxstats.weave.loader.util.named
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
 
-class ChatReceivedEventHook : Hook("net/minecraft/client/gui/GuiNewChat") {
-
-    /**
-     *
-     */
+internal class ChatReceivedEventHook : Hook("net/minecraft/client/gui/GuiNewChat") {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         node.methods.named("printChatMessageWithOptionalDeletion").instructions.insert(asm {
             new(internalNameOf<ChatReceivedEvent>())
@@ -39,5 +35,4 @@ class ChatReceivedEventHook : Hook("net/minecraft/client/gui/GuiNewChat") {
             f_same()
         })
     }
-
 }

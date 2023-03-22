@@ -24,7 +24,10 @@ dependencies {
     api(libs.asmutil)
 }
 
-kotlin.jvmToolchain(11)
+kotlin {
+    jvmToolchain(8)
+    explicitApiWarning()
+}
 
 val agent by tasks.registering(Jar::class) {
     archiveAppendix.set("Agent")

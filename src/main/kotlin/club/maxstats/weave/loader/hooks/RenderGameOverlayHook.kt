@@ -2,15 +2,14 @@ package club.maxstats.weave.loader.hooks
 
 import club.maxstats.weave.loader.api.Hook
 import club.maxstats.weave.loader.api.event.RenderGameOverlayEvent
-import club.maxstats.weave.loader.util.asm
+import club.maxstats.weave.loader.api.util.asm
 import club.maxstats.weave.loader.util.callEvent
 import club.maxstats.weave.loader.util.internalNameOf
 import club.maxstats.weave.loader.util.named
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodInsnNode
 
-class RenderGameOverlayHook : Hook("net/minecraft/client/renderer/EntityRenderer") {
-
+internal class RenderGameOverlayHook : Hook("net/minecraft/client/renderer/EntityRenderer") {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         val mn = node.methods.named("updateCameraAndRender")
 
@@ -42,5 +41,4 @@ class RenderGameOverlayHook : Hook("net/minecraft/client/renderer/EntityRenderer
             callEvent()
         })
     }
-
 }
