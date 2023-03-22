@@ -18,7 +18,11 @@ abstract class CancellableEvent : Event() {
     var cancelled = false
 }
 
+/**
+ * @see club.maxstats.weave.loader.hooks.TickEventHook
+ */
 object TickEvent : Event()
+
 class KeyboardEvent(
     val keyCode: Int,
     val keyState: Boolean
@@ -53,7 +57,9 @@ class MouseEvent(
 }
 
 class ChatReceivedEvent(val message: IChatComponent) : CancellableEvent()
+
 class ChatSentEvent(val message: String) : CancellableEvent()
+
 class GuiOpenEvent(val screen: GuiScreen?) : CancellableEvent()
 
 sealed class RenderGameOverlayEvent(val partialTicks: Float) : Event() {

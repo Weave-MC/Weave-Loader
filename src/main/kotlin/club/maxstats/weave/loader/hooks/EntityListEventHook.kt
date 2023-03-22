@@ -10,6 +10,7 @@ import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.ClassNode
 
 class EntityListEventAddHook : Hook("net/minecraft/world/World") {
+
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         node.methods.named("spawnEntityInWorld").instructions.insert(asm {
             new(internalNameOf<EntityListEvent.Add>())
@@ -23,9 +24,11 @@ class EntityListEventAddHook : Hook("net/minecraft/world/World") {
             callEvent()
         })
     }
+
 }
 
 class EntityListEventRemoveHook : Hook("net/minecraft/client/multiplayer/WorldClient") {
+
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         val mn = node.methods.named("removeEntityFromWorld")
         mn.instructions.insert(mn.instructions.find { it.opcode == Opcodes.IFNULL }, asm {
@@ -40,4 +43,5 @@ class EntityListEventRemoveHook : Hook("net/minecraft/client/multiplayer/WorldCl
             callEvent()
         })
     }
+
 }

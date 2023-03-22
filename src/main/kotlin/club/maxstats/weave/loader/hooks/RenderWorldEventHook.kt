@@ -12,6 +12,7 @@ import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LdcInsnNode
 
 class RenderWorldEventHook : Hook("net/minecraft/client/renderer/EntityRenderer") {
+
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         node.methods.named("renderWorldPass").let { mn ->
             mn.instructions.insertBefore(
@@ -31,4 +32,5 @@ class RenderWorldEventHook : Hook("net/minecraft/client/renderer/EntityRenderer"
             )
         }
     }
+
 }

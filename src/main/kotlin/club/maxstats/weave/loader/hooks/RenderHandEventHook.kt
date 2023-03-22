@@ -10,6 +10,7 @@ import org.objectweb.asm.tree.JumpInsnNode
 import org.objectweb.asm.tree.LdcInsnNode
 
 class RenderHandEventHook : Hook("net/minecraft/client/renderer/EntityRenderer") {
+
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         val renderWorldPass = node.methods.named("renderWorldPass")
 
@@ -32,4 +33,5 @@ class RenderHandEventHook : Hook("net/minecraft/client/renderer/EntityRenderer")
             }
         )
     }
+
 }

@@ -13,6 +13,7 @@ import org.objectweb.asm.tree.LabelNode
 import org.objectweb.asm.tree.MethodInsnNode
 
 class MouseEventHook : Hook("net/minecraft/client/Minecraft") {
+
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         val mn = node.methods.named("runTick")
 
@@ -32,4 +33,5 @@ class MouseEventHook : Hook("net/minecraft/client/Minecraft") {
             ifne(top)
         })
     }
+
 }

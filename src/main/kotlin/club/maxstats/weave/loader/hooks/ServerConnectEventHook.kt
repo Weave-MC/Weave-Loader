@@ -9,6 +9,7 @@ import club.maxstats.weave.loader.util.named
 import org.objectweb.asm.tree.ClassNode
 
 class ServerConnectEventHook : Hook("net/minecraft/client/multiplayer/GuiConnecting") {
+
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         node.methods.named("connect").instructions.insert(asm {
             new(internalNameOf<ServerConnectEvent>())
@@ -24,4 +25,5 @@ class ServerConnectEventHook : Hook("net/minecraft/client/multiplayer/GuiConnect
             callEvent()
         })
     }
+
 }

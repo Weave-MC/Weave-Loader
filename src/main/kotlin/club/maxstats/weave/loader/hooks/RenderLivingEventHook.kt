@@ -11,6 +11,7 @@ import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
 
 class RenderLivingEventHook : Hook("net/minecraft/client/renderer/entity/RendererLivingEntity") {
+
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         node.methods.named("doRender").instructions.insert(asm {
             new(internalNameOf<RenderLivingEvent.Pre>())
@@ -26,11 +27,11 @@ class RenderLivingEventHook : Hook("net/minecraft/client/renderer/entity/Rendere
                 internalNameOf<RenderLivingEvent.Pre>(),
                 "<init>",
                 "(Lnet/minecraft/client/renderer/entity/RendererLivingEntity;" +
-                        "Lnet/minecraft/entity/EntityLivingBase;" +
-                        "D" +
-                        "D" +
-                        "D" +
-                        "F)V"
+                    "Lnet/minecraft/entity/EntityLivingBase;" +
+                    "D" +
+                    "D" +
+                    "D" +
+                    "F)V"
             )
             callEvent()
 
@@ -45,4 +46,5 @@ class RenderLivingEventHook : Hook("net/minecraft/client/renderer/entity/Rendere
             f_same()
         })
     }
+
 }

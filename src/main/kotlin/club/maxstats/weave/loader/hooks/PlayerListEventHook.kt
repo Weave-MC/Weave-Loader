@@ -10,6 +10,7 @@ import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodInsnNode
 
 class PlayerListEventHook : Hook("net/minecraft/client/network/NetHandlerPlayClient") {
+
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         val addInsn = asm {
             new(internalNameOf<PlayerListEvent.Add>())
@@ -39,4 +40,5 @@ class PlayerListEventHook : Hook("net/minecraft/client/network/NetHandlerPlayCli
         mn.instructions.insertBefore(mn.instructions.find { it is MethodInsnNode && it.name == "put" }, addInsn)
         mn.instructions.insertBefore(mn.instructions.find { it is MethodInsnNode && it.name == "remove" }, removeInsn)
     }
+
 }

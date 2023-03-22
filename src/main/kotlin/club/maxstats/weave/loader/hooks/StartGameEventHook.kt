@@ -10,6 +10,13 @@ import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.ClassNode
 
 class StartGameEventHook : Hook("net/minecraft/client/Minecraft") {
+
+    /**
+     * Inserts a call to [net.minecraft.client.Minecraft.startGame] to post the
+     * event before the return statement in the startGame method.
+     *
+     * @see net.minecraft.client.Minecraft.startGame
+     */
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         val preInsn = asm {
             getSingleton<StartGameEvent.Pre>()
@@ -25,4 +32,5 @@ class StartGameEventHook : Hook("net/minecraft/client/Minecraft") {
         mn.instructions.insert(preInsn)
         mn.instructions.insertBefore(mn.instructions.find { it.opcode == Opcodes.RETURN }, postInsn)
     }
+
 }

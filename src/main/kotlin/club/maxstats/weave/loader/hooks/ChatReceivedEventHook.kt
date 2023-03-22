@@ -11,6 +11,10 @@ import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
 
 class ChatReceivedEventHook : Hook("net/minecraft/client/gui/GuiNewChat") {
+
+    /**
+     *
+     */
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         node.methods.named("printChatMessageWithOptionalDeletion").instructions.insert(asm {
             new(internalNameOf<ChatReceivedEvent>())
@@ -35,4 +39,5 @@ class ChatReceivedEventHook : Hook("net/minecraft/client/gui/GuiNewChat") {
             f_same()
         })
     }
+
 }

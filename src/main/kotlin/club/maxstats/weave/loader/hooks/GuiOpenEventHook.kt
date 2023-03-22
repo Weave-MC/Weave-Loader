@@ -11,6 +11,7 @@ import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
 
 class GuiOpenEventHook : Hook("net/minecraft/client/Minecraft") {
+
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         node.methods.named("displayGuiScreen").instructions.insert(asm {
             new(internalNameOf<GuiOpenEvent>())
@@ -35,4 +36,5 @@ class GuiOpenEventHook : Hook("net/minecraft/client/Minecraft") {
             f_same()
         })
     }
+
 }

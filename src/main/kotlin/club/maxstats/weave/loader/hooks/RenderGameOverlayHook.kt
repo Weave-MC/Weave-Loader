@@ -10,6 +10,7 @@ import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodInsnNode
 
 class RenderGameOverlayHook : Hook("net/minecraft/client/renderer/EntityRenderer") {
+
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         val mn = node.methods.named("updateCameraAndRender")
 
@@ -41,4 +42,5 @@ class RenderGameOverlayHook : Hook("net/minecraft/client/renderer/EntityRenderer
             callEvent()
         })
     }
+
 }
