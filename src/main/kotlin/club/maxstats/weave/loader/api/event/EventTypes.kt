@@ -16,6 +16,7 @@ public abstract class CancellableEvent : Event() {
 
     @get:JvmName("isCancelled")
     public var cancelled: Boolean = false
+    
 }
 
 public object TickEvent : Event()
@@ -31,17 +32,21 @@ public class KeyboardEvent : Event() {
 
 public class MouseEvent : CancellableEvent() {
 
-    public val x: Int = Mouse.getEventX()
-    public val y: Int = Mouse.getEventY()
+    public val x: Int  = Mouse.getEventX()
+    public val y: Int  = Mouse.getEventY()
+    
     @get:JvmName("getDX")
     public val dx: Int = Mouse.getEventDX()
+    
     @get:JvmName("getDY")
     public val dy: Int = Mouse.getEventDY()
+  
     @get:JvmName("getDWheel")
-    public val dwheel: Int = Mouse.getEventDWheel()
-    public val button: Int = Mouse.getEventButton()
+    public val dwheel: Int          = Mouse.getEventDWheel()
+    public val button: Int          = Mouse.getEventButton()
     public val buttonState: Boolean = Mouse.getEventButtonState()
-    public val nanoseconds: Long = Mouse.getEventNanoseconds()
+    public val nanoseconds: Long    = Mouse.getEventNanoseconds()
+    
 }
 
 public class ChatReceivedEvent(public val message: IChatComponent) : CancellableEvent()
@@ -49,18 +54,24 @@ public class ChatSentEvent(public val message: String) : CancellableEvent()
 public class GuiOpenEvent(public val screen: GuiScreen?) : CancellableEvent()
 
 public sealed class RenderGameOverlayEvent(public val partialTicks: Float) : Event() {
+    
     public class Pre(partialTicks: Float) : RenderGameOverlayEvent(partialTicks)
     public class Post(partialTicks: Float) : RenderGameOverlayEvent(partialTicks)
+    
 }
 
 public sealed class EntityListEvent(public val entity: Entity) : Event() {
+    
     public class Add(entity: Entity) : EntityListEvent(entity)
     public class Remove(entity: Entity) : EntityListEvent(entity)
+    
 }
 
 public sealed class PlayerListEvent(public val playerData: AddPlayerData) : Event() {
+    
     public class Add(playerData: AddPlayerData) : PlayerListEvent(playerData)
     public class Remove(playerData: AddPlayerData) : PlayerListEvent(playerData)
+    
 }
 
 public sealed class RenderLivingEvent(
@@ -89,6 +100,7 @@ public sealed class RenderLivingEvent(
         z: Double,
         partialTicks: Float
     ) : RenderLivingEvent(renderer, entity, x, y, z, partialTicks)
+    
 }
 
 public class RenderWorldEvent(public val partialTicks: Float) : Event()
@@ -99,13 +111,14 @@ public class ServerConnectEvent(
     public val ip: String,
     public val port: Int,
 ) : Event() {
-
     public val serverData: ServerData = Minecraft.getMinecraft().currentServerData
 }
 
 public sealed class StartGameEvent : Event() {
+    
     public object Pre : StartGameEvent()
     public object Post : StartGameEvent()
+    
 }
 
 public object ShutdownEvent : Event()
