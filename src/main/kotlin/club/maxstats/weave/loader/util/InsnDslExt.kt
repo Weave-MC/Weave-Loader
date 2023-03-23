@@ -8,9 +8,7 @@ internal inline fun <reified T : Any> InsnBuilder.getSingleton() =
     getstatic(internalNameOf<T>(), "INSTANCE", "L${internalNameOf<T>()};")
 
 internal fun InsnBuilder.callEvent() {
-    getSingleton<EventBus>()
-    swap
-    invokevirtual(
+    invokestatic(
         internalNameOf<EventBus>(),
         "callEvent",
         "(L${internalNameOf<Event>()};)V"

@@ -1,6 +1,5 @@
 package club.maxstats.weave.loader
 
-import club.maxstats.weave.loader.api.CommandBus
 import club.maxstats.weave.loader.api.HookManager
 import club.maxstats.weave.loader.api.ModInitializer
 import java.lang.instrument.Instrumentation
@@ -19,7 +18,6 @@ public object WeaveLoader {
     @JvmStatic
     public fun preInit(inst: Instrumentation, classLoader: ClassLoader) {
         inst.addTransformer(hookManager.Transformer())
-        CommandBus.init()
 
         getOrCreateModDirectory()
             .listDirectoryEntries("*.jar")

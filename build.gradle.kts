@@ -22,6 +22,9 @@ dependencies {
     api(libs.asm)
     api(libs.asmtree)
     api(libs.asmutil)
+
+    compileOnly(libs.lombok)
+    annotationProcessor(libs.lombok)
 }
 
 kotlin {
