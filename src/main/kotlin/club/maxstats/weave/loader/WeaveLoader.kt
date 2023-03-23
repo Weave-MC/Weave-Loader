@@ -3,6 +3,7 @@ package club.maxstats.weave.loader
 import club.maxstats.weave.loader.api.CommandBus
 import club.maxstats.weave.loader.api.HookManager
 import club.maxstats.weave.loader.api.ModInitializer
+import club.maxstats.weave.loader.bootstrap.MixinApplicator
 import java.lang.instrument.Instrumentation
 import java.nio.file.Files
 import java.nio.file.Path
@@ -12,6 +13,7 @@ import kotlin.io.path.*
 
 public object WeaveLoader {
     private val hookManager = HookManager()
+    private val mixinApplicator = MixinApplicator()
 
     /**
      * @see [club.maxstats.weave.loader.bootstrap.premain]
@@ -19,6 +21,7 @@ public object WeaveLoader {
     @JvmStatic
     public fun preInit(inst: Instrumentation, classLoader: ClassLoader) {
         inst.addTransformer(hookManager.Transformer())
+        inst.addTransformer(mixinApplicator.Transformer())
         CommandBus.init()
 
         getOrCreateModDirectory()
@@ -33,6 +36,7 @@ public object WeaveLoader {
                     ?: error("Weave-Entry not defined in ${modFile.name}")
 
                 inst.appendToSystemClassLoaderSearch(jar)
+                mixinApplicator.registerMixins(jar)
 
                 val instance = classLoader.loadClass(entry)
                     .getConstructor()
@@ -50,3 +54,5 @@ public object WeaveLoader {
         return dir
     }
 }
+
+
