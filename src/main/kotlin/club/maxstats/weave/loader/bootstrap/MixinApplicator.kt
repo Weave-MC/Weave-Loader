@@ -3,14 +3,13 @@ package club.maxstats.weave.loader.bootstrap
 import club.maxstats.weave.loader.api.mixin.At
 import club.maxstats.weave.loader.api.mixin.At.Location.*
 import club.maxstats.weave.loader.api.mixin.Inject
-import club.maxstats.weave.loader.api.mixin.Mixin
+import club.maxstats.weave.loader.api.util.asm
 import club.maxstats.weave.loader.util.named
+import club.maxstats.weave.loader.util.returnCorrect
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Type
-import org.objectweb.asm.tree.ClassNode
-import org.objectweb.asm.tree.FieldInsnNode
-import org.objectweb.asm.tree.MethodInsnNode
+import org.objectweb.asm.tree.*
 import java.util.jar.JarFile
 
 public class MixinApplicator {
@@ -35,9 +34,9 @@ public class MixinApplicator {
             val classNode = ClassNode()
             ClassReader(classBytes).accept(classNode, 0)
 
-            val mixinClass = Class.forName(className, false, MixinApplicator::class.java.classLoader)
-            val mixinAnnotation = mixinClass.getAnnotation(Mixin::class.java) ?: error("Missing Mixin annotation")
-            val targetClasspath = Type.getInternalName(mixinAnnotation.value.java)
+            val mixinClass = Class.forName(className.replace(".class", "").replace("/", "."), false, MixinApplicator::class.java.classLoader)
+            val mixinAnnotation = classNode.visibleAnnotations?.find { it.desc == "Lclub/maxstats/weave/loader/api/mixin/Mixin;" }
+            val targetClasspath = (mixinAnnotation?.values?.get(1) as? Type)?.className?.replace(".", "/") ?: continue
 
             mixins += MixinClass(targetClasspath, mixinClass, classNode)
         }
@@ -96,7 +95,23 @@ public class MixinApplicator {
                 val shiftedIndex = if (at.shift == At.Shift.BEFORE) index - at.by else index + at.by
                 val injectionPoint = targetMethod.instructions[shiftedIndex]
 
-                targetMethod.instructions.insertBefore(injectionPoint, rawMethod.instructions)
+                val insn: InsnList =  asm {
+                    when (rawMethod.desc.substring(rawMethod.desc.lastIndexOf(")") + 1)) {
+                        "Z" -> {
+                            invokestatic(mixinNode.name, rawMethod.name, rawMethod.desc)
+                            val label = LabelNode()
+                            ifeq(label)
+                            returnCorrect(targetMethod.desc)
+                            +label
+                        }
+                        "V" -> invokestatic(mixinNode.name, rawMethod.name, rawMethod.desc)
+                        else -> {
+                            error("${rawMethod.name}'s return type is required to be either boolean or void. Ignoring mixin")
+                        }
+                    }
+                }
+
+                targetMethod.instructions.insertBefore(injectionPoint, insn)
             }
         }
     }
