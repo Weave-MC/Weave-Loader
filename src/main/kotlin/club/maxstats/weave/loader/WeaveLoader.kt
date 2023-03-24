@@ -45,6 +45,8 @@ public object WeaveLoader {
 
                 instance.preInit(hookManager)
             }
+
+        mixinApplicator.freeze()
     }
 
     private fun getOrCreateModDirectory(): Path {
