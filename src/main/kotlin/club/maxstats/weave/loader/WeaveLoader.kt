@@ -29,12 +29,11 @@ public object WeaveLoader {
             .forEach { modFile ->
                 println("[Weave] Loading ${modFile.name}")
                 val jar = JarFile(modFile)
-
-                val entry = jar.manifest.mainAttributes.getValue("Weave-Entry")
-                    ?: error("Weave-Entry not defined in ${modFile.name}")
-
                 inst.appendToSystemClassLoaderSearch(jar)
                 mixinApplicator.registerMixins(jar)
+                
+                val entry = jar.manifest.mainAttributes.getValue("Weave-Entry")
+                    ?: error("Weave-Entry not defined in ${modFile.name}")
 
                 val instance = classLoader.loadClass(entry)
                     .getConstructor()
