@@ -8,6 +8,7 @@ import club.maxstats.weave.loader.util.named
 import club.maxstats.weave.loader.util.returnCorrect
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
+import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import org.objectweb.asm.tree.*
 import java.util.jar.JarFile
@@ -80,19 +81,26 @@ public class MixinApplicator {
                         }
                     }
 
-                    FIELD -> {
+                    PUTFIELD -> {
                         val (className, fieldName) = at.target.split(";")
                         targetMethod.instructions.find {
-                            it is FieldInsnNode && it.owner == className && it.name == fieldName
+                            it is FieldInsnNode && it.opcode == Opcodes.PUTFIELD && it.owner == className && it.name == fieldName
                         }
                     }
 
-                    RETURN -> targetMethod.instructions.last
+                    GETFIELD -> {
+                        val (className, fieldName) = at.target.split(";")
+                        targetMethod.instructions.find {
+                            it is FieldInsnNode && it.opcode == Opcodes.GETFIELD && it.owner == className && it.name == fieldName
+                        }
+                    }
+
+                    RETURN -> targetMethod.instructions.findLast { it.opcode == Type.getReturnType(targetMethod.desc).getOpcode(Opcodes.IRETURN) }
                     HEAD -> targetMethod.instructions.first
                 }
 
                 val index = targetMethod.instructions.indexOf(entryPoint)
-                val shiftedIndex = if (at.shift == At.Shift.BEFORE) index - at.by else index + at.by
+                val shiftedIndex = if (at.shift == At.Shift.BEFORE) index - at.by else index + at.by + 1
                 val injectionPoint = targetMethod.instructions[shiftedIndex]
 
                 val insn: InsnList =  asm {
@@ -109,6 +117,24 @@ public class MixinApplicator {
                             error("${rawMethod.name}'s return type is required to be either boolean or void. Ignoring mixin")
                         }
                     }
+                }
+
+                val mixinArgTypes = Type.getArgumentTypes(rawMethod.desc)
+                if (mixinArgTypes.isNotEmpty()) {
+                    val targetArgTypes = Type.getArgumentTypes(targetMethod.desc)
+
+                    val argIndices = mutableMapOf<Type, Int>()
+                    for (i in targetArgTypes.indices)
+                        argIndices[targetArgTypes[i]] = i + 1
+
+                    val argsInsn = InsnList()
+                    for (argType in mixinArgTypes) {
+                        val argIndex = argIndices[argType]
+                            ?: error("Mismatch Parameters. ${rawMethod.desc} has parameter(s) that do not match ${targetMethod.desc}");
+
+                        argsInsn.add(VarInsnNode(argType.getOpcode(Opcodes.ILOAD), argIndex))
+                    }
+                    insn.insert(argsInsn)
                 }
 
                 targetMethod.instructions.insertBefore(injectionPoint, insn)
