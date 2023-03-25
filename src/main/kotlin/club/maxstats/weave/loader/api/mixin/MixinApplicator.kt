@@ -1,9 +1,8 @@
-package club.maxstats.weave.loader.bootstrap
+package club.maxstats.weave.loader.api.mixin
 
-import club.maxstats.weave.loader.api.mixin.At
 import club.maxstats.weave.loader.api.mixin.At.Location.*
-import club.maxstats.weave.loader.api.mixin.Inject
 import club.maxstats.weave.loader.api.util.asm
+import club.maxstats.weave.loader.bootstrap.SafeTransformer
 import club.maxstats.weave.loader.util.named
 import club.maxstats.weave.loader.util.returnCorrect
 import org.objectweb.asm.ClassReader
