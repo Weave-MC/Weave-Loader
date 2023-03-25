@@ -14,6 +14,6 @@ public annotation class At(
     }
 
     public enum class Location {
-        HEAD, RETURN, INVOKE, FIELD
+        HEAD, RETURN, INVOKE, PUTFIELD, GETFIELD
     }
 }
