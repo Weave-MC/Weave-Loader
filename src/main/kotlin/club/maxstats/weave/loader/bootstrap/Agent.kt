@@ -4,9 +4,8 @@ import java.lang.instrument.Instrumentation
 
 @Suppress("UNUSED_PARAMETER")
 public fun premain(opt: String?, inst: Instrumentation) {
-    val mcVersion = findVersion()
-    if(mcVersion != "1.8.9") {
-        println("[Weave] $mcVersion not supported, disabling...")
+    if(findVersion() != "1.8.9") {
+        println("[Weave] ${findVersion()} not supported, disabling...")
         return
     }
 
@@ -28,6 +27,8 @@ public fun premain(opt: String?, inst: Instrumentation) {
             return null
         }
     })
+
+    inst.addTransformer(MixinTransformer)
 }
 
 private fun findVersion() =

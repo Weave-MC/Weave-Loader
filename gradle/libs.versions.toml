@@ -1,9 +1,13 @@
 [versions]
-asm     = "9.4"      # https://asm.ow2.io/versions.html
-lombok  = "1.18.26"
+asm = "9.4"      # https://asm.ow2.io/versions.html
+lombok = "1.18.26"
+mixin = "0.8.5"
+kxSer = "1.5.0"
 
 [libraries]
-asm     = { module = "org.ow2.asm:asm",          version.ref = "asm" }
-asmtree = { module = "org.ow2.asm:asm-tree",     version.ref = "asm" }
-asmutil = { module = "org.ow2.asm:asm-util",     version.ref = "asm" }
-lombok  = { module = "org.projectlombok:lombok", version.ref = "lombok"}
+asm = { module = "org.ow2.asm:asm", version.ref = "asm" }
+asmtree = { module = "org.ow2.asm:asm-tree", version.ref = "asm" }
+asmutil = { module = "org.ow2.asm:asm-util", version.ref = "asm" }
+lombok = { module = "org.projectlombok:lombok", version.ref = "lombok" }
+mixin = { module = "org.spongepowered:mixin", version.ref = "mixin" }
+kxSer = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kxSer" }

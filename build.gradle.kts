@@ -1,5 +1,7 @@
 plugins {
     kotlin("jvm") version "1.8.0"
+    kotlin("plugin.serialization") version "1.8.0"
+
     `java-library`
     `maven-publish`
     id("com.github.weave-mc.weave") version "8b70bcc707"
@@ -16,6 +18,7 @@ minecraft.version("1.8.9")
 
 repositories {
     mavenCentral()
+    maven("https://repo.spongepowered.org/repository/maven-public/")
 }
 
 dependencies {
@@ -25,6 +28,9 @@ dependencies {
 
     compileOnly(libs.lombok)
     annotationProcessor(libs.lombok)
+
+    compileOnly(libs.mixin)
+    implementation(libs.kxSer)
 }
 
 kotlin {
