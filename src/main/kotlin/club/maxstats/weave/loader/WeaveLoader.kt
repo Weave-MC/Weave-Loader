@@ -39,7 +39,7 @@ public object WeaveLoader {
 
                 val config = Json.decodeFromStream<WeaveModConfig>(
                     jar.getInputStream(
-                        jar.getEntry("weave.mod.json") ?: error("${modFile.name}} does not contain a weave.mod.json!")
+                        jar.getEntry("weave.mod.json") ?: error("${modFile.name} does not contain a weave.mod.json!")
                     )
                 )
 
