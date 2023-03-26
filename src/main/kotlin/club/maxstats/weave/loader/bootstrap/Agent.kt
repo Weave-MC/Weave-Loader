@@ -28,7 +28,7 @@ public fun premain(opt: String?, inst: Instrumentation) {
         }
     })
 
-    inst.addTransformer(MixinTransformer)
+    inst.addTransformer(GenesisTransformer)
 }
 
 private fun findVersion() =

@@ -9,7 +9,7 @@ import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LdcInsnNode
 import org.objectweb.asm.tree.MethodInsnNode
 
-internal object MixinTransformer : SafeTransformer {
+internal object GenesisTransformer : SafeTransformer {
     override fun transform(
         loader: ClassLoader,
         className: String,
