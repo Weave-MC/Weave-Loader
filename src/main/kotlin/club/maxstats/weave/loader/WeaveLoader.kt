@@ -2,7 +2,11 @@ package club.maxstats.weave.loader
 
 import club.maxstats.weave.loader.api.HookManager
 import club.maxstats.weave.loader.api.ModInitializer
-import club.maxstats.weave.loader.api.mixin.MixinApplicator
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
+import org.spongepowered.asm.launch.MixinBootstrap
+import org.spongepowered.asm.mixin.Mixins
 import java.lang.instrument.Instrumentation
 import java.nio.file.Files
 import java.nio.file.Path
@@ -12,8 +16,6 @@ import kotlin.io.path.*
 
 public object WeaveLoader {
     private val hookManager = HookManager()
-    private val mixinApplicator = MixinApplicator()
-    public val mixins: List<String> = listOf("test.json")
 
     /**
      * @see [club.maxstats.weave.loader.bootstrap.premain]
@@ -21,8 +23,8 @@ public object WeaveLoader {
     @JvmStatic
     public fun preInit(inst: Instrumentation, classLoader: ClassLoader) {
         inst.addTransformer(hookManager.Transformer())
-        inst.addTransformer(mixinApplicator.Transformer())
 
+        MixinBootstrap.init()
         getOrCreateModDirectory()
             .listDirectoryEntries("*.jar")
             .filter { it.isRegularFile() }
@@ -31,20 +33,26 @@ public object WeaveLoader {
                 println("[Weave] Loading ${modFile.name}")
                 val jar = JarFile(modFile)
                 inst.appendToSystemClassLoaderSearch(jar)
-                mixinApplicator.registerMixins(jar)
-                
-                val entry = jar.manifest.mainAttributes.getValue("Weave-Entry")
-                    ?: error("Weave-Entry not defined in ${modFile.name}")
 
-                val instance = classLoader.loadClass(entry)
-                    .getConstructor()
-                    .newInstance() as? ModInitializer
-                    ?: error("$entry does not implement ModInitializer")
+                val config = Json.decodeFromString<WeaveModConfig>(
+                    jar.getInputStream(
+                        jar.getEntry("weave.mod.json") ?: error("No Weave mod config for $modFile!")
+                    ).readBytes().decodeToString()
+                )
 
-                instance.preInit(hookManager)
+                config.mixins
+                    .filter { classLoader.getResourceAsStream(it) != null }
+                    .forEach { Mixins.addConfiguration(it) }
+
+                config.entrypoints.mapNotNull {
+                    runCatching { classLoader.loadClass(it) }
+                        .onFailure { println("Failed to load entry $it for $modFile, skipping...") }
+                        .getOrNull()
+                }.forEach {
+                    (it.getConstructor().newInstance() as? ModInitializer
+                        ?: error("$it (mod $modFile) does not implement ModInitializer!")).preInit(hookManager)
+                }
             }
-
-        mixinApplicator.freeze()
     }
 
     private fun getOrCreateModDirectory(): Path {
@@ -54,3 +62,6 @@ public object WeaveLoader {
         return dir
     }
 }
+
+@Serializable
+private data class WeaveModConfig(val mixins: List<String> = listOf(), val entrypoints: List<String>)

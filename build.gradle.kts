@@ -1,5 +1,7 @@
 plugins {
     kotlin("jvm") version "1.8.0"
+    kotlin("plugin.serialization") version "1.8.0"
+
     `java-library`
     `maven-publish`
     id("com.github.weave-mc.weave") version "8b70bcc707"
@@ -27,7 +29,8 @@ dependencies {
     compileOnly(libs.lombok)
     annotationProcessor(libs.lombok)
 
-    compileOnly("org.spongepowered:mixin:0.8.5")
+    compileOnly(libs.mixin)
+    implementation(libs.kxSer)
 }
 
 kotlin {
