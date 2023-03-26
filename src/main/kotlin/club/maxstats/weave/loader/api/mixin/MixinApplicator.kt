@@ -25,7 +25,7 @@ public class MixinApplicator {
     public fun registerMixins(mod: JarFile) {
         if (frozen) error("Mixin registration is already frozen!")
 
-        val lines = mod.getInputStream(mod.getEntry("weavin.conf")).bufferedReader().readLines()
+        val lines = mod.getInputStream(mod.getEntry("weavin.conf") ?: return).bufferedReader().readLines()
 
         for (line in lines) {
             val className = "$line.class"

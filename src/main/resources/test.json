@@ -1,0 +1,11 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "club.maxstats.weave.loader.testmixin",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": ["TitleScreenMixin"],
+  "target": "CLIENT",
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

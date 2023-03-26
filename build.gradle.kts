@@ -16,6 +16,7 @@ minecraft.version("1.8.9")
 
 repositories {
     mavenCentral()
+    maven("https://repo.spongepowered.org/repository/maven-public/")
 }
 
 dependencies {
@@ -25,6 +26,8 @@ dependencies {
 
     compileOnly(libs.lombok)
     annotationProcessor(libs.lombok)
+
+    compileOnly("org.spongepowered:mixin:0.8.5")
 }
 
 kotlin {

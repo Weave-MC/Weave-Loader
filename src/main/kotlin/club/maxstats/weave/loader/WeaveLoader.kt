@@ -13,6 +13,7 @@ import kotlin.io.path.*
 public object WeaveLoader {
     private val hookManager = HookManager()
     private val mixinApplicator = MixinApplicator()
+    public val mixins: List<String> = listOf("test.json")
 
     /**
      * @see [club.maxstats.weave.loader.bootstrap.premain]

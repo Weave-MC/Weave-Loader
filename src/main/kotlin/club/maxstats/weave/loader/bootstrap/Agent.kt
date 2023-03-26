@@ -28,6 +28,8 @@ public fun premain(opt: String?, inst: Instrumentation) {
             return null
         }
     })
+
+    inst.addTransformer(MixinTransformer)
 }
 
 private fun findVersion() =
