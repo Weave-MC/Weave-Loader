@@ -16,12 +16,15 @@ internal object MixinTransformer : SafeTransformer {
         originalClass: ByteArray
     ) = if (className == "com/moonsworth/lunar/genesis/Genesis") originalClass.modify { node ->
         val method = node.methods.named("main")
-        val ldc = method.instructions.filterIsInstance<LdcInsnNode>().first { it.cst == "prebake.cache" }
-        val exists = ldc.next<MethodInsnNode> { it.name == "exists" }!!
-        method.instructions.insert(exists, asm {
-            pop
-            iconst_0
-        })
+        val ldc = method.instructions.first { it is LdcInsnNode && it.cst == "prebake.cache" }
+
+        method.instructions.insert(
+            ldc.next<MethodInsnNode> { it.name == "exists" },
+            asm {
+                pop
+                iconst_0
+            }
+        )
 
         val prebake = node.methods.named("prebake")
         prebake.instructions = asm { _return }
@@ -29,12 +32,12 @@ internal object MixinTransformer : SafeTransformer {
         prebake.tryCatchBlocks.clear()
         prebake.localVariables.clear()
     } else null
+}
 
-    private fun ByteArray.modify(handler: (node: ClassNode) -> Unit): ByteArray {
-        val reader = ClassReader(this)
-        val node = ClassNode().also { reader.accept(it, 0) }.also(handler)
-        val writer = ClassWriter(reader, 0)
-        node.accept(writer)
-        return writer.toByteArray()
-    }
+private fun ByteArray.modify(handler: (node: ClassNode) -> Unit): ByteArray {
+    val reader = ClassReader(this)
+    val node = ClassNode().also { reader.accept(it, 0) }.also(handler)
+    val writer = ClassWriter(reader, 0)
+    node.accept(writer)
+    return writer.toByteArray()
 }

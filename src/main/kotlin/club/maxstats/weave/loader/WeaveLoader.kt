@@ -2,9 +2,10 @@ package club.maxstats.weave.loader
 
 import club.maxstats.weave.loader.api.HookManager
 import club.maxstats.weave.loader.api.ModInitializer
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.decodeFromStream
 import org.spongepowered.asm.launch.MixinBootstrap
 import org.spongepowered.asm.mixin.Mixins
 import java.lang.instrument.Instrumentation
@@ -21,10 +22,12 @@ public object WeaveLoader {
      * @see [club.maxstats.weave.loader.bootstrap.premain]
      */
     @JvmStatic
+    @OptIn(ExperimentalSerializationApi::class)
     public fun preInit(inst: Instrumentation, classLoader: ClassLoader) {
         inst.addTransformer(hookManager.Transformer())
 
         MixinBootstrap.init()
+
         getOrCreateModDirectory()
             .listDirectoryEntries("*.jar")
             .filter { it.isRegularFile() }
@@ -34,23 +37,21 @@ public object WeaveLoader {
                 val jar = JarFile(modFile)
                 inst.appendToSystemClassLoaderSearch(jar)
 
-                val config = Json.decodeFromString<WeaveModConfig>(
+                val config = Json.decodeFromStream<WeaveModConfig>(
                     jar.getInputStream(
-                        jar.getEntry("weave.mod.json") ?: error("No Weave mod config for $modFile!")
-                    ).readBytes().decodeToString()
+                        jar.getEntry("weave.mod.json") ?: error("${modFile.name}} does not contain a weave.mod.json!")
+                    )
                 )
 
-                config.mixins
-                    .filter { classLoader.getResourceAsStream(it) != null }
-                    .forEach { Mixins.addConfiguration(it) }
+                config.mixins.forEach { Mixins.addConfiguration(it) }
 
-                config.entrypoints.mapNotNull {
-                    runCatching { classLoader.loadClass(it) }
-                        .onFailure { println("Failed to load entry $it for $modFile, skipping...") }
-                        .getOrNull()
-                }.forEach {
-                    (it.getConstructor().newInstance() as? ModInitializer
-                        ?: error("$it (mod $modFile) does not implement ModInitializer!")).preInit(hookManager)
+                config.entrypoints.forEach {
+                    val instance = classLoader.loadClass(it)
+                        .getConstructor()
+                        .newInstance() as? ModInitializer
+                        ?: error("$it (mod ${modFile.name} does not implement ModInitializer!")
+
+                    instance.preInit(hookManager)
                 }
             }
     }
