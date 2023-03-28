@@ -1,7 +1,5 @@
 package club.maxstats.weave.loader.api
 
 public interface ModInitializer {
-
-    public fun preInit(hookManager: HookManager)
-
+    public fun init()
 }

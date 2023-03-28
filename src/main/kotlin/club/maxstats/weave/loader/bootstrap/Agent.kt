@@ -51,8 +51,8 @@ public fun premain(opt: String?, inst: Instrumentation) {
                 This allows us to access Minecraft's classes throughout the project.
                 */
                 loader.parent.loadClass("club.maxstats.weave.loader.WeaveLoader")
-                    .getDeclaredMethod("preInit", Instrumentation::class.java, List::class.java)
-                    .invoke(null, inst, configList.flatMap { it.entrypoints })
+                    .getDeclaredMethod("preInit", Instrumentation::class.java, List::class.java, List::class.java)
+                    .invoke(null, inst, configList.flatMap { it.entrypoints }, configList.flatMap { it.hooks })
             }
 
             return null
@@ -75,7 +75,7 @@ private fun findVersion() =
         ?.groupValues?.get(1)
 
 @Serializable
-private data class WeaveModConfig(val mixins: List<String> = listOf(), val entrypoints: List<String>)
+private data class WeaveModConfig(val mixins: List<String> = listOf(), val entrypoints: List<String>, val hooks: List<String>)
 
 public class MixinLoader(mixins: List<String>) {
     init {

@@ -22,7 +22,7 @@ public class HookManager {
         RenderWorldEventHook(),
         ServerConnectEventHook(),
         ShutdownEventHook(),
-        StartGameEventHook(),
+        ModInitializerHook(),
         TickEventHook(),
     )
 
