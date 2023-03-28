@@ -1,5 +1,6 @@
 package club.maxstats.weave.loader.bootstrap
 
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
@@ -12,6 +13,7 @@ import java.nio.file.Paths
 import java.util.jar.JarFile
 import kotlin.io.path.*
 
+@OptIn(ExperimentalSerializationApi::class)
 @Suppress("UNUSED_PARAMETER")
 public fun premain(opt: String?, inst: Instrumentation) {
     if(findVersion() != "1.8.9") {
@@ -75,7 +77,11 @@ private fun findVersion() =
         ?.groupValues?.get(1)
 
 @Serializable
-private data class WeaveModConfig(val mixins: List<String> = listOf(), val entrypoints: List<String>, val hooks: List<String>)
+private data class WeaveModConfig(
+    val mixins: List<String> = listOf(),
+    val hooks: List<String> = listOf(),
+    val entrypoints: List<String>
+)
 
 public class MixinLoader(mixins: List<String>) {
     init {
