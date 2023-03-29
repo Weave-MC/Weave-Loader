@@ -20,9 +20,9 @@ public class WeaveMixinService : IMixinService, IClassProvider, IClassBytecodePr
 
     private val lock = ReEntranceLock(1)
 
-    public companion object {
+    internal companion object {
 
-        public lateinit var transformer: IMixinTransformer
+        lateinit var transformer: IMixinTransformer
             private set
     }
 
@@ -111,7 +111,7 @@ public class WeaveMixinService : IMixinService, IClassProvider, IClassBytecodePr
             val cn = ClassNode()
             ClassReader(bytes).accept(cn, ClassReader.EXPAND_FRAMES)
             return cn
-        }catch (ex: IOException) {
+        } catch (ex: IOException) {
             throw ClassNotFoundException(canonicalName, ex)
         }
     }
