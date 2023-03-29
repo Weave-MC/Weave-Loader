@@ -16,16 +16,6 @@ Weave Loader is a tool designed to simplify the process of modding Minecraft, an
 developers to easily create mods by providing a simple and intuitive API for interacting with Minecraft's codebase,
 while injecting into clients that are somewhat closed-off to developers.
 
-## Getting Started
-
-- Make sure a [JDK 17][jdk] is installed on your system.
-
-- To test (Windows and Unix)
-
-```bash
-java --version # should output some JDK 17.
-```
-
 ### Installation
 
 To install Weave-Loader, you can either download a pre-built release from
@@ -36,68 +26,30 @@ the [releases page](https://github.com/Weave-MC/Weave-Loader/releases), or build
 - `git clone` the project, this can be achieved by installing [git][git], then running
 
 ```bash
-git clone https://github.com/Weave-MC/Weave-Loader.git "Weave-Loader"
+git clone https://github.com/Weave-MC/Weave-Loader.git
 ```
 
 - **UN*X**
 
 ```bash
-cd $_ ; chmod +x ./gradlew && ./gradlew build
+cd Weave-Loader && chmod +x ./gradlew && ./gradlew agent
 ```
-
-> Note that `$_` is the last argument from the previous command, should be run after cloning.
 
 - **Windows**
 
-```powershell
-cd Weave-Loader ; .\gradlew.bat build
+```cmd
+cd Weave-Loader && .\gradlew.bat agent
 ```
 
-### Usage
+## Usage
 
-You can use Weave-Loader as a dependency in your project by implementing it as a repository. To do this, add the
-following code to your `build.gradle` file.
-
-- **Groovy DSL**
-
-```gradle
-repositories {
-    maven {
-        url 'https://jitpack.io'
-    }
-}
-
-dependencies {
-    implementation 'com.github.Weave-MC:Weave-Loader:${VERSION}'
-}
-```
-
-- **Kotlin DSL**
-
-```kt
-repositories {
-    maven("https://jitpack.io")
-}
-
-dependencies {
-    implementation("com.github.Weave-MC:Weave-Loader:${VERSION}")
-}
-```
-
-Replace `${VERSION}` with the version of Weave-Loader in the Build Reference. (soon:tm:)
-
-When you launch Minecraft, Weave-Loader will automatically attach to the game's process and modify its classes to
-provide modding capabilities. You can then use the provided API to create your own mods.
-
-For more information on how to use Weave-Loader, see the [wiki](https://github.com/Weave-MC/Weave-Loader/wiki).
+To use Weave-Loader you have to take the agent from the last step and launch lunar with `-javaagent:$PATH_TO_AGENT` appended to the jvm arguments.
+Weave will automatically load mods from `~/.lunarclient/mods/`.
 
 ## Contributing
 
 We welcome contributions from anyone interested in improving Weave-Loader. If you find a bug or have an idea for a new
 feature, feel free to submit a pull request.
-
-Before submitting a pull request, please make sure your changes are in line with our coding standards and that all tests
-pass by passing gradle with a test flag, `./gradlew test` or `.\gradlew.bat test`
 
 ---
 
@@ -106,8 +58,6 @@ pass by passing gradle with a test flag, `./gradlew test` or `.\gradlew.bat test
 Weave-Loader is licensed under the [GNU General Public License Version 3][license].
 
 </div>
-
-[jdk]:     https://www.azul.com/downloads/?version=java-17-lts&package=jdk
 
 [git]:     https://git-scm.com/
 
