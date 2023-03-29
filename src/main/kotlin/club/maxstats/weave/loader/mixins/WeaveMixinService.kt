@@ -106,8 +106,6 @@ public class WeaveMixinService : IMixinService, IClassProvider, IClassBytecodePr
         val canonicalName = name.replace('/', '.')
         val internalName = name.replace('.', '/')
 
-        println("[Weave Mixin] $canonicalName")
-
         try {
             val bytes = genesisClassCache[canonicalName] ?: getResourceAsStream("$internalName.class")!!.readBytes()
             val cn = ClassNode()

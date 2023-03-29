@@ -1,7 +1,6 @@
 package club.maxstats.weave.loader.bootstrap
 
 import java.lang.instrument.Instrumentation
-import kotlin.io.path.*
 
 @Suppress("UNUSED_PARAMETER")
 public fun premain(opt: String?, inst: Instrumentation) {
@@ -12,19 +11,14 @@ public fun premain(opt: String?, inst: Instrumentation) {
 
     inst.addTransformer(object : SafeTransformer {
         override fun transform(loader: ClassLoader, className: String, originalClass: ByteArray): ByteArray? {
-            if (className.startsWith("net/minecraft/")) {
+            if (className.startsWith("net/minecraft/client/")) {
                 inst.removeTransformer(this)
-
-                val mcLoader = if (loader.toString().contains("ichor", ignoreCase = true))
-                    loader.parent
-                else
-                    loader
 
                 /*
                 Load the rest of the loader using Genesis class loader.
                 This allows us to access Minecraft's classes throughout the project.
                 */
-                mcLoader.loadClass("club.maxstats.weave.loader.WeaveLoader")
+                loader.loadClass("club.maxstats.weave.loader.WeaveLoader")
                     .getDeclaredMethod("preInit", Instrumentation::class.java)
                     .invoke(null, inst)
             }
@@ -32,8 +26,6 @@ public fun premain(opt: String?, inst: Instrumentation) {
             return null
         }
     })
-
-    //inst.addTransformer(GenesisTransformer)
 }
 
 private fun findVersion() =
