@@ -107,7 +107,9 @@ public class WeaveMixinService : IMixinService, IClassProvider, IClassBytecodePr
         val internalName = name.replace('.', '/')
 
         try {
-            val bytes = genesisClassCache[canonicalName] ?: getResourceAsStream("$internalName.class")!!.readBytes()
+            val bytes = genesisClassCache[canonicalName]
+                ?: this.javaClass.classLoader.getResourceAsStream("$internalName.class")!!.readBytes()
+
             val cn = ClassNode()
             ClassReader(bytes).accept(cn, ClassReader.EXPAND_FRAMES)
             return cn
