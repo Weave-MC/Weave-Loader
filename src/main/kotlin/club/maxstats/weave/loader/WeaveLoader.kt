@@ -47,7 +47,7 @@ public object WeaveLoader {
                 )))
             }
 
-        mods.flatMap { it.config.mixins }.forEach {
+        mods.flatMap { it.config.mixinConfigs }.forEach {
             Mixins.addConfiguration(it)
         }
 
@@ -93,7 +93,7 @@ public object WeaveLoader {
 
     @Serializable
     private data class WeaveModConfig(
-        val mixins: List<String> = listOf(),
+        val mixinConfigs: List<String> = listOf(),
         val hooks: List<String> = listOf(),
         val entrypoints: List<String>
     )
