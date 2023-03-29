@@ -1,20 +1,19 @@
 package club.maxstats.weave.loader.api.command;
 
-import lombok.AllArgsConstructor;
 import java.util.Arrays;
 
-@AllArgsConstructor
 public abstract class Command {
     public final String name;
+    public final String[] aliases;
 
-    public String[] getAliases() {
-        return new String[] {};
+    public Command(String name, String... aliases) {
+        this.name = name;
+        this.aliases = aliases;
     }
 
     public abstract void handle(String[] args);
 
-
     boolean matches(String s) {
-        return name.equalsIgnoreCase(s) || Arrays.stream(getAliases()).anyMatch(alias -> alias.equalsIgnoreCase(s));
+        return name.equalsIgnoreCase(s) || Arrays.stream(aliases).anyMatch(alias -> alias.equalsIgnoreCase(s));
     }
 }
