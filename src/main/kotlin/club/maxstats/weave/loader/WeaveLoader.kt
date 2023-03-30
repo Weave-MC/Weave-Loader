@@ -48,7 +48,9 @@ public object WeaveLoader {
 
                 inst.appendToSystemClassLoaderSearch(jarFile)
 
-                val config = Json.decodeFromStream<WeaveModConfig>(jarFile.getInputStream(jarFile.getEntry("weave.mod.json")))
+                val config = Json.decodeFromStream<WeaveModConfig>(jarFile.getInputStream(
+                    jarFile.getEntry("weave.mod.json") ?: error("$modPath does not contain weave.mod.json!")
+                ))
                 val mod = Mod(modPath.fileName.toString(), config)
 
                 mod.entryPoints.addAll(config.entrypoints
