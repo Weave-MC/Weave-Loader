@@ -1,4 +1,4 @@
-package club.maxstats.weave.loader.mixins
+package club.maxstats.weave.loader.mixins.service
 
 import club.maxstats.weave.loader.bootstrap.SafeTransformer
 import org.spongepowered.asm.mixin.MixinEnvironment

@@ -1,4 +1,4 @@
-package club.maxstats.weave.loader.mixins
+package club.maxstats.weave.loader.mixins.service
 
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.tree.ClassNode

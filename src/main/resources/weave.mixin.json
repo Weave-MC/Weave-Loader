@@ -1,0 +1,6 @@
+{
+    "package": "club.maxstats.weave.loader.mixins",
+    "mixins": [
+        "core.MinecraftMixin"
+    ]
+}
