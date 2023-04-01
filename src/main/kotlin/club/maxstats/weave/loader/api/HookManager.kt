@@ -5,6 +5,7 @@ import club.maxstats.weave.loader.hooks.*
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.tree.ClassNode
+import org.spongepowered.asm.transformers.MixinClassWriter
 import java.util.function.Consumer
 
 public class HookManager {
@@ -62,9 +63,8 @@ public class HookManager {
             hooks.forEach { it.transform(node, cfg) }
             val flags = if (computeFrames) ClassWriter.COMPUTE_FRAMES else ClassWriter.COMPUTE_MAXS
 
-            val writer = object : ClassWriter(reader, flags) {
-                override fun getClassLoader() = loader
-            }
+            //HACK: use MixinClassWriter because it doesn't load classes when computing frames.
+            val writer = MixinClassWriter(reader, flags)
             node.accept(writer)
             return writer.toByteArray()
         }

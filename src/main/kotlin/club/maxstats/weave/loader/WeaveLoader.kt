@@ -29,10 +29,10 @@ public object WeaveLoader {
     public fun preInit(inst: Instrumentation) {
         println("[Weave] Initializing Weave")
 
-        inst.addTransformer(hookManager.Transformer())
-
         MixinBootstrap.init()
         inst.addTransformer(WeaveMixinTransformer)
+
+        inst.addTransformer(hookManager.Transformer())
 
         mods = getOrCreateModDirectory()
             .listDirectoryEntries("*.jar")
