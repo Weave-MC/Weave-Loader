@@ -16,7 +16,7 @@ internal interface SafeTransformer : ClassFileTransformer {
         classfileBuffer: ByteArray
     ) = try {
         this.transform(loader, className, classfileBuffer)
-    } catch (e: Exception) {
+    } catch (e: Throwable) {
         e.printStackTrace()
         exitProcess(1)
     }
