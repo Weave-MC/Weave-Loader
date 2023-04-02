@@ -6,12 +6,15 @@ import lombok.experimental.UtilityClass;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
 @UtilityClass
 public class EventBus {
-    private final Map<Class<?>, List<Consumer<?>>> map = new HashMap<>();
+    private final Map<Class<?>, List<Consumer<?>>> map = new ConcurrentHashMap<>();
 
     public void subscribe(Object obj) {
         for (Method method : obj.getClass().getDeclaredMethods()) {
@@ -26,9 +29,9 @@ public class EventBus {
     }
 
     public<T extends Event> void callEvent(T event) {
-        for(Consumer<?> consumer : getListeners(event.getClass())) {
+        for(Class<?> c = event.getClass(); !Modifier.isAbstract(c.getModifiers());c = c.getSuperclass()) {
             //noinspection unchecked
-            ((Consumer<T>)consumer).accept(event);
+            getListeners(c).forEach(l -> ((Consumer<T>)l).accept(event));
         }
     }
 
@@ -38,9 +41,15 @@ public class EventBus {
         }
     }
 
+    public void unsubscribe(Object obj) {
+        for(List<Consumer<?>> list : map.values()) {
+            list.removeIf(c -> c instanceof ReflectEventConsumer && ((ReflectEventConsumer)c).obj == obj);
+        }
+    }
+
     @NotNull
     private List<Consumer<?>> getListeners(Class<?> event) {
-        return map.computeIfAbsent(event, e -> new ArrayList<>());
+        return map.computeIfAbsent(event, e -> new CopyOnWriteArrayList<>());
     }
 
     @AllArgsConstructor
