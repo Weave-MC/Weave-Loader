@@ -54,11 +54,7 @@ public class HookManager {
             reader.accept(node, 0)
 
             var computeFrames = false
-            val cfg = object : Hook.AssemblerConfig() {
-                override fun computeFrames() {
-                    computeFrames = true
-                }
-            }
+            val cfg = Hook.AssemblerConfig { computeFrames = true }
 
             hooks.forEach { it.transform(node, cfg) }
             val flags = if (computeFrames) ClassWriter.COMPUTE_FRAMES else ClassWriter.COMPUTE_MAXS

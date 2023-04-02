@@ -11,7 +11,7 @@ public abstract class Hook {
 
     public abstract void transform(ClassNode node, AssemblerConfig cfg);
 
-    public static abstract class AssemblerConfig {
-        public abstract void computeFrames();
+    public interface AssemblerConfig {
+        void computeFrames();
     }
 }
