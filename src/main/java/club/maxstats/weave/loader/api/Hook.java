@@ -1,13 +1,11 @@
 package club.maxstats.weave.loader.api;
 
+import lombok.AllArgsConstructor;
 import org.objectweb.asm.tree.ClassNode;
 
+@AllArgsConstructor
 public abstract class Hook {
     public final String targetClassName;
-
-    public Hook(String targetClassName) {
-        this.targetClassName = targetClassName;
-    }
 
     public abstract void transform(ClassNode node, AssemblerConfig cfg);
 
