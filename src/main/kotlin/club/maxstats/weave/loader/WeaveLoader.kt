@@ -3,13 +3,16 @@ package club.maxstats.weave.loader
 import club.maxstats.weave.loader.api.Hook
 import club.maxstats.weave.loader.api.HookManager
 import club.maxstats.weave.loader.api.ModInitializer
+import club.maxstats.weave.loader.mixins.WeaveMixinService
 import club.maxstats.weave.loader.mixins.WeaveMixinTransformer
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
 import org.spongepowered.asm.launch.MixinBootstrap
+import org.spongepowered.asm.mixin.Mixin
 import org.spongepowered.asm.mixin.Mixins
+import org.spongepowered.asm.service.MixinService
 import java.lang.instrument.Instrumentation
 import java.nio.file.Files
 import java.nio.file.Path
@@ -30,8 +33,10 @@ public object WeaveLoader {
         println("[Weave] Initializing Weave")
 
         MixinBootstrap.init()
-        inst.addTransformer(WeaveMixinTransformer)
 
+        check(MixinService.getService() is WeaveMixinService) { "Active mixin service is NOT WeaveMixinService" }
+
+        inst.addTransformer(WeaveMixinTransformer)
         inst.addTransformer(hookManager.Transformer())
 
         mods = getOrCreateModDirectory()
@@ -67,13 +72,16 @@ public object WeaveLoader {
     public fun initMods() {
         println("[Weave] Initializing Mods")
 
-        mods.flatMap { it.config.entrypoints }.forEach {
-            val instance = Class.forName(it)
-                .getConstructor()
-                .newInstance() as? ModInitializer
-                ?: error("$it does not implement ModInitializer!")
+        mods.forEach {
+            println("[Weave] Loading ${it.name}...")
 
-            instance.init()
+            for(entry in it.config.entrypoints) {
+                val instance = Class.forName(entry)
+                    .getConstructor()
+                    .newInstance() as? ModInitializer
+                    ?: error("$entry does not implement ModInitializer!")
+                instance.init()
+            }
         }
 
         println("[Weave] Initialized Mods")
