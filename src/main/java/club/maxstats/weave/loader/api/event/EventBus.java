@@ -29,7 +29,7 @@ public class EventBus {
     }
 
     public<T extends Event> void callEvent(T event) {
-        for(Class<?> c = event.getClass(); !Modifier.isAbstract(c.getModifiers());c = c.getSuperclass()) {
+        for(Class<?> c = event.getClass(); c != Object.class; c = c.getSuperclass()) {
             //noinspection unchecked
             getListeners(c).forEach(l -> ((Consumer<T>)l).accept(event));
         }
