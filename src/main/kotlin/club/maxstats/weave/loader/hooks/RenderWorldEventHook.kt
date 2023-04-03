@@ -10,6 +10,12 @@ import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LdcInsnNode
 
 internal class RenderWorldEventHook : Hook("net/minecraft/client/renderer/EntityRenderer") {
+
+    /**
+     * Inserts a call to [RenderWorldEvent]'s constructor at the head of
+     * [net.minecraft.client.renderer.EntityRenderer.renderWorldPass], which
+     * is called in the event of any world render.
+     */
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         val mn = node.methods.named("renderWorldPass")
 

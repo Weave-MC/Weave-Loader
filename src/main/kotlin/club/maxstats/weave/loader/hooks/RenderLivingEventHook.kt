@@ -12,6 +12,12 @@ import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
 
 internal class RenderLivingEventHook : Hook("net/minecraft/client/renderer/entity/RendererLivingEntity") {
+
+    /**
+     * Inserts a call to [RenderLivingEvent.Pre]'s constructor at the head of
+     * [net.minecraft.client.renderer.entity.RendererLivingEntity.doRender], which
+     * is called in the event of any entity render.
+     */
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         val mn = node.methods.named("doRender")
         mn.instructions.insert(asm {

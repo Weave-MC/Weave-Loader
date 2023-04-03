@@ -10,7 +10,6 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
 import org.spongepowered.asm.launch.MixinBootstrap
-import org.spongepowered.asm.mixin.Mixin
 import org.spongepowered.asm.mixin.Mixins
 import org.spongepowered.asm.service.MixinService
 import java.lang.instrument.Instrumentation
@@ -21,6 +20,7 @@ import java.util.jar.JarFile
 import kotlin.io.path.*
 
 public object WeaveLoader {
+
     private val hookManager = HookManager()
     private lateinit var mods: List<Mod>
 
@@ -47,9 +47,13 @@ public object WeaveLoader {
                 val jar = JarFile(it.toFile())
                 inst.appendToSystemClassLoaderSearch(jar)
 
-                Mod(name, Json.decodeFromStream(jar.getInputStream(
-                    jar.getEntry("weave.mod.json") ?: error("$name does not contain a weave.mod.json!")
-                )))
+                Mod(
+                    name, Json.decodeFromStream(
+                        jar.getInputStream(
+                            jar.getEntry("weave.mod.json") ?: error("$name does not contain a weave.mod.json!")
+                        )
+                    )
+                )
             }
 
         mods.flatMap { it.config.mixinConfigs }.forEach {
@@ -75,7 +79,7 @@ public object WeaveLoader {
         mods.forEach {
             println("[Weave] Loading ${it.name}...")
 
-            for(entry in it.config.entrypoints) {
+            for (entry in it.config.entrypoints) {
                 val instance = Class.forName(entry)
                     .getConstructor()
                     .newInstance() as? ModInitializer
@@ -87,6 +91,13 @@ public object WeaveLoader {
         println("[Weave] Initialized Mods")
     }
 
+    /**
+     * Grabs the mods' directory, creating it if it doesn't exist.
+     * **IF** the file exists as a file and not a directory, it will be deleted.
+     *
+     * @return The 'mods' directory.
+     *         Usually, `"${HOME}/.lunarclient/mods"` or on NT, `"%appdata%/.lunarclient/mods"`
+     */
     private fun getOrCreateModDirectory(): Path {
         val dir = Paths.get(System.getProperty("user.home"), ".lunarclient", "mods")
         if (dir.exists() && !dir.isDirectory()) Files.delete(dir)
