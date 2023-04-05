@@ -47,14 +47,20 @@ public object WeaveLoader {
                 val jar = JarFile(it.toFile())
                 inst.appendToSystemClassLoaderSearch(jar)
 
+                val decode = Json.decodeFromStream(
+                    jar.getInputStream(
+                        jar.getEntry("weave.mod.json") ?: error("$name does not contain a weave.mod.json!")
+                    )) as WeaveModConfig
+
                 Mod(
-                    name, Json.decodeFromStream(
-                        jar.getInputStream(
-                            jar.getEntry("weave.mod.json") ?: error("$name does not contain a weave.mod.json!")
-                        )
-                    )
+                    name, decode
                 )
             }
+
+        println("[Weave] Loading ${mods.size} mods:")
+        mods.forEach {
+            println("     - ${it.config.name} ${it.config.version}")
+        }
 
         mods.flatMap { it.config.mixinConfigs }.forEach {
             Mixins.addConfiguration(it)
@@ -112,8 +118,8 @@ public object WeaveLoader {
 
     @Serializable
     public data class WeaveModConfig(
-        val name: String = "placeholder",
-        val version: String = "placeholder",
+        val name: String,
+        val version: String,
         val mixinConfigs: List<String> = listOf(),
         val hooks: List<String> = listOf(),
         val entrypoints: List<String>
