@@ -25,6 +25,7 @@ public class HookManager {
         ShutdownEventHook(),
         ModInitializerHook(),
         TickEventHook(),
+        WorldEventHook()
     )
 
     public fun register(vararg hooks: Hook) {
