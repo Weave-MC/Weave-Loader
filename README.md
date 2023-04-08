@@ -6,7 +6,7 @@
 ### Weave Loader, a Lunar Client Mod Loader
 
 <img
-    align="left" alt="Worlflow Badge"
+    align="left" alt="Workflow Badge"
     src="https://github.com/Weave-MC/Weave-Loader/actions/workflows/gradle.yml/badge.svg"
 />
 
@@ -43,7 +43,7 @@ cd Weave-Loader && .\gradlew.bat agent
 
 ## Usage
 
-To use Weave-Loader you have to take the agent from the last step and launch lunar with `-javaagent:$PATH_TO_AGENT` appended to the jvm arguments.
+To use Weave-Loader you have to take the agent from the last step and launch Lunar with `-javaagent:$PATH_TO_AGENT` appended to the JVM arguments.
 Weave will automatically load mods from `~/.lunarclient/mods/`.
 
 ## Contributing
@@ -55,10 +55,10 @@ feature, feel free to submit a pull request.
 
 <div align="right">
 
-Weave-Loader is licensed under the [GNU General Public License Version 3][license].
+Weave-Loader is licensed under the [GNU General Public License v3.0][license].
 
 </div>
 
 [git]:     https://git-scm.com/
 
-[license]: https://github.com/Weave-MC/Weave-Loader/blob/main/LICENSE
+[license]: https://github.com/Weave-MC/Weave-Loader/blob/master/LICENSE
