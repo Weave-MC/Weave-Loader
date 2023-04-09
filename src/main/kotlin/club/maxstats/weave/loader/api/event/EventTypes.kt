@@ -6,6 +6,7 @@ import net.minecraft.client.multiplayer.ServerData
 import net.minecraft.client.renderer.entity.RendererLivingEntity
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityLivingBase
+import net.minecraft.network.Packet
 import net.minecraft.network.play.server.S38PacketPlayerListItem.AddPlayerData
 import net.minecraft.util.IChatComponent
 import net.minecraft.world.World
@@ -126,4 +127,9 @@ public object ShutdownEvent : Event()
 public sealed class WorldEvent(public val world: World) : Event() {
     public class Load(world: World) : WorldEvent(world)
     public class Unload(world: World) : WorldEvent(world)
+}
+
+public sealed class PacketEvent(public val packet: Packet<*>) : CancellableEvent() {
+    public class Send(packet: Packet<*>) : PacketEvent(packet)
+    public class Receive(packet: Packet<*>) : PacketEvent(packet)
 }
