@@ -1,7 +1,7 @@
 plugins {
-    kotlin("jvm") version "1.8.0"
-    kotlin("plugin.serialization") version "1.8.0"
-    kotlin("plugin.lombok") version "1.8.0"
+    kotlin("jvm") version "1.8.10"
+    kotlin("plugin.serialization") version "1.8.10"
+    kotlin("plugin.lombok") version "1.8.10"
 
     `java-library`
     `maven-publish`
