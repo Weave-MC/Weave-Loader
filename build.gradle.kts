@@ -49,7 +49,7 @@ val agent by tasks.registering(Jar::class) {
     }
 
     manifest.attributes(
-        "Premain-Class" to "club.maxstats.weave.loader.bootstrap.AgentKt"
+        "Premain-Class" to "net.weavemc.loader.bootstrap.AgentKt"
     )
 }
 
