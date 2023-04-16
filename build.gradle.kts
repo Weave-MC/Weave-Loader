@@ -5,7 +5,7 @@ plugins {
 
     `java-library`
     `maven-publish`
-    id("com.github.weave-mc.weave") version "8b70bcc707"
+    id("com.github.weave-mc.weave-gradle") version "bcf6ab0279"
 }
 
 val projectName:    String by project
