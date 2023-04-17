@@ -6,6 +6,7 @@ import net.weavemc.loader.api.util.asm
 import net.weavemc.loader.util.callEvent
 import net.weavemc.loader.util.getSingleton
 import net.weavemc.loader.util.named
+import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.ClassNode
 
 /**
@@ -24,9 +25,18 @@ internal class TickEventHook : Hook("net/minecraft/client/Minecraft") {
      * @see net.minecraft.client.Minecraft.runTick
      */
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
-        node.methods.named("runTick").instructions.insert(asm {
-            getSingleton<TickEvent>()
+        val runTick = node.methods.named("runTick")
+        runTick.instructions.insert(asm {
+            getSingleton<TickEvent.Pre>()
             callEvent()
         })
+
+        runTick.instructions.insertBefore(
+            runTick.instructions.findLast { it.opcode == Opcodes.RETURN },
+            asm {
+                getSingleton<TickEvent.Post>()
+                callEvent()
+            }
+        )
     }
 }

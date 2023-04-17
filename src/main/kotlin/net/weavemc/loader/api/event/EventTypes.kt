@@ -20,7 +20,11 @@ public abstract class CancellableEvent : Event() {
 
 }
 
-public object TickEvent : Event()
+public sealed class TickEvent : Event() {
+    public object Pre : TickEvent()
+    public object Post: TickEvent()
+}
+
 public class KeyboardEvent : Event() {
 
     public val keyCode: Int =
