@@ -48,7 +48,7 @@ public class HookManager {
             className: String,
             originalClass: ByteArray
         ): ByteArray? {
-            val hooks = hooks.filter { it.targetClassName == className }
+            val hooks = hooks.filter { it.targets.contains(className) }
             if (hooks.isEmpty()) return null
 
             val node = ClassNode()
