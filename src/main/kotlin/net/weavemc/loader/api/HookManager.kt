@@ -1,7 +1,9 @@
 package net.weavemc.loader.api
 
 import net.weavemc.loader.bootstrap.SafeTransformer
-import net.weavemc.loader.hooks.*
+import net.weavemc.loader.hooks.client.*
+import net.weavemc.loader.hooks.network.PacketEventHook
+import net.weavemc.loader.hooks.network.ServerConnectEventHook
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.tree.ClassNode

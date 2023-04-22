@@ -1,8 +1,8 @@
-package net.weavemc.loader.hooks
+package net.weavemc.loader.hooks.client
 
 import net.weavemc.loader.api.Hook
 import net.weavemc.loader.api.event.CancellableEvent
-import net.weavemc.loader.api.event.client.GuiOpenEvent
+import net.weavemc.loader.api.event.client.ChatEvent
 import net.weavemc.loader.api.util.asm
 import net.weavemc.loader.util.callEvent
 import net.weavemc.loader.util.internalNameOf
@@ -10,17 +10,17 @@ import net.weavemc.loader.util.named
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
 
-internal class GuiOpenEventHook : Hook("net/minecraft/client/Minecraft") {
+internal class ChatReceivedEventHook : Hook("net/minecraft/client/gui/GuiNewChat") {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
-        node.methods.named("displayGuiScreen").instructions.insert(asm {
-            new(internalNameOf<GuiOpenEvent>())
+        node.methods.named("printChatMessageWithOptionalDeletion").instructions.insert(asm {
+            new(internalNameOf<ChatEvent.Received>())
             dup
             dup
             aload(1)
             invokespecial(
-                internalNameOf<GuiOpenEvent>(),
+                internalNameOf<ChatEvent.Received>(),
                 "<init>",
-                "(Lnet/minecraft/client/gui/GuiScreen;)V"
+                "(Lnet/minecraft/util/IChatComponent;)V"
             )
             callEvent()
 

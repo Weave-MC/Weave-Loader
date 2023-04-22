@@ -1,4 +1,4 @@
-package net.weavemc.loader.hooks
+package net.weavemc.loader.hooks.network
 
 import net.weavemc.loader.api.Hook
 import net.weavemc.loader.api.event.CancellableEvent

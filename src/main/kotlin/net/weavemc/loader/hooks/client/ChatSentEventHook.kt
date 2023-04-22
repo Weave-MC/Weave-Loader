@@ -1,4 +1,4 @@
-package net.weavemc.loader.hooks
+package net.weavemc.loader.hooks.client
 
 import net.weavemc.loader.api.Hook
 import net.weavemc.loader.api.event.CancellableEvent
@@ -10,17 +10,17 @@ import net.weavemc.loader.util.named
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
 
-internal class ChatReceivedEventHook : Hook("net/minecraft/client/gui/GuiNewChat") {
+internal class ChatSentEventHook : Hook("net/minecraft/client/entity/EntityPlayerSP") {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
-        node.methods.named("printChatMessageWithOptionalDeletion").instructions.insert(asm {
-            new(internalNameOf<ChatEvent.Received>())
+        node.methods.named("sendChatMessage").instructions.insert(asm {
+            new(internalNameOf<ChatEvent.Sent>())
             dup
             dup
             aload(1)
             invokespecial(
-                internalNameOf<ChatEvent.Received>(),
+                internalNameOf<ChatEvent.Sent>(),
                 "<init>",
-                "(Lnet/minecraft/util/IChatComponent;)V"
+                "(L${internalNameOf<String>()};)V"
             )
             callEvent()
 
