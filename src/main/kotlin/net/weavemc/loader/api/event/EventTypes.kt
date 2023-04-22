@@ -25,6 +25,11 @@ public sealed class TickEvent : Event() {
     public object Post: TickEvent()
 }
 
+public sealed class PlayerTickEvent : Event() {
+    public object Pre : PlayerTickEvent()
+    public object Post : PlayerTickEvent()
+}
+
 public class KeyboardEvent : Event() {
 
     public val keyCode: Int =
@@ -132,6 +137,8 @@ public sealed class WorldEvent(public val world: World) : Event() {
     public class Load(world: World) : WorldEvent(world)
     public class Unload(world: World) : WorldEvent(world)
 }
+
+public class EntityJoinWorldEvent(public val entity: Entity, public val world: World) : CancellableEvent()
 
 public sealed class PacketEvent(public val packet: Packet<*>) : CancellableEvent() {
     public class Send(packet: Packet<*>) : PacketEvent(packet)

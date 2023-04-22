@@ -25,7 +25,9 @@ public class HookManager {
         ShutdownEventHook(),
         ModInitializerHook(),
         TickEventHook(),
+        PlayerTickEventHook(),
         WorldEventHook(),
+        EntityJoinWorldEventHook(),
         PacketEventHook()
     )
 
