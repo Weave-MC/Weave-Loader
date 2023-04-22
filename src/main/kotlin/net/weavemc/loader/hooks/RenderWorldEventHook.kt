@@ -1,7 +1,7 @@
 package net.weavemc.loader.hooks
 
 import net.weavemc.loader.api.Hook
-import net.weavemc.loader.api.event.RenderWorldEvent
+import net.weavemc.loader.api.event.client.RenderWorldEvent
 import net.weavemc.loader.api.util.asm
 import net.weavemc.loader.util.callEvent
 import net.weavemc.loader.util.internalNameOf

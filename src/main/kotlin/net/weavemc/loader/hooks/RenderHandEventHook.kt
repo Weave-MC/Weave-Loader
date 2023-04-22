@@ -2,9 +2,12 @@ package net.weavemc.loader.hooks
 
 import net.weavemc.loader.api.Hook
 import net.weavemc.loader.api.event.CancellableEvent
-import net.weavemc.loader.api.event.RenderHandEvent
+import net.weavemc.loader.api.event.client.RenderHandEvent
 import net.weavemc.loader.api.util.asm
-import net.weavemc.loader.util.*
+import net.weavemc.loader.util.callEvent
+import net.weavemc.loader.util.internalNameOf
+import net.weavemc.loader.util.named
+import net.weavemc.loader.util.next
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.JumpInsnNode

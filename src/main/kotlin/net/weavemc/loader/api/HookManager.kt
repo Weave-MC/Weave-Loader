@@ -10,25 +10,44 @@ import java.util.function.Consumer
 
 public class HookManager {
     private val hooks = mutableListOf(
+        // ----- Client -----
+        // ChatEvent
         ChatReceivedEventHook(),
         ChatSentEventHook(),
-        EntityListEventAddHook(), EntityListEventRemoveHook(),
+
+        // ClientEvent
+        ShutdownEventHook(),
+
+        // GuiEvent
         GuiOpenEventHook(),
+
+        // InputEvent
         KeyboardEventHook(),
         MouseEventHook(),
-        PlayerListEventHook(),
+
+        // RenderEvent
         RenderGameOverlayHook(),
         RenderHandEventHook(),
         RenderLivingEventHook(),
         RenderWorldEventHook(),
-        ServerConnectEventHook(),
-        ShutdownEventHook(),
-        ModInitializerHook(),
+
+        // TickEvent
         TickEventHook(),
         PlayerTickEventHook(),
+
+        // WorldEvent
+        LivingUpdateEventHook(),
         WorldEventHook(),
+        EntityListEventAddHook(),
+        EntityListEventRemoveHook(),
         EntityJoinWorldEventHook(),
-        PacketEventHook()
+
+
+        // ----- Network -----
+        // PacketEvent
+        PacketEventHook(),
+        // ServerEvent
+        ServerConnectEventHook(),
     )
 
     public fun register(vararg hooks: Hook) {

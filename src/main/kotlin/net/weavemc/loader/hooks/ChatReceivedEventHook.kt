@@ -2,7 +2,7 @@ package net.weavemc.loader.hooks
 
 import net.weavemc.loader.api.Hook
 import net.weavemc.loader.api.event.CancellableEvent
-import net.weavemc.loader.api.event.ChatReceivedEvent
+import net.weavemc.loader.api.event.client.ChatEvent
 import net.weavemc.loader.api.util.asm
 import net.weavemc.loader.util.callEvent
 import net.weavemc.loader.util.internalNameOf
@@ -13,12 +13,12 @@ import org.objectweb.asm.tree.LabelNode
 internal class ChatReceivedEventHook : Hook("net/minecraft/client/gui/GuiNewChat") {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         node.methods.named("printChatMessageWithOptionalDeletion").instructions.insert(asm {
-            new(internalNameOf<ChatReceivedEvent>())
+            new(internalNameOf<ChatEvent.Received>())
             dup
             dup
             aload(1)
             invokespecial(
-                internalNameOf<ChatReceivedEvent>(),
+                internalNameOf<ChatEvent.Received>(),
                 "<init>",
                 "(Lnet/minecraft/util/IChatComponent;)V"
             )

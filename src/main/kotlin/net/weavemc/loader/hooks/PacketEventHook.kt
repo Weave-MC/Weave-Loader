@@ -2,7 +2,7 @@ package net.weavemc.loader.hooks
 
 import net.weavemc.loader.api.Hook
 import net.weavemc.loader.api.event.CancellableEvent
-import net.weavemc.loader.api.event.PacketEvent
+import net.weavemc.loader.api.event.network.PacketEvent
 import net.weavemc.loader.api.util.asm
 import net.weavemc.loader.util.callEvent
 import net.weavemc.loader.util.internalNameOf
