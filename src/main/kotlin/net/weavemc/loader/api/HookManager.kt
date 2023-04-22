@@ -27,6 +27,9 @@ public class HookManager {
         KeyboardEventHook(),
         MouseEventHook(),
 
+        // LivingEvent
+        LivingAttackEventHook(),
+
         // RenderEvent
         RenderGameOverlayHook(),
         RenderHandEventHook(),
