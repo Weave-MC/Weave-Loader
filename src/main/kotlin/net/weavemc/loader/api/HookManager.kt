@@ -1,6 +1,7 @@
 package net.weavemc.loader.api
 
 import net.weavemc.loader.bootstrap.SafeTransformer
+import net.weavemc.loader.hooks.ModInitializerHook
 import net.weavemc.loader.hooks.client.*
 import net.weavemc.loader.hooks.network.PacketEventHook
 import net.weavemc.loader.hooks.network.ServerConnectEventHook
@@ -12,6 +13,8 @@ import java.util.function.Consumer
 
 public class HookManager {
     private val hooks = mutableListOf(
+        ModInitializerHook(),
+
         // ----- Client -----
         // ChatEvent
         ChatReceivedEventHook(),

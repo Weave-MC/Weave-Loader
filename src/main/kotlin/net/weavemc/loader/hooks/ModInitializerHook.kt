@@ -1,4 +1,4 @@
-package net.weavemc.loader.hooks.client
+package net.weavemc.loader.hooks
 
 import net.weavemc.loader.WeaveLoader
 import net.weavemc.loader.api.Hook
