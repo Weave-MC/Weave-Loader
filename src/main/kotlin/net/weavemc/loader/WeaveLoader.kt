@@ -19,85 +19,56 @@ import java.util.jar.JarFile
 import kotlin.io.path.*
 
 public object WeaveLoader {
-    public lateinit var mods: List<Mod>
-
     /**
      * @see [net.weavemc.loader.bootstrap.premain]
      */
     @JvmStatic
     @OptIn(ExperimentalSerializationApi::class)
-    public fun preInit(inst: Instrumentation) {
+    public fun init(inst: Instrumentation) {
         println("[Weave] Initializing Weave")
 
         MixinBootstrap.init()
-
         check(MixinService.getService() is WeaveMixinService) { "Active mixin service is NOT WeaveMixinService" }
 
         inst.addTransformer(WeaveMixinTransformer)
         inst.addTransformer(HookManager)
 
-        mods = getOrCreateModDirectory()
+        val initializers = mutableListOf<ModInitializer>()
+        getOrCreateModDirectory()
             .listDirectoryEntries("*.jar")
             .filter { it.isRegularFile() }
-            .map {
-                val name = it.name
-                val jar = JarFile(it.toFile())
+            .forEach { path ->
+                println("[Weave] Loading ${path.name}")
+
+                val jar = JarFile(path.toFile())
                 inst.appendToSystemClassLoaderSearch(jar)
 
-                val decode = Json.decodeFromStream(
-                    jar.getInputStream(
-                        jar.getEntry("weave.mod.json") ?: error("$name does not contain a weave.mod.json!")
-                    )) as WeaveModConfig
+                val configEntry = jar.getEntry("weave.mod.json") ?: error("${path.name} does not contain a weave.mod.json!")
+                val config = Json.decodeFromStream<ModConfig>(jar.getInputStream(configEntry))
 
-                Mod(
-                    name, decode
-                )
+                config.mixinConfigs.forEach(Mixins::addConfiguration)
+                HookManager.hooks += config.hooks.map(::instantiate)
+                initializers += config.entrypoints.map(::instantiate)
             }
 
-        println("[Weave] Loading ${mods.size} mods:")
-        mods.forEach {
-            println("     - ${it.config.name} ${it.config.version}")
-        }
-
-        mods.flatMap { it.config.mixinConfigs }.forEach {
-            Mixins.addConfiguration(it)
-        }
-
-        mods.flatMap { it.config.hooks }.forEach {
-            HookManager.hooks += Class.forName(it)
-                .getConstructor()
-                .newInstance() as? Hook
-                ?: error("$it does not implement Hook!")
-        }
+        //call preInit after all hooks/mixins are added
+        initializers.forEach { it.preInit() }
 
         println("[Weave] Initialized Weave")
     }
 
-    @JvmStatic
-    public fun initMods() {
-        println("[Weave] Initializing Mods")
-
-        mods.forEach {
-            println("[Weave] Loading ${it.name}...")
-
-            for (entry in it.config.entrypoints) {
-                val instance = Class.forName(entry)
-                    .getConstructor()
-                    .newInstance() as? ModInitializer
-                    ?: error("$entry does not implement ModInitializer!")
-                instance.init()
-            }
-        }
-
-        println("[Weave] Initialized Mods")
-    }
+    @Serializable
+    private data class ModConfig(
+        val mixinConfigs: List<String> = listOf(),
+        val hooks: List<String> = listOf(),
+        val entrypoints: List<String>
+    )
 
     /**
      * Grabs the mods' directory, creating it if it doesn't exist.
      * **IF** the file exists as a file and not a directory, it will be deleted.
      *
-     * @return The 'mods' directory.
-     *         Usually, `"${HOME}/.lunarclient/mods"` or on NT, `"%appdata%/.lunarclient/mods"`
+     * @return The 'mods' directory: `"~/.lunarclient/mods"`
      */
     private fun getOrCreateModDirectory(): Path {
         val dir = Paths.get(System.getProperty("user.home"), ".lunarclient", "mods")
@@ -106,19 +77,11 @@ public object WeaveLoader {
         return dir
     }
 
-    public data class Mod(
-        val name: String,
-        val config: WeaveModConfig
-    )
-
-    @Serializable
-    public data class WeaveModConfig(
-        val name: String,
-        val version: String,
-        val mixinConfigs: List<String> = listOf(),
-        val hooks: List<String> = listOf(),
-        val entrypoints: List<String>
-    )
+    private inline fun<reified T> instantiate(className: String): T =
+        Class.forName(className)
+            .getConstructor()
+            .newInstance() as? T
+            ?: error("$className does not implement ${T::class.java.simpleName}!")
 }
 
 

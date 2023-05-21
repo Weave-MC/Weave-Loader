@@ -11,6 +11,7 @@ public fun premain(opt: String?, inst: Instrumentation) {
 
     inst.addTransformer(object : SafeTransformer {
         override fun transform(loader: ClassLoader, className: String, originalClass: ByteArray): ByteArray? {
+            // net/minecraft/ false flags on launchwrapper which gets loaded earlier
             if (className.startsWith("net/minecraft/client/")) {
                 inst.removeTransformer(this)
 
@@ -19,7 +20,7 @@ public fun premain(opt: String?, inst: Instrumentation) {
                 This allows us to access Minecraft's classes throughout the project.
                 */
                 loader.loadClass("net.weavemc.loader.WeaveLoader")
-                    .getDeclaredMethod("preInit", Instrumentation::class.java)
+                    .getDeclaredMethod("init", Instrumentation::class.java)
                     .invoke(null, inst)
             }
 

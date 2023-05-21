@@ -23,7 +23,7 @@ internal object HookManager : SafeTransformer {
         RenderWorldEventHook(),
         ServerConnectEventHook(),
         ShutdownEventHook(),
-        ModInitializerHook(),
+        StartGameEventHook(),
         TickEventHook(),
         WorldEventHook(),
         PacketEventHook()
