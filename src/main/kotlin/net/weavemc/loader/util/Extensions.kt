@@ -14,21 +14,11 @@ internal fun List<FieldNode>.named(name: String) = find { it.name == name }!!
 internal inline fun <reified T : Any> internalNameOf(): String = Type.getInternalName(T::class.java)
 
 internal inline fun <reified T : AbstractInsnNode> AbstractInsnNode.next(p: (T) -> Boolean = { true }): T? {
-    var insn = this
-
-    while (true) {
-        insn = insn.next ?: return null
-        if (insn is T && p(insn)) return insn
-    }
+    return generateSequence(next) { it.next }.filterIsInstance<T>().find(p)
 }
 
 internal inline fun <reified T : AbstractInsnNode> AbstractInsnNode.prev(p: (T) -> Boolean = { true }): T? {
-    var insn = this
-
-    while (true) {
-        insn = insn.previous ?: return null
-        if (insn is T && p(insn)) return insn
-    }
+    return generateSequence(previous) { it.previous }.filterIsInstance<T>().find(p)
 }
 
 internal fun ClassNode.dump(file: String) {
