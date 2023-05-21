@@ -1,6 +1,5 @@
 package net.weavemc.loader
 
-import net.weavemc.loader.api.HookManager
 import net.weavemc.loader.api.ModInitializer
 import net.weavemc.loader.mixins.WeaveMixinService
 import net.weavemc.loader.mixins.WeaveMixinTransformer
@@ -8,6 +7,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
+import net.weavemc.loader.api.Hook
 import org.spongepowered.asm.launch.MixinBootstrap
 import org.spongepowered.asm.mixin.Mixins
 import org.spongepowered.asm.service.MixinService
@@ -19,7 +19,6 @@ import java.util.jar.JarFile
 import kotlin.io.path.*
 
 public object WeaveLoader {
-    public val hookManager: HookManager = HookManager()
     public lateinit var mods: List<Mod>
 
     /**
@@ -35,7 +34,7 @@ public object WeaveLoader {
         check(MixinService.getService() is WeaveMixinService) { "Active mixin service is NOT WeaveMixinService" }
 
         inst.addTransformer(WeaveMixinTransformer)
-        inst.addTransformer(hookManager.Transformer())
+        inst.addTransformer(HookManager)
 
         mods = getOrCreateModDirectory()
             .listDirectoryEntries("*.jar")
@@ -65,12 +64,10 @@ public object WeaveLoader {
         }
 
         mods.flatMap { it.config.hooks }.forEach {
-            hookManager.register(
-                Class.forName(it)
-                    .getConstructor()
-                    .newInstance() as? net.weavemc.loader.api.Hook
-                    ?: error("$it does not implement Hook!")
-            )
+            HookManager.hooks += Class.forName(it)
+                .getConstructor()
+                .newInstance() as? Hook
+                ?: error("$it does not implement Hook!")
         }
 
         println("[Weave] Initialized Weave")
