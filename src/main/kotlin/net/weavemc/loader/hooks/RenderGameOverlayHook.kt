@@ -6,18 +6,18 @@ import net.weavemc.loader.api.util.asm
 import net.weavemc.loader.util.callEvent
 import net.weavemc.loader.util.internalNameOf
 import net.weavemc.loader.util.named
+import org.objectweb.asm.Opcodes.RETURN
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodInsnNode
 
-internal class RenderGameOverlayHook : Hook("net/minecraft/client/renderer/EntityRenderer") {
+internal class RenderGameOverlayHook : Hook(
+    "net/minecraft/client/gui/GuiIngame",
+    "net/minecraftforge/client/GuiIngameForge"
+) {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
-        val mn = node.methods.named("updateCameraAndRender")
+        val mn = node.methods.named("renderGameOverlay")
 
-        val renderGameOverlayCall = mn.instructions.find {
-            it is MethodInsnNode && it.name == "renderGameOverlay"
-        }
-
-        mn.instructions.insertBefore(renderGameOverlayCall, asm {
+        mn.instructions.insert(asm {
             new(internalNameOf<RenderGameOverlayEvent.Pre>())
             dup
             fload(1)
@@ -29,7 +29,7 @@ internal class RenderGameOverlayHook : Hook("net/minecraft/client/renderer/Entit
             callEvent()
         })
 
-        mn.instructions.insert(renderGameOverlayCall, asm {
+        mn.instructions.insertBefore(mn.instructions.findLast { it.opcode == RETURN }, asm {
             new(internalNameOf<RenderGameOverlayEvent.Post>())
             dup
             fload(1)
