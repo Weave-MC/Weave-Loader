@@ -8,8 +8,8 @@ import org.objectweb.asm.tree.FieldNode
 import org.objectweb.asm.tree.MethodNode
 import java.io.File
 
-internal fun List<MethodNode>.named(name: String) = find { it.name == name }!!
-internal fun List<FieldNode>.named(name: String) = find { it.name == name }!!
+internal fun List<MethodNode>.named(name: String) = find { it.name == name || it.name.contains(name) }!!
+internal fun List<FieldNode>.named(name: String) = find { it.name == name || it.name.contains(name)}!!
 
 internal inline fun <reified T : Any> internalNameOf(): String = Type.getInternalName(T::class.java)
 
