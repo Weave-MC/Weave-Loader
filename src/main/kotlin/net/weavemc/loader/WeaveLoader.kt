@@ -34,6 +34,7 @@ public object WeaveLoader {
         inst.addTransformer(HookManager)
 
         val initializers = mutableListOf<ModInitializer>()
+        val json = Json { ignoreUnknownKeys = true }
         getOrCreateModDirectory()
             .listDirectoryEntries("*.jar")
             .filter { it.isRegularFile() }
@@ -44,7 +45,7 @@ public object WeaveLoader {
                 inst.appendToSystemClassLoaderSearch(jar)
 
                 val configEntry = jar.getEntry("weave.mod.json") ?: error("${path.name} does not contain a weave.mod.json!")
-                val config = Json.decodeFromStream<ModConfig>(jar.getInputStream(configEntry))
+                val config = json.decodeFromStream<ModConfig>(jar.getInputStream(configEntry))
 
                 config.mixinConfigs.forEach(Mixins::addConfiguration)
                 HookManager.hooks += config.hooks.map(::instantiate)
