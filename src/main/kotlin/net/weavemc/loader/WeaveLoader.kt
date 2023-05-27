@@ -1,13 +1,12 @@
 package net.weavemc.loader
 
-import net.weavemc.loader.api.ModInitializer
-import net.weavemc.loader.mixins.WeaveMixinService
-import net.weavemc.loader.mixins.WeaveMixinTransformer
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
-import net.weavemc.loader.api.Hook
+import net.weavemc.loader.api.ModInitializer
+import net.weavemc.loader.mixins.WeaveMixinService
+import net.weavemc.loader.mixins.WeaveMixinTransformer
 import org.spongepowered.asm.launch.MixinBootstrap
 import org.spongepowered.asm.mixin.Mixins
 import org.spongepowered.asm.service.MixinService
@@ -37,13 +36,11 @@ public object WeaveLoader {
         getOrCreateModDirectory()
             .listDirectoryEntries("*.jar")
             .filter { it.isRegularFile() }
-            .forEach { path ->
-                println("[Weave] Loading ${path.name}")
+            .map { JarFile(it.toFile()).also(inst::appendToSystemClassLoaderSearch) }
+            .forEach { jar ->
+                println("[Weave] Loading ${jar.name}")
 
-                val jar = JarFile(path.toFile())
-                inst.appendToSystemClassLoaderSearch(jar)
-
-                val configEntry = jar.getEntry("weave.mod.json") ?: error("${path.name} does not contain a weave.mod.json!")
+                val configEntry = jar.getEntry("weave.mod.json") ?: error("${jar.name} does not contain a weave.mod.json!")
                 val config = Json.decodeFromStream<ModConfig>(jar.getInputStream(configEntry))
 
                 config.mixinConfigs.forEach(Mixins::addConfiguration)
