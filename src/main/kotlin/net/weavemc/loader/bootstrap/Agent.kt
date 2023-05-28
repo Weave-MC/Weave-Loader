@@ -4,8 +4,9 @@ import java.lang.instrument.Instrumentation
 
 @Suppress("UNUSED_PARAMETER")
 public fun premain(opt: String?, inst: Instrumentation) {
-    if (findVersion() != "1.8.9") {
-        println("[Weave] ${findVersion()} not supported, disabling...")
+    val version = findVersion()
+    if(version !in arrayOf("1.8", "1.8.9")) {
+        println("[Weave] $version not supported, disabling...")
         return
     }
 
@@ -30,6 +31,6 @@ public fun premain(opt: String?, inst: Instrumentation) {
 }
 
 private fun findVersion() =
-    """--version ([^ ]+)""".toRegex()
+    """--version\s+(\S+)""".toRegex()
         .find(System.getProperty("sun.java.command"))
         ?.groupValues?.get(1)
