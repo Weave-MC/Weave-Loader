@@ -44,7 +44,7 @@ cd Weave-Loader && .\gradlew.bat agent
 ## Usage
 
 To use Weave-Loader you have to take the agent from the last step and launch Lunar with `-javaagent:$PATH_TO_AGENT` appended to the JVM arguments.
-Weave will automatically load mods from `~/.lunarclient/mods/`.
+Weave will automatically load mods from `~/.weave/mods/`.
 
 ## Contributing
 
