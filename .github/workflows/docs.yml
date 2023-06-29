@@ -1,4 +1,4 @@
-name: Deploy dokka docs to Pages
+name: Deploy dokka docs
 
 on:
   # Runs on pushes targeting the default branch
@@ -48,10 +48,10 @@ jobs:
           path: |
               $HOME/.gradle/caches
               $HOME/.gradle/wrapper
-              key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-              restore-keys: ${{ runner.os }}-gradle-
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: ${{ runner.os }}-gradle-
       - run: chmod +x ./gradlew
-      - run: ./gradlew --no-daemon build
+      - run: ./gradlew --no-daemon dokkaHtml
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
         with:
