@@ -49,7 +49,7 @@ public object WeaveLoader {
                 initializers += config.entrypoints.map(::instantiate)
             }
 
-        //call preInit after all hooks/mixins are added
+        // call preInit after all hooks/mixins are added
         initializers.forEach { it.preInit() }
 
         println("[Weave] Initialized Weave")
@@ -66,7 +66,7 @@ public object WeaveLoader {
      * Grabs the mods' directory, creating it if it doesn't exist.
      * **IF** the file exists as a file and not a directory, it will be deleted.
      *
-     * @return The 'mods' directory: `"~/.lunarclient/mods"`
+     * @return The 'mods' directory: `"~/.weave/mods"`
      */
     private fun getOrCreateModDirectory(): Path {
         val dir = Paths.get(System.getProperty("user.home"), ".weave", "mods")
