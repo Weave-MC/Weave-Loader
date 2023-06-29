@@ -1,3 +1,6 @@
+import org.jetbrains.dokka.gradle.DokkaTask
+import java.net.URL
+
 plugins {
     kotlin("jvm") version "1.8.10"
     kotlin("plugin.serialization") version "1.8.10"
@@ -5,6 +8,7 @@ plugins {
 
     `java-library`
     `maven-publish`
+    id("org.jetbrains.dokka") version "1.8.20"
     id("com.github.weave-mc.weave-gradle") version "bcf6ab0279"
 }
 
@@ -55,6 +59,22 @@ val agent by tasks.registering(Jar::class) {
 
 tasks.build {
     dependsOn(agent)
+}
+
+tasks.withType<DokkaTask>().configureEach {
+    moduleName.set("Weave Loader")
+    dokkaSourceSets.configureEach {
+        sourceLink {
+            localDirectory.set(projectDir.resolve("src"))
+            remoteUrl.set(URL("https://github.com/Weave-MC/Weave-Loader/tree/master/src"))
+            remoteLineSuffix.set("#L")
+        }
+        externalDocumentationLink("https://kotlinlang.org/api/kotlinx.serialization/", "https://kotlinlang.org/api/kotlinx.serialization/package-list")
+        externalDocumentationLink("https://asm.ow2.io/javadoc/", "https://asm.ow2.io/javadoc/element-list")
+        externalDocumentationLink("https://jenkins.liteloader.com/job/Mixin/javadoc/","https://jenkins.liteloader.com/job/Mixin/javadoc/package-list")
+        externalDocumentationLink("https://projectlombok.org/api/","https://projectlombok.org/api/element-list")
+        externalDocumentationLink("https://javadoc.io/doc/org.jetbrains/annotations/13.0/","https://javadoc.io/doc/org.jetbrains/annotations/13.0/package-list")
+    }
 }
 
 publishing {
