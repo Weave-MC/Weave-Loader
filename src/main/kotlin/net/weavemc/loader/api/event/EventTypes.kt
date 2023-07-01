@@ -10,8 +10,16 @@ import net.minecraft.network.Packet
 import net.minecraft.network.play.server.S38PacketPlayerListItem.AddPlayerData
 import net.minecraft.util.IChatComponent
 import net.minecraft.world.World
+import net.weavemc.loader.api.event.EntityListEvent.Add
+import net.weavemc.loader.api.event.EntityListEvent.Remove
 import net.weavemc.loader.api.event.PacketEvent.Receive
 import net.weavemc.loader.api.event.PacketEvent.Send
+import net.weavemc.loader.api.event.PlayerListEvent.Add
+import net.weavemc.loader.api.event.PlayerListEvent.Remove
+import net.weavemc.loader.api.event.RenderGameOverlayEvent.Post
+import net.weavemc.loader.api.event.RenderGameOverlayEvent.Pre
+import net.weavemc.loader.api.event.RenderLivingEvent.Post
+import net.weavemc.loader.api.event.RenderLivingEvent.Pre
 import net.weavemc.loader.api.event.StartGameEvent.Post
 import net.weavemc.loader.api.event.StartGameEvent.Pre
 import net.weavemc.loader.api.event.WorldEvent.Load
@@ -84,22 +92,59 @@ public class KeyboardEvent : Event() {
 
 }
 
-// todo: document this, im skipping it because i have no clue what half of these fields are
+/**
+ * This cancellable event is called when a mouse action is performed.
+ *
+ * If cancelled, the event's actions will not affect the game.
+ */
 public class MouseEvent : CancellableEvent() {
 
+    /**
+     * The mouse's X position on the screen.
+     */
     public val x: Int  = Mouse.getEventX()
+
+    /**
+     * The mouse's Y position on the screen.
+     */
     public val y: Int  = Mouse.getEventY()
 
+    /**
+     * The X distance the mouse has travelled.
+     */
     @get:JvmName("getDX")
     public val dx: Int = Mouse.getEventDX()
 
+    /**
+     * THe Y distance the mouse has travelled.
+     */
     @get:JvmName("getDY")
     public val dy: Int = Mouse.getEventDY()
 
+    /**
+     * The amount the mouse's scroll wheel has scrolled, negative if scrolling backwards.
+     */
     @get:JvmName("getDWheel")
     public val dwheel: Int          = Mouse.getEventDWheel()
+
+    /**
+     * The mouse button the event is about.
+     * 0. Left
+     * 1. Right
+     * 2. Middle
+     */
     public val button: Int          = Mouse.getEventButton()
+
+    /**
+     * Whether the mouse button is being **pressed (`true`)** or **released (`false`)**.
+     */
     public val buttonState: Boolean = Mouse.getEventButtonState()
+
+    /**
+     * The nanosecond that this mouse event was created. Obtained from the mouse event's
+     * [Mouse.getEventNanoseconds()][Mouse.getEventNanoseconds], refer to the LWJGL2 Javadoc
+     * for more information about it.
+     */
     public val nanoseconds: Long    = Mouse.getEventNanoseconds()
 
 }
@@ -131,28 +176,81 @@ public class ChatSentEvent(public val message: String) : CancellableEvent()
  */
 public class GuiOpenEvent(public val screen: GuiScreen?) : CancellableEvent()
 
-// todo i dont understand these events, im not qualified to document anything rendering related
+/**
+ * This event is called when the HUD (game overlay) is being rendered.
+ *
+ * It is split into [Pre] and [Post].
+ */
 public sealed class RenderGameOverlayEvent(public val partialTicks: Float) : Event() {
 
+    /**
+     * This is called **before** the game overlay renders, and should be used if you want to
+     * draw to the screen without drawing over the HUD.
+     */
     public class Pre(partialTicks: Float) : RenderGameOverlayEvent(partialTicks)
+
+    /**
+     * This is called **after** the game overlay renders, and should be used to draw whatever
+     * HUD components your mod needs.
+     */
     public class Post(partialTicks: Float) : RenderGameOverlayEvent(partialTicks)
 
 }
 
+/**
+ * This event is called when an entity is added to or removed from the world.
+ *
+ * It is split into [Add] and [Remove].
+ *
+ * @param entity The entity being added/removed.
+ */
 public sealed class EntityListEvent(public val entity: Entity) : Event() {
 
+    /**
+     * This is called when an entity is added to the world.
+     */
     public class Add(entity: Entity) : EntityListEvent(entity)
+
+    /**
+     * This is called when an entity is removed from the world.
+     */
     public class Remove(entity: Entity) : EntityListEvent(entity)
 
 }
 
+/**
+ * This event is called when a player is added or removed from the player list.
+ *
+ * This event is split into [Add] and [Remove].
+ *
+ * @param playerData The Player Data of the player being added/removed.
+ */
 public sealed class PlayerListEvent(public val playerData: AddPlayerData) : Event() {
 
+    /**
+     * This is called when a player is added to the player list.
+     */
     public class Add(playerData: AddPlayerData) : PlayerListEvent(playerData)
+
+    /**
+     * This is called when a player is removed from the player list.
+     */
     public class Remove(playerData: AddPlayerData) : PlayerListEvent(playerData)
 
 }
 
+/**
+ * This event is called when an entity is rendered.
+ *
+ * It is split into [Pre] and [Post]. The [Pre] version of this event is cancellable.
+ *
+ * **NOTE: No one really knows what the fuck is going on here, half of this is pure guessing...**
+ *
+ * @param entity The entity being rendered.
+ * @param x The interpolated `x` for this frame.
+ * @param y The interpolated `y` for this frame.
+ * @param z The interpolated `z` for this frame.
+ */
 public sealed class RenderLivingEvent(
     public val renderer: RendererLivingEntity<EntityLivingBase>,
     public val entity: EntityLivingBase,
@@ -162,6 +260,11 @@ public sealed class RenderLivingEvent(
     public val partialTicks: Float
 ) : CancellableEvent() {
 
+    /**
+     * This is called before an entity is rendered.
+     *
+     * If cancelled, the entity is not rendered.
+     */
     public class Pre(
         renderer: RendererLivingEntity<EntityLivingBase>,
         entity: EntityLivingBase,
@@ -171,6 +274,9 @@ public sealed class RenderLivingEvent(
         partialTicks: Float
     ) : RenderLivingEvent(renderer, entity, x, y, z, partialTicks)
 
+    /**
+     * This is called after an entity is rendered.
+     */
     public class Post(
         renderer: RendererLivingEntity<EntityLivingBase>,
         entity: EntityLivingBase,
@@ -182,8 +288,16 @@ public sealed class RenderLivingEvent(
 
 }
 
+/**
+ * This event is called when the world is being rendered.
+ */
 public class RenderWorldEvent(public val partialTicks: Float) : Event()
 
+/**
+ * This cancellable event is called when your player's hand is being rendered in 1st person.
+ *
+ * If cancelled, the hand will not be rendered.
+ */
 public class RenderHandEvent(public val partialTicks: Float) : CancellableEvent()
 
 /**
