@@ -7,6 +7,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
 import net.weavemc.loader.analytics.launchStart
 import net.weavemc.loader.api.ModInitializer
+import net.weavemc.loader.api.command.CommandBus
 import net.weavemc.loader.mixins.WeaveMixinService
 import net.weavemc.loader.mixins.WeaveMixinTransformer
 import org.spongepowered.asm.launch.MixinBootstrap
@@ -18,6 +19,7 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.jar.JarFile
 import kotlin.io.path.*
+import kotlin.reflect.KClass
 
 /**
  * The main class of the Weave Loader.
@@ -27,7 +29,7 @@ public object WeaveLoader {
     /**
      * Stores loaded mods for possible use later on.
      */
-    public lateinit var mods: List<ModInitializer>
+    public val mods: MutableMap<String, WeaveMod> = HashMap()
 
     /**
      * @see [net.weavemc.loader.bootstrap.premain]
@@ -44,7 +46,6 @@ public object WeaveLoader {
         inst.addTransformer(WeaveMixinTransformer)
         inst.addTransformer(HookManager)
 
-        val initializers = mutableListOf<ModInitializer>()
         val json = Json { ignoreUnknownKeys = true }
         getOrCreateModDirectory()
             .listDirectoryEntries("*.jar")
@@ -55,25 +56,30 @@ public object WeaveLoader {
 
                 val configEntry = jar.getEntry("weave.mod.json") ?: error("${jar.name} does not contain a weave.mod.json!")
                 val config = json.decodeFromStream<ModConfig>(jar.getInputStream(configEntry))
+                val name = config.name ?: jar.name
 
                 config.mixinConfigs.forEach(Mixins::addConfiguration)
                 HookManager.hooks += config.hooks.map(::instantiate)
-                initializers += config.entrypoints.map(::instantiate)
+
+                // TODO: Add a name field to the config.
+                mods[config.modId] = WeaveMod(config.entrypoints.map(::instantiate), name, config)
             }
 
-        // call preInit after all hooks/mixins are added
-        initializers.forEach { it.preInit() }
-
-        mods = initializers.toList()
+        // Call preInit() once everything is done.
+        mods.values.forEach {
+            it.instance.forEach(ModInitializer::preInit)
+        }
 
         println("[Weave] Initialized Weave")
     }
 
     @Serializable
-    private data class ModConfig(
+    public data class ModConfig(
         val mixinConfigs: List<String> = listOf(),
         val hooks: List<String> = listOf(),
-        val entrypoints: List<String>
+        val entrypoints: List<String>,
+        val name: String? = null,
+        val modId: String = name?.lowercase()?.replace(" ", "-") ?: ("placeholder" + (100..999).random())
     )
 
     /**
