@@ -10,20 +10,6 @@ import net.minecraft.network.Packet
 import net.minecraft.network.play.server.S38PacketPlayerListItem.AddPlayerData
 import net.minecraft.util.IChatComponent
 import net.minecraft.world.World
-import net.weavemc.loader.api.event.EntityListEvent.Add
-import net.weavemc.loader.api.event.EntityListEvent.Remove
-import net.weavemc.loader.api.event.PacketEvent.Receive
-import net.weavemc.loader.api.event.PacketEvent.Send
-import net.weavemc.loader.api.event.PlayerListEvent.Add
-import net.weavemc.loader.api.event.PlayerListEvent.Remove
-import net.weavemc.loader.api.event.RenderGameOverlayEvent.Post
-import net.weavemc.loader.api.event.RenderGameOverlayEvent.Pre
-import net.weavemc.loader.api.event.RenderLivingEvent.Post
-import net.weavemc.loader.api.event.RenderLivingEvent.Pre
-import net.weavemc.loader.api.event.StartGameEvent.Post
-import net.weavemc.loader.api.event.StartGameEvent.Pre
-import net.weavemc.loader.api.event.WorldEvent.Load
-import net.weavemc.loader.api.event.WorldEvent.Unload
 import org.lwjgl.input.Keyboard
 import org.lwjgl.input.Mouse
 
