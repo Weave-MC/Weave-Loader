@@ -1,13 +1,11 @@
 package net.weavemc.loader
 
-import com.google.common.collect.ImmutableList
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
 import net.weavemc.loader.analytics.launchStart
 import net.weavemc.loader.api.ModInitializer
-import net.weavemc.loader.api.command.CommandBus
 import net.weavemc.loader.mixins.WeaveMixinService
 import net.weavemc.loader.mixins.WeaveMixinTransformer
 import org.spongepowered.asm.launch.MixinBootstrap
@@ -19,7 +17,6 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.jar.JarFile
 import kotlin.io.path.*
-import kotlin.reflect.KClass
 
 /**
  * The main class of the Weave Loader.
