@@ -10,6 +10,12 @@ import net.minecraft.network.Packet
 import net.minecraft.network.play.server.S38PacketPlayerListItem.AddPlayerData
 import net.minecraft.util.IChatComponent
 import net.minecraft.world.World
+import net.weavemc.loader.api.event.PacketEvent.Receive
+import net.weavemc.loader.api.event.PacketEvent.Send
+import net.weavemc.loader.api.event.StartGameEvent.Post
+import net.weavemc.loader.api.event.StartGameEvent.Pre
+import net.weavemc.loader.api.event.WorldEvent.Load
+import net.weavemc.loader.api.event.WorldEvent.Unload
 import org.lwjgl.input.Keyboard
 import org.lwjgl.input.Mouse
 
@@ -125,7 +131,7 @@ public class ChatSentEvent(public val message: String) : CancellableEvent()
  */
 public class GuiOpenEvent(public val screen: GuiScreen?) : CancellableEvent()
 
-// todo i dont understand half these events
+// todo i dont understand these events, im not qualified to document anything rendering related
 public sealed class RenderGameOverlayEvent(public val partialTicks: Float) : Event() {
 
     public class Pre(partialTicks: Float) : RenderGameOverlayEvent(partialTicks)
@@ -221,9 +227,23 @@ public sealed class StartGameEvent : Event() {
  */
 public object ShutdownEvent : Event()
 
-// todo write something for this
+/**
+ * This event is called when a world is loaded or unloaded.
+ *
+ * It is split into [Load] and [Unload].
+ */
 public sealed class WorldEvent(public val world: World) : Event() {
+
+    /**
+     * This is called when a world is loaded, like when a server switches
+     * sends you to a different lobby.
+     */
     public class Load(world: World) : WorldEvent(world)
+
+    /**
+     * This is similar to [Load], but called when an old world is unloaded,
+     * instead of a new one being loaded.
+     */
     public class Unload(world: World) : WorldEvent(world)
 }
 
