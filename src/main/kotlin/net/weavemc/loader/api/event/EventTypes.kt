@@ -102,7 +102,7 @@ public class MouseEvent : CancellableEvent() {
     public val dx: Int = Mouse.getEventDX()
 
     /**
-     * THe Y distance the mouse has travelled.
+     * The Y distance the mouse has travelled.
      */
     @get:JvmName("getDY")
     public val dy: Int = Mouse.getEventDY()
