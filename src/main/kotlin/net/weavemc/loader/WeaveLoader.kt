@@ -1,11 +1,11 @@
 package net.weavemc.loader
 
+import com.google.common.collect.ImmutableList
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
 import net.weavemc.loader.analytics.launchStart
-import net.weavemc.loader.analytics.updateLaunchTimes
 import net.weavemc.loader.api.ModInitializer
 import net.weavemc.loader.mixins.WeaveMixinService
 import net.weavemc.loader.mixins.WeaveMixinTransformer
@@ -19,7 +19,16 @@ import java.nio.file.Paths
 import java.util.jar.JarFile
 import kotlin.io.path.*
 
+/**
+ * The main class of the Weave Loader.
+ */
 public object WeaveLoader {
+
+    /**
+     * Stores loaded mods for possible use later on.
+     */
+    public lateinit var mods: List<ModInitializer>
+
     /**
      * @see [net.weavemc.loader.bootstrap.premain]
      */
@@ -54,6 +63,8 @@ public object WeaveLoader {
 
         // call preInit after all hooks/mixins are added
         initializers.forEach { it.preInit() }
+
+        mods = initializers.toList()
 
         println("[Weave] Initialized Weave")
     }
