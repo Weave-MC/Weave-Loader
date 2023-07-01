@@ -25,11 +25,13 @@ public object WeaveLoader {
 
     /**
      * Stores loaded mods for possible use later on.
+     * The keys in this map are the mods' mod IDs.
+     * @see ModConfig
      */
     public val mods: MutableMap<String, WeaveMod> = HashMap()
 
     /**
-     * @see [net.weavemc.loader.bootstrap.premain]
+     * This is where Weave loads mods, and [ModInitializer.preInit()][ModInitializer.preInit] is called.
      */
     @JvmStatic
     @OptIn(ExperimentalSerializationApi::class)
@@ -70,6 +72,16 @@ public object WeaveLoader {
         println("[Weave] Initialized Weave")
     }
 
+    /**
+     * The data class that is read from a mod's `weave.mod.json`.
+     *
+     * @param mixinConfigs The loaded mixin configs of the mod.
+     * @param hooks The loaded hooks of the mod.
+     * @param entrypoints The loaded [ModInitializer] entry points of the mod.
+     * @param name The loaded name of a mod, if this field is not found, it will default to the mod's jar file.
+     * @param modId The loaded mod ID of a mod, if this field is not found, it will be assigned
+     * a random placeholder value upon loading. **This value is not persistent between launches!**
+     */
     @Serializable
     public data class ModConfig(
         val mixinConfigs: List<String> = listOf(),
