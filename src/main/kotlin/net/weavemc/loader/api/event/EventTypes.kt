@@ -36,23 +36,18 @@ public abstract class CancellableEvent : Event() {
 
 /**
  * This is the base class for a Tick Event. Tick Events can be Pre and Post, but you will never
- * receive a base Tick Event. These are each called every game tick, or roughly every `50/timer` milliseconds.
+ * receive a base Tick Event. These are each called every game tick, or every `50/timer` milliseconds (every 1/20th of a second at timer `1`).
  * The game's timer speed will never change (unless modified by cheats), so it is safe to assume that it is `1`.
  */
 public sealed class TickEvent : Event() {
 
     /**
-     * Pre Tick Events are called right before the game sends that tick's **position, rotation,
-     * and onGround** updates to the server, and as such, they can be modified here. **If you
-     * modify any of them here, it might be a good idea to return them to their original value on
-     * the following [Post Tick Event][Post]**.
+     * Pre Tick Events are called at the start of a tick.
      */
     public object Pre : TickEvent()
 
     /**
-     * Post Tick Events are called right after the game sends that tick's **position, rotation,
-     * and onGround** updates to the server. Most player actions are done on [Pre], so
-     * performing actions with the player here might cause flags with anti-cheats.
+     * Post Tick Events are called at the end of a tick.
      */
     public object Post: TickEvent()
 }
@@ -138,7 +133,6 @@ public class MouseEvent : CancellableEvent() {
 /**
  * This cancellable event is called when your client receives a chat message from the server.
  *
- * If cancelled, the message will not be displayed in chat.
  * @param message The message being received, in the form of a [Chat Component][IChatComponent].
  */
 public class ChatReceivedEvent(public val message: IChatComponent) : CancellableEvent()
@@ -230,12 +224,10 @@ public sealed class PlayerListEvent(public val playerData: AddPlayerData) : Even
  *
  * It is split into [Pre] and [Post]. The [Pre] version of this event is cancellable.
  *
- * **NOTE: No one really knows what the fuck is going on here, half of this is pure guessing...**
- *
  * @param entity The entity being rendered.
- * @param x The interpolated `x` for this frame.
- * @param y The interpolated `y` for this frame.
- * @param z The interpolated `z` for this frame.
+ * @param x The `x` coordinate where the entity is being rendered this frame.
+ * @param y The `y` coordinate where the entity is being rendered this frame.
+ * @param z The `z` coordinate where the entity is being rendered this frame.
  */
 public sealed class RenderLivingEvent(
     public val renderer: RendererLivingEntity<EntityLivingBase>,
@@ -304,8 +296,9 @@ public class ServerConnectEvent(
 }
 
 /**
- * This event is called when the game is starting. Like [Tick Event][TickEvent], it
- * is split into [Pre] and [Post].
+ * This event is called when the game is starting.
+ *
+ * This event is split into [Pre] and [Post].
  */
 public sealed class StartGameEvent : Event() {
 

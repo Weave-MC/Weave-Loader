@@ -64,7 +64,7 @@ public object WeaveLoader {
                 mods[config.modId] = WeaveMod(config.entrypoints.map(::instantiate), name, config)
             }
 
-        // Call preInit() once everything is done.
+        /** Call preInit() once everything is done. */
         mods.values.forEach {
             it.instance.forEach(ModInitializer::preInit)
         }
@@ -78,8 +78,8 @@ public object WeaveLoader {
      * @param mixinConfigs The loaded mixin configs of the mod.
      * @param hooks The loaded hooks of the mod.
      * @param entrypoints The loaded [ModInitializer] entry points of the mod.
-     * @param name The loaded name of a mod, if this field is not found, it will default to the mod's jar file.
-     * @param modId The loaded mod ID of a mod, if this field is not found, it will be assigned
+     * @param name The loaded name of the mod, if this field is not found, it will default to the mod's jar file.
+     * @param modId The loaded mod ID of the mod, if this field is not found, it will be assigned
      * a random placeholder value upon loading. **This value is not persistent between launches!**
      */
     @Serializable

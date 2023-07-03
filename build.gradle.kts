@@ -10,7 +10,7 @@ plugins {
     `maven-publish`
 
     id("com.github.weave-mc.weave-gradle") version "bcf6ab0279"
-    id("org.jetbrains.dokka") version "1.8.20"
+    id("org.jetbrains.dokka") version "1.8.10"
 }
 
 val projectName:    String by project
@@ -55,7 +55,6 @@ tasks.withType<DokkaTask>().configureEach {
         externalDocumentationLink("https://kotlinlang.org/api/kotlinx.serialization/", "https://kotlinlang.org/api/kotlinx.serialization/package-list")
         externalDocumentationLink("https://asm.ow2.io/javadoc/", "https://asm.ow2.io/javadoc/element-list")
         externalDocumentationLink("https://jenkins.liteloader.com/job/Mixin/javadoc/","https://jenkins.liteloader.com/job/Mixin/javadoc/package-list")
-        externalDocumentationLink("https://projectlombok.org/api/","https://projectlombok.org/api/element-list")
         externalDocumentationLink("https://javadoc.io/doc/org.jetbrains/annotations/13.0/","https://javadoc.io/doc/org.jetbrains/annotations/13.0/package-list")
     }
 }
