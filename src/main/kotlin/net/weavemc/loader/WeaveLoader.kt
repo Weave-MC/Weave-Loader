@@ -28,7 +28,7 @@ public object WeaveLoader {
      * The keys in this map are the mods' mod IDs.
      * @see ModConfig
      */
-    public val mods: MutableMap<String, WeaveMod> = HashMap()
+    public val mods: MutableList<WeaveMod> = ArrayList()
 
     /**
      * This is where Weave loads mods, and [ModInitializer.preInit()][ModInitializer.preInit] is called.
@@ -61,11 +61,11 @@ public object WeaveLoader {
                 HookManager.hooks += config.hooks.map(::instantiate)
 
                 // TODO: Add a name field to the config.
-                mods[config.modId] = WeaveMod(config.entrypoints.map(::instantiate), name, config)
+                mods.add(WeaveMod(config.entrypoints.map(::instantiate), name.replace(".jar", ""), config))
             }
 
         /** Call preInit() once everything is done. */
-        mods.values.forEach {
+        mods.forEach {
             it.instance.forEach(ModInitializer::preInit)
         }
 
