@@ -26,8 +26,8 @@ public class EventBus {
      * Subscribe an object to the event bus, turning methods
      * defined in it into listeners using @SubscribeEvent.
      *
-     * @see SubscribeEvent
      * @param obj The object to subscribe.
+     * @see SubscribeEvent
      */
     public void subscribe(Object obj) {
         for (Method method : obj.getClass().getDeclaredMethods()) {
