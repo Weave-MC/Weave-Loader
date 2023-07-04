@@ -76,12 +76,12 @@ public object WeaveLoader {
     /**
      * The data class that is read from a mod's `weave.mod.json`.
      *
-     * @param mixinConfigs The loaded mixin configs of the mod.
-     * @param hooks The loaded hooks of the mod.
-     * @param entrypoints The loaded [ModInitializer] entry points of the mod.
-     * @param name The loaded name of the mod, if this field is not found, it will default to the mod's jar file.
-     * @param modId The loaded mod ID of the mod, if this field is not found, it will be assigned
-     * a random placeholder value upon loading. **This value is not persistent between launches!**
+     * @property mixinConfigs The loaded mixin configs of the mod.
+     * @property hooks The loaded hooks of the mod.
+     * @property entrypoints The loaded [ModInitializer] entry points of the mod.
+     * @property name The loaded name of the mod, if this field is not found, it will default to the mod's jar file.
+     * @property modId The loaded mod ID of the mod, if this field is not found, it will be assigned
+     *           a random placeholder value upon loading. **This value is not persistent between launches!**
      */
     @Serializable
     public data class ModConfig(
