@@ -28,7 +28,7 @@ public object WeaveLoader {
      * The keys in this map are the mods' mod IDs.
      * @see ModConfig
      */
-    public val mods: MutableList<WeaveMod> = ArrayList()
+    public val mods = mutableListOf<WeaveMod>()
 
     /**
      * This is where Weave loads mods, and [ModInitializer.preInit()][ModInitializer.preInit] is called.
