@@ -134,7 +134,7 @@ public class MouseEvent : CancellableEvent() {
 /**
  * This cancellable event is called when your client receives a chat message from the server.
  *
- * @param message The message being received, in the form of a [Chat Component][IChatComponent].
+ * @property message The message being received, in the form of a [Chat Component][IChatComponent].
  */
 public class ChatReceivedEvent(public val message: IChatComponent) : CancellableEvent()
 
@@ -144,7 +144,7 @@ public class ChatReceivedEvent(public val message: IChatComponent) : Cancellable
  * If cancelled, the message will not be sent, but still added to your chat history.
  * This can be useful for making your own command system.
  *
- * @param message The message that is going to be sent.
+ * @property message The message that is going to be sent.
  */
 public class ChatSentEvent(public val message: String) : CancellableEvent()
 
@@ -153,7 +153,7 @@ public class ChatSentEvent(public val message: String) : CancellableEvent()
  *
  * If cancelled, the screen will not be opened.
  *
- * @param screen The screen being opened.
+ * @property screen The screen being opened.
  */
 public class GuiOpenEvent(public val screen: GuiScreen?) : CancellableEvent()
 
@@ -183,7 +183,7 @@ public sealed class RenderGameOverlayEvent(public val partialTicks: Float) : Eve
  *
  * It is split into [Add] and [Remove].
  *
- * @param entity The entity being added/removed.
+ * @property entity The entity being added/removed.
  */
 public sealed class EntityListEvent(public val entity: Entity) : Event() {
 
@@ -204,7 +204,7 @@ public sealed class EntityListEvent(public val entity: Entity) : Event() {
  *
  * This event is split into [Add] and [Remove].
  *
- * @param playerData The Player Data of the player being added/removed.
+ * @property playerData The Player Data of the player being added/removed.
  */
 public sealed class PlayerListEvent(public val playerData: AddPlayerData) : Event() {
 
@@ -225,10 +225,10 @@ public sealed class PlayerListEvent(public val playerData: AddPlayerData) : Even
  *
  * It is split into [Pre] and [Post]. The [Pre] version of this event is cancellable.
  *
- * @param entity The entity being rendered.
- * @param x The `x` coordinate where the entity is being rendered this frame.
- * @param y The `y` coordinate where the entity is being rendered this frame.
- * @param z The `z` coordinate where the entity is being rendered this frame.
+ * @property entity The entity being rendered.
+ * @property x The `x` coordinate where the entity is being rendered this frame.
+ * @property y The `y` coordinate where the entity is being rendered this frame.
+ * @property z The `z` coordinate where the entity is being rendered this frame.
  */
 public sealed class RenderLivingEvent(
     public val renderer: RendererLivingEntity<EntityLivingBase>,
@@ -282,8 +282,8 @@ public class RenderHandEvent(public val partialTicks: Float) : CancellableEvent(
 /**
  * This event is called when you connect to a server.
  *
- * @param ip The IP address of the server.
- * @param port The port of the server.
+ * @property ip The IP address of the server.
+ * @property port The port of the server.
  */
 public class ServerConnectEvent(
     public val ip: String,
@@ -347,7 +347,7 @@ public sealed class WorldEvent(public val world: World) : Event() {
  *
  * This event is split into [Send] and [Receive].
  *
- * @param packet The packet being processed.
+ * @property packet The packet being processed.
  */
 public sealed class PacketEvent(public val packet: Packet<*>) : CancellableEvent() {
 
