@@ -16,7 +16,7 @@ import java.util.function.Consumer;
  * The event bus handles events and event listeners.
  *
  * @see Event
- * @see SubscribeEvent @SubscribeEvent
+ * @see SubscribeEvent
  */
 @UtilityClass
 public class EventBus {

@@ -15,17 +15,4 @@ public interface ModInitializer {
      */
     public fun preInit() {}
 
-    /**
-     * This is the old init(), before Weave-Loader 2.0.0.
-     * Please use [preInit()][preInit] to initialize your mod,
-     * and [StartGameEvent][net.weavemc.loader.api.event.StartGameEvent] as a replacement for init().
-     *
-     * **If your mod uses this, please migrate to the replacements linked above.**
-     */
-    @Deprecated(
-        "init() is deprecated since Weave-Loader 2.0.0.",
-        ReplaceWith("preInit()"),
-        DeprecationLevel.HIDDEN
-    )
-    public fun init() {}
 }
