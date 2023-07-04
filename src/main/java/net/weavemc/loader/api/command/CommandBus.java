@@ -19,6 +19,7 @@ public class CommandBus {
     /**
      * While commands can be registered at any time and still work, outside rare cases,
      * you should register them during your ModInitializer's `preInit()`.
+     *
      * @param command The command instance to register.
      */
     public void register(Command command) {

@@ -14,6 +14,7 @@ import java.util.function.Consumer;
 
 /**
  * The event bus handles events and event listeners.
+ *
  * @see Event
  * @see SubscribeEvent @SubscribeEvent
  */
@@ -23,7 +24,8 @@ public class EventBus {
 
     /**
      * Subscribe an object to the event bus, turning methods
-     * defined in it into listeners using @SubscribeEvent
+     * defined in it into listeners using @SubscribeEvent.
+     *
      * @see SubscribeEvent @SubscribeEvent
      * @param obj The object to subscribe.
      */
@@ -37,6 +39,7 @@ public class EventBus {
 
     /**
      * Subscribe a listener to the event bus.
+     *
      * @param event The class of the event to subscribe to.
      * @param handler The Consumer to handle that event.
      * @param <T> The type of the event to listen for.
@@ -47,6 +50,7 @@ public class EventBus {
 
     /**
      * Call an event for all the listeners listening for it.
+     *
      * @param event The event to call.
      * @param <T> The type of the event to call.
      */
@@ -59,6 +63,7 @@ public class EventBus {
 
     /**
      * Unsubscribe a listener from the event bus.
+     *
      * @param consumer The Consumer to unsubscribe.
      */
     public void unsubscribe(Consumer<? extends Event> consumer) {
@@ -70,6 +75,7 @@ public class EventBus {
     /**
      * Unsubscribe an object from the event bus, which unsubscribes
      * all of its listeners.
+     *
      * @param obj The object to unsubscribe.
      */
     public void unsubscribe(Object obj) {

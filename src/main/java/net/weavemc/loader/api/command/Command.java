@@ -15,6 +15,7 @@ public abstract class Command {
 
     /**
      * The constructor for commands.
+     *
      * @param name The name of the command.
      * @param aliases The other aliases of the command, which can be used
      *                to call the command without using its name. Usually just
@@ -27,6 +28,7 @@ public abstract class Command {
 
     /**
      * This method is called when the command is executed.
+     *
      * @param args An array of everything inputted after the command's name/alias,
      *             split by space.
      */
