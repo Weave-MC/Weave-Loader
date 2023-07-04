@@ -60,6 +60,7 @@ public class KeyboardEvent : Event() {
 
     /**
      * The key code is the LWJGL2 key code for the key being pressed.
+     *
      * @see Keyboard
      */
     public val keyCode: Int =
