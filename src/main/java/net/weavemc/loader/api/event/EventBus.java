@@ -26,7 +26,7 @@ public class EventBus {
      * Subscribe an object to the event bus, turning methods
      * defined in it into listeners using @SubscribeEvent.
      *
-     * @see SubscribeEvent @SubscribeEvent
+     * @see SubscribeEvent
      * @param obj The object to subscribe.
      */
     public void subscribe(Object obj) {
@@ -42,7 +42,7 @@ public class EventBus {
      *
      * @param event The class of the event to subscribe to.
      * @param handler The Consumer to handle that event.
-     * @param <T> The type of the event to listen for.
+     * @param T The type of the event to listen for.
      */
     public<T extends Event> void subscribe(Class<T> event, Consumer<T> handler) {
         getListeners(event).add(handler);
@@ -52,7 +52,7 @@ public class EventBus {
      * Call an event for all the listeners listening for it.
      *
      * @param event The event to call.
-     * @param <T> The type of the event to call.
+     * @param T The type of the event to call.
      */
     public<T extends Event> void callEvent(T event) {
         for(Class<?> c = event.getClass(); c != Object.class; c = c.getSuperclass()) {
