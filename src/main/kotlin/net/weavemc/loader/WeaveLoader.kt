@@ -62,7 +62,7 @@ public object WeaveLoader {
                 HookManager.hooks += config.hooks.map(::instantiate)
 
                 // TODO: Add a name field to the config.
-                mods.add(WeaveMod(config.entrypoints.map(::instantiate), name.removeSuffix(".jar"), config))
+                mods += WeaveMod(config.entrypoints.map(::instantiate), name, config)
             }
 
         /** Call preInit() once everything is done. */
