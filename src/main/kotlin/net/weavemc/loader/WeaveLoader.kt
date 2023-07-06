@@ -89,7 +89,7 @@ public object WeaveLoader {
         val hooks: List<String> = listOf(),
         val entrypoints: List<String>,
         val name: String? = null,
-        val modId: String = name?.lowercase()?.replace(" ", "-") ?: ("placeholder" + (100..999).random())
+        val modId: String? = null
     )
 
     /**
