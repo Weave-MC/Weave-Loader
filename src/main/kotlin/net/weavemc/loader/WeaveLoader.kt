@@ -56,7 +56,7 @@ public object WeaveLoader {
 
                 val configEntry = jar.getEntry("weave.mod.json") ?: error("${jar.name} does not contain a weave.mod.json!")
                 val config = json.decodeFromStream<ModConfig>(jar.getInputStream(configEntry))
-                val name = config.name ?: jar.name
+                val name = config.name ?: jar.name.removeSuffix(".jar")
 
                 config.mixinConfigs.forEach(Mixins::addConfiguration)
                 HookManager.hooks += config.hooks.map(::instantiate)
