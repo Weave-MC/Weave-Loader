@@ -13,6 +13,6 @@ public interface ModInitializer {
      *
      * @since Weave-Loader 2.0.0
      */
-    public fun preInit() {}
+    public fun preInit()
 
 }
