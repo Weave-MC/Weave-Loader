@@ -24,8 +24,7 @@ import kotlin.io.path.*
 public object WeaveLoader {
 
     /**
-     * Stores loaded mods for possible use later on.
-     * The keys in this map are the mods' mod IDs.
+     * Stored list of [WeaveMod]s.
      *
      * @see ModConfig
      */
