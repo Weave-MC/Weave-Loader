@@ -28,7 +28,7 @@ public object WeaveLoader {
      *
      * @see ModConfig
      */
-    public val mods = mutableListOf<WeaveMod>()
+    public val mods: MutableList<WeaveMod> = mutableListOf()
 
     /**
      * This is where Weave loads mods, and [ModInitializer.preInit()][ModInitializer.preInit] is called.
@@ -61,12 +61,14 @@ public object WeaveLoader {
                 HookManager.hooks += config.hooks.map(::instantiate)
 
                 // TODO: Add a name field to the config.
-                mods += WeaveMod(config.entrypoints.map(::instantiate), name, config)
+                mods += WeaveMod(name, config)
             }
 
         /** Call preInit() once everything is done. */
-        mods.forEach {
-            it.instance.forEach(ModInitializer::preInit)
+        mods.forEach { weaveMod ->
+            weaveMod.config.entrypoints.forEach { entrypoint ->
+                instantiate<ModInitializer>(entrypoint).preInit()
+            }
         }
 
         println("[Weave] Initialized Weave")
@@ -86,7 +88,7 @@ public object WeaveLoader {
     public data class ModConfig(
         val mixinConfigs: List<String> = listOf(),
         val hooks: List<String> = listOf(),
-        val entrypoints: List<String>,
+        val entrypoints: List<String> = listOf(),
         val name: String? = null,
         val modId: String? = null
     )
