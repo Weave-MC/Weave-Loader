@@ -6,15 +6,29 @@ import lombok.experimental.UtilityClass;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Method;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
+/**
+ * The event bus handles events and event listeners.
+ *
+ * @see Event
+ * @see SubscribeEvent
+ */
 @UtilityClass
 public class EventBus {
     private final Map<Class<?>, List<Consumer<?>>> map = new ConcurrentHashMap<>();
 
+    /**
+     * Subscribe an object to the event bus, turning methods
+     * defined in it into listeners using @SubscribeEvent.
+     *
+     * @param obj The object to subscribe.
+     * @see SubscribeEvent
+     */
     public void subscribe(Object obj) {
         for (Method method : obj.getClass().getDeclaredMethods()) {
             if (method.isAnnotationPresent(SubscribeEvent.class) && method.getParameterCount() == 1) {
@@ -23,10 +37,23 @@ public class EventBus {
         }
     }
 
+    /**
+     * Subscribe a listener to the event bus.
+
+     * @param T The type of the event to listen for.*
+     * @param event The class of the event to subscribe to.
+     * @param handler The Consumer to handle that event.
+     */
     public<T extends Event> void subscribe(Class<T> event, Consumer<T> handler) {
         getListeners(event).add(handler);
     }
 
+    /**
+     * Call an event for all the listeners listening for it.
+
+     * @param T The type of the event to call.*
+     * @param event The event to call.
+     */
     public<T extends Event> void callEvent(T event) {
         for(Class<?> c = event.getClass(); c != Object.class; c = c.getSuperclass()) {
             //noinspection unchecked
@@ -34,12 +61,23 @@ public class EventBus {
         }
     }
 
+    /**
+     * Unsubscribe a listener from the event bus.
+     *
+     * @param consumer The Consumer to unsubscribe.
+     */
     public void unsubscribe(Consumer<? extends Event> consumer) {
         for(List<Consumer<?>> list : map.values()) {
             list.removeIf(c -> c == consumer);
         }
     }
 
+    /**
+     * Unsubscribe an object from the event bus, which unsubscribes
+     * all of its listeners.
+     *
+     * @param obj The object to unsubscribe.
+     */
     public void unsubscribe(Object obj) {
         for(List<Consumer<?>> list : map.values()) {
             list.removeIf(c -> c instanceof ReflectEventConsumer && ((ReflectEventConsumer)c).obj == obj);

@@ -1,18 +1,27 @@
 package net.weavemc.loader.api.command;
 
+import lombok.experimental.UtilityClass;
 import net.weavemc.loader.api.event.ChatSentEvent;
 import net.weavemc.loader.api.event.EventBus;
-import lombok.experimental.UtilityClass;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
+/**
+ * The Command Bus manages commands by Weave mods.
+ */
 @UtilityClass
 public class CommandBus {
     private final List<Command> commands = new ArrayList<>();
 
+    /**
+     * While commands can be registered at any time and still work, outside rare cases,
+     * you should register them during your ModInitializer's `preInit()`.
+     *
+     * @param command The command instance to register.
+     */
     public void register(Command command) {
         commands.add(command);
     }

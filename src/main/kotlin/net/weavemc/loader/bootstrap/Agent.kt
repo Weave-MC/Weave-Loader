@@ -1,7 +1,12 @@
 package net.weavemc.loader.bootstrap
 
 import java.lang.instrument.Instrumentation
+import net.weavemc.loader.WeaveLoader
 
+/**
+ * The JavaAgent's `premain()` method, this is where initialization of Weave Loader begins.
+ * Weave Loader's initialization begins by calling [WeaveLoader.init()][WeaveLoader.init], which is loaded through Genesis.
+ */
 @Suppress("UNUSED_PARAMETER")
 public fun premain(opt: String?, inst: Instrumentation) {
     val version = findVersion()
