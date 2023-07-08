@@ -6,7 +6,7 @@ import org.objectweb.asm.tree.AbstractInsnNode
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.FieldNode
 import org.objectweb.asm.tree.MethodNode
-import java.io.File
+import java.io.FileOutputStream
 
 internal fun List<MethodNode>.named(name: String) = find { it.name == name }!!
 internal fun List<FieldNode>.named(name: String) = find { it.name == name }!!
@@ -24,5 +24,5 @@ internal inline fun <reified T : AbstractInsnNode> AbstractInsnNode.prev(p: (T) 
 internal fun ClassNode.dump(file: String) {
     val cw = ClassWriter(0)
     accept(cw)
-    File(file).writeBytes(cw.toByteArray())
+    FileOutputStream(file).use { it.write(cw.toByteArray()) }
 }
