@@ -8,6 +8,9 @@ import net.weavemc.loader.util.internalNameOf
 import net.weavemc.loader.util.named
 import org.objectweb.asm.tree.ClassNode
 
+/**
+ * Corresponds to [ServerConnectEvent].
+ */
 internal class ServerConnectEventHook : Hook("net/minecraft/client/multiplayer/GuiConnecting") {
 
     /**

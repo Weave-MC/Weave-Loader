@@ -9,7 +9,16 @@ import jdk.internal.org.objectweb.asm.Type
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
 
+/**
+ * Corresponds to [WorldEvent.Load] and [WorldEvent.Unload].
+ */
 internal class WorldEventHook: Hook("net/minecraft/client/Minecraft") {
+
+    /**
+     * Inserts a call in [net.minecraft.client.Minecraft.loadWorld] to [WorldEvent.Load] and later [WorldEvent.Unload].
+     *
+     * @see net.minecraft.client.Minecraft.loadWorld
+     */
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         node.methods.find {
             it.name == "loadWorld" && it.desc == "(Lnet/minecraft/client/multiplayer/WorldClient;Ljava/lang/String;)V"

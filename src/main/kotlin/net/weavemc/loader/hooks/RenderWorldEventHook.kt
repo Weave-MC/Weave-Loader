@@ -9,6 +9,9 @@ import net.weavemc.loader.util.named
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LdcInsnNode
 
+/**
+ * Corresponds to [RenderWorldEvent].
+ */
 internal class RenderWorldEventHook : Hook("net/minecraft/client/renderer/EntityRenderer") {
 
     /**

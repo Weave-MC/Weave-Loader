@@ -11,6 +11,9 @@ import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
 
+/**
+ * Corresponds to [RenderLivingEvent.Pre] and [RenderLivingEvent.Post].
+ */
 internal class RenderLivingEventHook : Hook("net/minecraft/client/renderer/entity/RendererLivingEntity") {
 
     /**

@@ -322,21 +322,19 @@ public sealed class StartGameEvent : Event() {
 public object ShutdownEvent : Event()
 
 /**
- * This event is called when a world is loaded or unloaded.
+ * Event call in the event of loading, or unloading a world.
  *
- * It is split into [Load] and [Unload].
+ * Split into [Load] and [Unload].
  */
 public sealed class WorldEvent(public val world: World) : Event() {
 
     /**
-     * This is called when a world is loaded, like when a server switches
-     * sends you to a different lobby.
+     * Called on the event of a world loading, i.e. a server connection, or a singleplayer world.
      */
     public class Load(world: World) : WorldEvent(world)
 
     /**
-     * This is similar to [Load], but called when an old world is unloaded,
-     * instead of a new one being loaded.
+     * Called on the event of a world unloading, i.e. a server disconnect, or leaving a singleplayer world.
      */
     public class Unload(world: World) : WorldEvent(world)
 }

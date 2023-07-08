@@ -8,6 +8,9 @@ import net.weavemc.loader.util.getSingleton
 import net.weavemc.loader.util.named
 import org.objectweb.asm.tree.ClassNode
 
+/**
+ * Corresponds to [ShutdownEvent].
+ */
 internal class ShutdownEventHook : Hook("net/minecraft/client/Minecraft") {
 
     /**
