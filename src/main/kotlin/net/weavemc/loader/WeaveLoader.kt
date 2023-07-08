@@ -64,7 +64,7 @@ public object WeaveLoader {
                 mods += WeaveMod(name, config)
             }
 
-        /** Call preInit() once everything is done. */
+        /* Call preInit() once everything is done. */
         mods.forEach { weaveMod ->
             weaveMod.config.entrypoints.forEach { entrypoint ->
                 instantiate<ModInitializer>(entrypoint).preInit()

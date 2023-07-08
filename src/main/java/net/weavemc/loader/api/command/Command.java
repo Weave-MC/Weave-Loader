@@ -10,16 +10,13 @@ import java.util.Arrays;
  * @see CommandBus
  */
 public abstract class Command {
-    public final String name;
+
+    public final String   name;
     public final String[] aliases;
 
     /**
-     * The constructor for commands.
-     *
-     * @param name The name of the command.
-     * @param aliases The other aliases of the command, which can be used
-     *                to call the command without using its name. Usually just
-     *                a shorter version of the command's name.
+     * @param name    The name of the command.
+     * @param aliases Zero or more substitutes for the command's name.
      */
     public Command(String name, String... aliases) {
         this.name = name;
@@ -27,14 +24,15 @@ public abstract class Command {
     }
 
     /**
-     * This method is called when the command is executed.
+     * 'Handles' behavior on command execution.
      *
-     * @param args An array of everything inputted after the command's name/alias,
-     *             split by space.
+     * @param args Array of strings seperated by whitespace following the initial command name.
+     *             i.e. {@code /command arg arg arg}.
      */
     public abstract void handle(@NotNull String[] args);
 
     boolean matches(String s) {
         return name.equalsIgnoreCase(s) || Arrays.stream(aliases).anyMatch(alias -> alias.equalsIgnoreCase(s));
     }
+
 }
