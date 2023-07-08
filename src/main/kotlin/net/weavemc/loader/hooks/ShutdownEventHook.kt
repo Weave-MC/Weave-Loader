@@ -14,8 +14,9 @@ import org.objectweb.asm.tree.ClassNode
 internal class ShutdownEventHook : Hook("net/minecraft/client/Minecraft") {
 
     /**
-     * Inserts a singleton shutdown call at the head of
+     * Inserts a call to
      * [net.minecraft.client.Minecraft.shutdownMinecraftApplet].
+     * at the head of [net.minecraft.client.Minecraft.shutdownMinecraftApplet].
      *
      * @see net.minecraft.client.Minecraft.shutdownMinecraftApplet
      */

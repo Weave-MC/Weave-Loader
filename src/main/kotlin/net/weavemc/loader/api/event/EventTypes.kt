@@ -297,69 +297,84 @@ public class ServerConnectEvent(
 }
 
 /**
- * This event is called when the game is starting.
- *
- * This event is split into [Pre] and [Post].
+ * Non-cancellable event, split into [Pre] and [Post].
  */
 public sealed class StartGameEvent : Event() {
 
     /**
-     * This is called before the game starts, at the beginning of [startGame][Minecraft.startGame].
+     * Called in correspondence with [net.minecraft.client.Minecraft.startGame] at the head of the method.
+     * Therefore, [Pre] is called early in the game startup process.
      */
     public object Pre : StartGameEvent()
 
     /**
-     * This is called after the game starts, at the end of [startGame][Minecraft.startGame].
+     * Called in correspondence with [net.minecraft.client.Minecraft.startGame] at the tail of the method.
+     * Therefore, [Post] is called late in the game startup process.
      */
     public object Post : StartGameEvent()
 
 }
 
 /**
- * This event is called when the game shuts down. You might want to avoid saving
- * settings/data **only** on this event, as it might lead to possible data loss.
+ * Non-cancellable event,
+ * Called in correspondence with [net.minecraft.client.Minecraft.shutdownMinecraftApplet].
+ * Therefore, [ShutdownEvent] is called by the [EventBus] only in the event that
+ * the client is being shut down.
  */
 public object ShutdownEvent : Event()
 
 /**
- * Event call in the event of loading, or unloading a world.
+ * Non-cancellable event, split into [Load] and [Unload].
  *
- * Split into [Load] and [Unload].
+ * Event call in the event of loading, or unloading a world.
  */
 public sealed class WorldEvent(public val world: World) : Event() {
 
     /**
-     * Called on the event of a world loading, i.e. a server connection, or a singleplayer world.
+     * Called in correspondence with [net.minecraft.client.Minecraft.loadWorld]
+     * if [net.minecraft.client.multiplayer.WorldClient] is not null.
+     * Therefore, [Load] is called by the [EventBus] only in the event
+     * that a client loads a new world. Whether that be a server connection,
+     * or a singleplayer world.
      */
     public class Load(world: World) : WorldEvent(world)
 
     /**
-     * Called on the event of a world unloading, i.e. a server disconnect, or leaving a singleplayer world.
+     * Called in correspondence with [net.minecraft.client.Minecraft.loadWorld]
+     * if [net.minecraft.client.Minecraft.theWorld] is not null.
+     * Therefore, [Unload] is called by the [EventBus] only in the event
+     * that a client unloads a world. Whether that be a server disconnection,
+     * or a singleplayer world.
      */
     public class Unload(world: World) : WorldEvent(world)
 }
 
 /**
- * This cancellable event is called when packets are being handled by
- * the [Network Manager][Minecraft.myNetworkManager].
+ * Cancellable event, split into [Send] and [Receive].
  *
- * This event is split into [Send] and [Receive].
+ * Called in the event of a packet being sent or received to the client via [Minecraft.myNetworkManager]
  *
  * @property packet The packet being processed.
  */
 public sealed class PacketEvent(public val packet: Packet<*>) : CancellableEvent() {
 
     /**
-     * This is called when a packet is being sent by the client, to the server.
+     * Called in correspondence with [net.minecraft.network.NetworkManager.sendPacket],
+     * which is called in the event that the client sends a packet to the server.
      *
-     * If cancelled, the packet is not sent.
+     * When cancelled, packets are not sent to the server.
+     *
+     * @param packet The packet being sent.
      */
     public class Send(packet: Packet<*>) : PacketEvent(packet)
 
     /**
-     * This is called when a packet is being received by the client, from the server.
+     * Called in correspondence with [net.minecraft.network.NetworkManager.channelRead0],
+     * which is called in the event that the client receives a packet from the server.
      *
-     * If cancelled, the packet will not be processed, but instead ignored.
+     * When cancelled, packets are not processed by the client.
+     *
+     * @param packet The packet being received.
      */
     public class Receive(packet: Packet<*>) : PacketEvent(packet)
 }

@@ -15,7 +15,13 @@ import org.objectweb.asm.tree.LabelNode
 internal class WorldEventHook: Hook("net/minecraft/client/Minecraft") {
 
     /**
-     * Inserts a call in [net.minecraft.client.Minecraft.loadWorld] to [WorldEvent.Load] and later [WorldEvent.Unload].
+     * Inserts a call to [WorldEvent.Load] and [WorldEvent.Unload] using the Event Bus.
+     *
+     * [WorldEvent.Load] is called in the case that [net.minecraft.client.Minecraft.loadWorld] is called,
+     * and [net.minecraft.client.multiplayer.WorldClient] is not null.
+     *
+     * [WorldEvent.Unload] is called in the case that [net.minecraft.client.Minecraft.loadWorld] is called,
+     * and [net.minecraft.client.Minecraft.theWorld] is not null.
      *
      * @see net.minecraft.client.Minecraft.loadWorld
      */
