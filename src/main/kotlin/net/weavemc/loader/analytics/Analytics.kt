@@ -1,5 +1,6 @@
 package net.weavemc.loader.analytics
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -25,9 +26,7 @@ internal fun updateLaunchTimes() {
         launchTimes.removeAt(0)
     launchTimes.add(time)
 
-    val average = "%.1fs".format(launchTimes.average() / 1000)
-
-    launchData.averageLaunchTime = average
+    launchData.averageLaunchTime = (launchTimes.average().toFloat() / 1000)
     launchData.launchTimes = launchTimes
 
     val updatedJson = Json.encodeToString(launchData)
@@ -45,7 +44,7 @@ private fun getOrCreateAnalyticsFile(): File {
 
 @Serializable
 private data class Analytics(
-    var launchTimes: MutableList<Long> = mutableListOf(),
-    var timePlayed: Long = 0L,
-    var averageLaunchTime: String = "0s"
+    @SerialName("launch_times") var launchTimes: MutableList<Long> = mutableListOf(),
+    @SerialName("time_played") var timePlayed: Long = 0L,
+    @SerialName("average_launch_time") var averageLaunchTime: Float = 0f
 )
