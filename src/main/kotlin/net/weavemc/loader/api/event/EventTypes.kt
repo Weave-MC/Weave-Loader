@@ -268,21 +268,23 @@ public sealed class RenderLivingEvent(
 }
 
 /**
- * This event is called when the world is being rendered.
+ * Non-cancellable, called in [net.minecraft.client.renderer.EntityRenderer.renderWorldPass] after the world is rendered.
+ * It is also called few lines before [RenderHandEvent].
  */
 public class RenderWorldEvent(public val partialTicks: Float) : Event()
 
 /**
- * This cancellable event is called when your player's hand is being rendered in 1st person.
- *
- * If cancelled, the hand will not be rendered.
+ * Cancellable event, called in [net.minecraft.client.renderer.EntityRenderer.renderWorldPass] in the event
+ * that your hand is rendered (crazy right).
  */
 public class RenderHandEvent(public val partialTicks: Float) : CancellableEvent()
 
 /**
- * This event is called when you connect to a server.
+ * Non-cancellable event, called at the head of [net.minecraft.client.multiplayer.GuiConnecting.connect], therefore, in the
+ * event that the player connects to a server, this event is called along-side the player clicking the
+ * connect to server button.
  *
- * @property ip The IP address of the server.
+ * @property ip   The IP address of the server.
  * @property port The port of the server.
  */
 public class ServerConnectEvent(
@@ -291,7 +293,7 @@ public class ServerConnectEvent(
 ) : Event() {
 
     /**
-     * The [Server Data][ServerData] object of the server being connected to.
+     * The [ServerData] object of the server being connected to.
      */
     public val serverData: ServerData = Minecraft.getMinecraft().currentServerData
 }

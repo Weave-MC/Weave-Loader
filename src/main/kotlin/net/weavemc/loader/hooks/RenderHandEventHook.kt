@@ -11,6 +11,10 @@ import org.objectweb.asm.tree.JumpInsnNode
 import org.objectweb.asm.tree.LdcInsnNode
 
 internal class RenderHandEventHook : Hook("net/minecraft/client/renderer/EntityRenderer") {
+
+    /**
+     * Inserts a call to [RenderHandEvent] in [net.minecraft.client.renderer.EntityRenderer.renderWorldPass].
+     */
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         val renderWorldPass = node.methods.named("renderWorldPass")
 

@@ -14,10 +14,7 @@ import org.objectweb.asm.tree.ClassNode
 internal class ServerConnectEventHook : Hook("net/minecraft/client/multiplayer/GuiConnecting") {
 
     /**
-     * Inserts a call to [ServerConnectEvent]'s constructor at the head of
-     * [net.minecraft.client.multiplayer.GuiConnecting.connect]. Triggered in the
-     * event which [net.minecraft.client.multiplayer.GuiConnecting.connect] is called,
-     * which is called when the player clicks the 'connect' button in the server list.
+     * Inserts a call to [ServerConnectEvent] at the head of [net.minecraft.client.multiplayer.GuiConnecting.connect].
      */
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         node.methods.named("connect").instructions.insert(asm {
