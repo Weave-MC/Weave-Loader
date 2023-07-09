@@ -13,6 +13,7 @@ import org.spongepowered.asm.mixin.Mixins
 import org.spongepowered.asm.service.MixinService
 import java.lang.instrument.Instrumentation
 import java.nio.file.Files
+import java.nio.file.Files.createDirectories
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.jar.JarFile
@@ -53,7 +54,8 @@ public object WeaveLoader {
             .forEach { jar ->
                 println("[Weave] Loading ${jar.name}")
 
-                val configEntry = jar.getEntry("weave.mod.json") ?: error("${jar.name} does not contain a weave.mod.json!")
+                val configEntry =
+                    jar.getEntry("weave.mod.json") ?: error("${jar.name} does not contain a weave.mod.json!")
                 val config = json.decodeFromStream<ModConfig>(jar.getInputStream(configEntry))
                 val name = config.name ?: jar.name.removeSuffix(".jar")
 
@@ -99,14 +101,11 @@ public object WeaveLoader {
      *
      * @return The 'mods' directory: `"~/.weave/mods"`
      */
-    private fun getOrCreateModDirectory(): Path {
-        val dir = Paths.get(System.getProperty("user.home"), ".weave", "mods")
-        if (dir.exists() && !dir.isDirectory()) Files.delete(dir)
-        if (!dir.exists()) dir.createDirectories()
-        return dir
-    }
+    private fun getOrCreateModDirectory(): Path =
+        createDirectories(Paths.get(System.getProperty("user.home"), ".weave", "mods")
+            .apply { if (exists() && !isDirectory()) Files.delete(this) })
 
-    private inline fun<reified T> instantiate(className: String): T =
+    private inline fun <reified T> instantiate(className: String): T =
         Class.forName(className)
             .getConstructor()
             .newInstance() as? T

@@ -40,6 +40,7 @@ public class WeaveMixinService : IMixinService, IClassProvider, IClassBytecodePr
     }
 
     private val genesisClassCache by lazy {
+        @Suppress("UNCHECKED_CAST")
         this.javaClass.classLoader.javaClass
             .declaredFields
             .find { Map::class.java.isAssignableFrom(it.type) }!!
@@ -190,6 +191,7 @@ public class WeaveMixinService : IMixinService, IClassProvider, IClassBytecodePr
     /**
      * @return The class path of the current environment.
      */
+    @Deprecated("Deprecated in Java", ReplaceWith("emptyArray()"))
     override fun getClassPath(): Array<URL> = emptyArray()
 
     /**
