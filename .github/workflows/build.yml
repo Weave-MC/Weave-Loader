@@ -1,0 +1,40 @@
+name: Build
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+  release:
+    types: [ published ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up JDK 17
+    
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Build with Gradle
+      uses: gradle/gradle-build-action@v2
+      with:
+        arguments: build
+        
+    - name: Release
+      if: github.event_name == 'release'
+      working-directory: build/libs
+      run: |
+        agent=Weave-Loader-Agent-${{github.event.release.name}}.jar
+        sha256sum $agent > $agent.sha256
+        gh release upload ${{github.ref_name}} $agent $agent.sha256
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
