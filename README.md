@@ -9,8 +9,12 @@ Weave Loader is a tool designed to simplify the process of modding Minecraft. It
 developers to easily create mods by providing a simple and intuitive API for interacting with Minecraft's codebase,
 while injecting into clients that are somewhat closed-off to developers.
 
-## Supported Clients
+## Supported Clients / Versions
 
+<table>
+<tr><th>Supported Clients</th><th>Supported Versions</th></tr>
+<tr><td>
+        
 | Client  | Supported |
 | ------- | --------: |
 | Vanilla | :x: |
@@ -19,6 +23,23 @@ while injecting into clients that are somewhat closed-off to developers.
 | Badlion | :x: |
 | Feather | :x: |
 | Labymod | :x: |
+
+</td><td>
+    
+| Version | Supported |
+| ------- | --------: |
+| 1.7     | :x: |
+| 1.8     | :white_check_mark: |
+| 1.12    | :x: |
+| 1.16    | :x: |
+| 1.17    | :x: |
+| 1.18    | :x: |
+| 1.19    | :x: |
+| 1.20    | :x: |
+
+</td></tr>
+</table>
+
 
 ## Installation
 
