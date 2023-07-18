@@ -42,7 +42,7 @@ internal object HookManager : SafeTransformer {
     )
 
     override fun transform(loader: ClassLoader, className: String, originalClass: ByteArray): ByteArray? {
-        val hooks = hooks.filter { it.targets.contains("*") || it.targets.contains(className) }
+        val hooks = hooks.filter { it.targets.isEmpty() || it.targets.contains(className) }
         if (hooks.isEmpty()) return null
 
         val node = ClassNode()
