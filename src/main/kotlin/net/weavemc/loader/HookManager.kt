@@ -8,12 +8,8 @@ import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.tree.ClassNode
 import org.spongepowered.asm.transformers.MixinClassWriter
-import java.io.File
 import java.nio.file.Files
-import java.nio.file.Path
 import java.nio.file.Paths
-import kotlin.io.path.exists
-import kotlin.io.path.isDirectory
 
 internal object HookManager : SafeTransformer {
 
@@ -63,21 +59,14 @@ internal object HookManager : SafeTransformer {
         val writer = MixinClassWriter(reader, flags)
         node.accept(writer)
         if (dumpBytecode) {
-            val bytecodeOut = getOrCreateBytecodeDir().resolve("$className.class").toFile()
-            runCatching {
-                bytecodeOut.parentFile?.mkdirs()
-                node.dump(bytecodeOut.absolutePath)
-            }.onFailure { println("Failed to dump bytecode for $bytecodeOut") }
+            val bytecodeDir = Files.createDirectory(Paths.get(
+                System.getProperty("user.home"),
+                ".weave",
+                ".bytecode.out"
+            ))
+
+            node.dump(bytecodeDir.resolve("$className.class").toString())
         }
         return writer.toByteArray()
     }
-
-    /**
-     * Returns
-     *   - Windows: `%user.home%/.weave/.bytecode.out`
-     *   - UN*X: `$HOME/.weave/.bytecode.out`
-     */
-    private fun getOrCreateBytecodeDir(): Path =
-        Files.createDirectories(Paths.get(System.getProperty("user.home"), ".weave", ".bytecode.out"))
-            .apply { if (exists() && !isDirectory()) Files.delete(this) }
 }
