@@ -16,7 +16,7 @@ while injecting into clients that are somewhat closed-off to developers.
 <tr><td>
         
 | Client  | Supported |
-| ------- | --------: |
+| ------- | :-------: |
 | Vanilla | :x: |
 | Forge   | :x: |
 | Lunar   | :white_check_mark: |
@@ -27,7 +27,7 @@ while injecting into clients that are somewhat closed-off to developers.
 </td><td>
     
 | Version | Supported |
-| ------- | --------: |
+| ------- | :-------: |
 | 1.7     | :x: |
 | 1.8     | :white_check_mark: |
 | 1.12    | :x: |
