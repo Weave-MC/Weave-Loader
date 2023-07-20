@@ -3,13 +3,10 @@ import java.net.URL
 
 plugins {
     kotlin("jvm") version "1.8.10"
-    kotlin("plugin.serialization") version "1.8.10"
-    kotlin("plugin.lombok") version "1.8.10"
 
     `java-library`
     `maven-publish`
 
-    id("com.github.weave-mc.weave-gradle") version "bcf6ab0279"
     id("org.jetbrains.dokka") version "1.8.10"
 }
 
@@ -20,23 +17,19 @@ val projectGroup:   String by project
 group   = projectGroup
 version = projectVersion
 
-minecraft.version("1.8.9")
+allprojects {
+    apply(plugin = "org.jetbrains.kotlin.jvm")
+    repositories.mavenCentral()
+    dependencies {
+        api(rootProject.libs.asm)
+        api(rootProject.libs.asmtree)
+        api(rootProject.libs.asmutil)
 
-repositories {
-    mavenCentral()
-    maven("https://repo.spongepowered.org/repository/maven-public/")
-}
+        compileOnly(rootProject.libs.lombok)
+        annotationProcessor(rootProject.libs.lombok)
 
-dependencies {
-    api(libs.asm)
-    api(libs.asmtree)
-    api(libs.asmutil)
-
-    compileOnly(libs.lombok)
-    annotationProcessor(libs.lombok)
-
-    compileOnly(libs.mixin)
-    implementation(libs.kxSer)
+        implementation(rootProject.libs.kxSer)
+    }
 }
 
 kotlin {
