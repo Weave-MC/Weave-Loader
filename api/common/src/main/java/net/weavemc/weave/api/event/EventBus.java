@@ -95,7 +95,6 @@ public class EventBus {
 
     @AllArgsConstructor
     private class ReflectEventConsumer implements Consumer<Event> {
-
         private final Object obj;
         private final Method method;
 
@@ -104,7 +103,6 @@ public class EventBus {
         public void accept(Event event) {
             method.invoke(obj, event);
         }
-
     }
 
 }

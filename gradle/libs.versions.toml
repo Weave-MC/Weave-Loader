@@ -11,3 +11,6 @@ asmutil = { module = "org.ow2.asm:asm-util", version.ref = "asm" }
 lombok = { module = "org.projectlombok:lombok", version.ref = "lombok" }
 mixin = { module = "org.spongepowered:mixin", version.ref = "mixin" }
 kxSer = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kxSer" }
+
+[bundles]
+asm = ["asm", "asmtree", "asmutil"]

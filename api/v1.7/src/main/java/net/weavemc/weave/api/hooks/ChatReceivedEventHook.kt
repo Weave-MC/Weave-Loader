@@ -4,6 +4,7 @@ package net.weavemc.weave.api.hooks
 
 import CancellableEvent
 import ChatReceivedEvent
+import net.weavemc.weave.api.Hook
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
 
