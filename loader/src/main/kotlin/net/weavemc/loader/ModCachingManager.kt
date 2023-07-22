@@ -138,7 +138,7 @@ internal object ModCachingManager {
             fun fromFile(file: File): CacheMod {
                 val sha256 = file.toSha256()
                 val version = runCatching { GameInfo.Version.fromVersionName(file.nameWithoutExtension) }.getOrNull()
-                return CacheMod(file, sha256)
+                return CacheMod(file, sha256, version)
             }
         }
     }
