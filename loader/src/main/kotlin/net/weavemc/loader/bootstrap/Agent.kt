@@ -26,7 +26,7 @@ public fun premain(opt: String?, inst: Instrumentation) {
                 This allows us to access Minecraft's classes throughout the project.
                 */
                 loader.loadClass("net.weavemc.loader.WeaveLoader")
-                    .getDeclaredMethod("init", Instrumentation::class.java)
+                    .getDeclaredMethod("init", Instrumentation::class.java, String::class.java)
                     .invoke(null, inst, version)
             }
 
