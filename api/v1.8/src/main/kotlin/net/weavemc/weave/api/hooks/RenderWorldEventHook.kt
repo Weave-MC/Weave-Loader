@@ -23,7 +23,7 @@ class RenderWorldEventHook : Hook(!"net/minecraft/client/renderer/EntityRenderer
      * is called in the event of any world render.
      */
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
-        val renderWorldPass = node.methods.search(!"renderWorldPass", "V", "I", "V", "J")
+        val renderWorldPass = node.methods.search(!"renderWorldPass", "V", "I", "F", "J")
 
         renderWorldPass.instructions.insertBefore(
             renderWorldPass.instructions.find { it is LdcInsnNode && it.cst == "hand" },
