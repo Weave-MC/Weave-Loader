@@ -11,9 +11,9 @@ repositories {
 
 dependencies {
     compileOnly(libs.mixin)
-    implementation(libs.bundles.asm)
+    api(libs.bundles.asm)
     implementation(libs.kxSer)
-    implementation(project(":api:common"))
+    api(project(":api:common"))
 }
 
 tasks.jar {
