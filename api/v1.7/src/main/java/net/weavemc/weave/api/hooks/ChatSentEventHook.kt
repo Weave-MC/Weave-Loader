@@ -2,6 +2,7 @@
 
 package net.weavemc.weave.api.hooks
 
+import net.weavemc.weave.api.Hook
 import org.objectweb.asm.tree.ClassNode
 
 internal class ChatSentEventHook : Hook("net/minecraft/client/entity/EntityPlayerSP") {

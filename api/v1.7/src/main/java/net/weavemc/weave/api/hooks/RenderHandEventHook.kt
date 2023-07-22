@@ -4,6 +4,8 @@ package net.weavemc.weave.api.hooks
 
 import CancellableEvent
 import RenderHandEvent
+import net.weavemc.weave.api.Hook
+import net.weavemc.weave.api.bytecode.*
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.JumpInsnNode

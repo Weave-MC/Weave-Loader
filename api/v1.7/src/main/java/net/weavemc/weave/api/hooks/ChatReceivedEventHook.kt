@@ -5,6 +5,10 @@ package net.weavemc.weave.api.hooks
 import CancellableEvent
 import ChatReceivedEvent
 import net.weavemc.weave.api.Hook
+import net.weavemc.weave.api.bytecode.asm
+import net.weavemc.weave.api.bytecode.callEvent
+import net.weavemc.weave.api.bytecode.internalNameOf
+import net.weavemc.weave.api.bytecode.named
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
 

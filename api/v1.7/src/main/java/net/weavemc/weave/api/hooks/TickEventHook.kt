@@ -2,6 +2,11 @@
 
 package net.weavemc.weave.api.hooks
 
+import net.weavemc.weave.api.Hook
+import net.weavemc.weave.api.bytecode.asm
+import net.weavemc.weave.api.bytecode.callEvent
+import net.weavemc.weave.api.bytecode.getSingleton
+import net.weavemc.weave.api.bytecode.named
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.ClassNode
 

@@ -5,6 +5,10 @@ package net.weavemc.weave.api.hooks
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.WorldClient
 import net.minecraft.world.World
+import net.weavemc.weave.api.Hook
+import net.weavemc.weave.api.bytecode.asm
+import net.weavemc.weave.api.bytecode.callEvent
+import net.weavemc.weave.api.bytecode.internalNameOf
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
 
