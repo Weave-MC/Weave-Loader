@@ -2,6 +2,7 @@ plugins {
     kotlin("jvm")
     kotlin("plugin.serialization")
     kotlin("plugin.lombok")
+    `maven-publish`
 }
 
 repositories {
@@ -23,4 +24,12 @@ tasks.jar {
     manifest.attributes(
         "Premain-Class" to "net.weavemc.loader.bootstrap.AgentKt"
     )
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("mavenJava") {
+            from(components["java"])
+        }
+    }
 }
