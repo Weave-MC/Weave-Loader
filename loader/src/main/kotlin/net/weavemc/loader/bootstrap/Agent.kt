@@ -1,19 +1,23 @@
 package net.weavemc.loader.bootstrap
 
-import java.lang.instrument.Instrumentation
 import net.weavemc.loader.WeaveLoader
+import net.weavemc.weave.api.GameInfo.Version.*
+import net.weavemc.weave.api.gameVersion
+import java.lang.instrument.Instrumentation
 
 /**
  * The JavaAgent's `premain()` method, this is where initialization of Weave Loader begins.
- * Weave Loader's initialization begins by calling [WeaveLoader.init()][WeaveLoader.init], which is loaded through Genesis.
+ * Weave Loader's initialization begins by calling [WeaveLoader.init], which is loaded through Genesis.
  */
 @Suppress("UNUSED_PARAMETER")
 public fun premain(opt: String?, inst: Instrumentation) {
-    val version = findVersion()
-    if(version !in arrayOf("1.8", "1.8.9", "1.7", "1.7.10", "1.12", "1.12.2")) {
+    val version = gameVersion
+    if (version !in arrayOf(V1_7_10, V1_8_9, V1_12_2)) {
         println("[Weave] $version not supported, disabling...")
         return
     }
+
+    println("[Weave] Detected Minecraft version: $version")
 
     inst.addTransformer(object : SafeTransformer {
         override fun transform(loader: ClassLoader, className: String, originalClass: ByteArray): ByteArray? {
@@ -26,16 +30,11 @@ public fun premain(opt: String?, inst: Instrumentation) {
                 This allows us to access Minecraft's classes throughout the project.
                 */
                 loader.loadClass("net.weavemc.loader.WeaveLoader")
-                    .getDeclaredMethod("init", Instrumentation::class.java, String::class.java)
-                    .invoke(null, inst, version)
+                    .getDeclaredMethod("init", Instrumentation::class.java)
+                    .invoke(null, inst)
             }
 
             return null
         }
     })
 }
-
-private fun findVersion() =
-    """--version\s+(\S+)""".toRegex()
-        .find(System.getProperty("sun.java.command"))
-        ?.groupValues?.get(1)

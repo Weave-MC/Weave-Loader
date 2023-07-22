@@ -7,10 +7,11 @@ kxSer = "1.5.0"
 [libraries]
 asm = { module = "org.ow2.asm:asm", version.ref = "asm" }
 asmtree = { module = "org.ow2.asm:asm-tree", version.ref = "asm" }
+asmcommons = { module = "org.ow2.asm:asm-commons", version.ref = "asm" }
 asmutil = { module = "org.ow2.asm:asm-util", version.ref = "asm" }
 lombok = { module = "org.projectlombok:lombok", version.ref = "lombok" }
 mixin = { module = "org.spongepowered:mixin", version.ref = "mixin" }
 kxSer = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kxSer" }
 
 [bundles]
-asm = ["asm", "asmtree", "asmutil"]
+asm = ["asm", "asmtree", "asmcommons", "asmutil"]

@@ -7,17 +7,13 @@ import kotlinx.serialization.json.decodeFromStream
 import net.weavemc.loader.analytics.launchStart
 import net.weavemc.loader.mixins.WeaveMixinService
 import net.weavemc.loader.mixins.WeaveMixinTransformer
+import net.weavemc.weave.api.Hook
 import net.weavemc.weave.api.ModInitializer
 import org.spongepowered.asm.launch.MixinBootstrap
 import org.spongepowered.asm.mixin.Mixins
 import org.spongepowered.asm.service.MixinService
 import java.lang.instrument.Instrumentation
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.Paths
 import java.util.jar.JarFile
-import java.util.zip.ZipEntry
-import kotlin.io.path.*
 
 /**
  * The main class of the Weave Loader.
@@ -32,11 +28,13 @@ public object WeaveLoader {
     public val mods: MutableList<WeaveMod> = mutableListOf()
 
     /**
-     * This is where Weave loads mods, and [ModInitializer.preInit()][ModInitializer.preInit] is called.
+     * This is where Weave loads mods, and [ModInitializer.preInit] is called.
+     *
+     * @see net.weavemc.loader.bootstrap.premain
      */
     @JvmStatic
     @OptIn(ExperimentalSerializationApi::class)
-    public fun init(inst: Instrumentation, mcVersion: String) {
+    public fun init(inst: Instrumentation) {
         println("[Weave] Initializing Weave")
         launchStart = System.currentTimeMillis()
 
@@ -46,28 +44,31 @@ public object WeaveLoader {
         inst.addTransformer(WeaveMixinTransformer)
         inst.addTransformer(HookManager)
 
-        addApiHooks(inst, mcVersion)
+        val (apiJar, modJars, resourceJars) = ModCachingManager.getCachedApiAndMods()
+
+        inst.appendToSystemClassLoaderSearch(WeaveApiManager.getCommonApiJar())
+        println("[Weave] Added common API jar to classpath")
+        resourceJars.forEach(inst::appendToSystemClassLoaderSearch)
+        addApiHooks(inst, apiJar)
+//        modJars.forEach(inst::appendToSystemClassLoaderSearch)
 
         val json = Json { ignoreUnknownKeys = true }
-        getOrCreateModDirectory()
-            .listDirectoryEntries("*.jar")
-            .filter { it.isRegularFile() }
-            .map { JarFile(it.toFile()).also(inst::appendToSystemClassLoaderSearch) }
-            .forEach { jar ->
-                println("[Weave] Loading ${jar.name}")
 
-                val configEntry = jar.getEntry("weave.mod.json") ?: error("${jar.name} does not contain a weave.mod.json!")
-                val config = json.decodeFromStream<ModConfig>(jar.getInputStream(configEntry))
-                val name = config.name ?: jar.name.removeSuffix(".jar")
+        modJars.forEach { jar ->
+            println("[Weave] Loading ${jar.name}")
 
-                config.mixinConfigs.forEach(Mixins::addConfiguration)
-                HookManager.hooks += config.hooks.map(::instantiate)
+            val configEntry = jar.getEntry("weave.mod.json") ?: error("${jar.name} does not contain a weave.mod.json!")
+            val config = json.decodeFromStream<ModConfig>(jar.getInputStream(configEntry))
+            val name = config.name ?: jar.name.removeSuffix(".jar")
 
-                // TODO: Add a name field to the config.
-                mods += WeaveMod(name, config)
-            }
+            config.mixinConfigs.forEach(Mixins::addConfiguration)
+            HookManager.hooks += config.hooks.map(::instantiate)
 
-        /* Call preInit() once everything is done. */
+            // TODO: Add a name field to the config.
+            mods += WeaveMod(name, config)
+        }
+
+        // Call preInit() once everything is done.
         mods.forEach { weaveMod ->
             weaveMod.config.entrypoints.forEach { entrypoint ->
                 instantiate<ModInitializer>(entrypoint).preInit()
@@ -97,36 +98,24 @@ public object WeaveLoader {
     )
 
     /**
-     * Grabs the mods' directory, creating it if it doesn't exist.
-     * **IF** the file exists as a file and not a directory, it will be deleted.
-     *
-     * @return The 'mods' directory: `"~/.weave/mods"`
-     */
-    private fun getOrCreateModDirectory(): Path {
-        val dir = Paths.get(System.getProperty("user.home"), ".weave", "mods")
-        if (dir.exists() && !dir.isDirectory()) Files.delete(dir)
-        if (!dir.exists()) dir.createDirectories()
-        return dir
-    }
-
-    /**
      * Adds hooks for Weave events, corresponding to the Minecraft version
      */
-    private fun addApiHooks(inst: Instrumentation, mcVersion: String) {
-        val dir = Paths.get(System.getProperty("user.home"), ".weave", "api")
-        if (dir.exists() && !dir.isDirectory()) Files.delete(dir)
-        if (!dir.exists()) dir.createDirectories()
+    private fun addApiHooks(inst: Instrumentation, apiJar: JarFile) {
+        inst.appendToSystemClassLoaderSearch(apiJar)
 
-        val apiJar = JarFile(
-            dir.resolve("${mcVersion.replace(".", "_")}.jar").toFile()
-        ).also(inst::appendToSystemClassLoaderSearch)
-
-        val hooks = apiJar.entries()
+        apiJar.entries()
             .toList()
             .filter { it.name.startsWith("net/weavemc/weave/api/hooks/") && !it.isDirectory }
-            .mapNotNull { return instantiate(it.name.replace("/", ".",).replace(".class", "")) }
-
-        HookManager.hooks += hooks
+            .forEach {
+                runCatching {
+                    val clazz = Class.forName(it.name.removeSuffix(".class").replace('/', '.'))
+                    if (clazz.superclass == Hook::class.java) {
+                        val hook = clazz.getConstructor().newInstance() as Hook
+                        HookManager.hooks += hook
+                        println("[Weave] Added hook ${clazz.simpleName}")
+                    }
+                }
+            }
     }
 
     private inline fun<reified T> instantiate(className: String): T =

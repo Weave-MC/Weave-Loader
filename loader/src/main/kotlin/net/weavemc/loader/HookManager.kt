@@ -26,6 +26,9 @@ internal object HookManager : SafeTransformer {
         val hooks = hooks.filter { it.targets.contains("*") || it.targets.contains(className) }
         if (hooks.isEmpty()) return null
 
+        println("[HookManager] Transforming $className")
+        hooks.forEach { println("  - ${it.javaClass.name}") }
+
         val node = ClassNode()
         val reader = ClassReader(originalClass)
         reader.accept(node, 0)
