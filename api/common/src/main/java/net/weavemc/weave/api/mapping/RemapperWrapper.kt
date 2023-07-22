@@ -1,6 +1,5 @@
-package net.weavemc.weave.api.mapping.client
+package net.weavemc.weave.api.mapping
 
-import net.weavemc.weave.api.mapping.IMapper
 import org.objectweb.asm.commons.Remapper
 
 open class RemapperWrapper(private val mapper: IMapper) : Remapper() {

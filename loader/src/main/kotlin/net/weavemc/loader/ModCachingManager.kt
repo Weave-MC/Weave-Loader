@@ -3,7 +3,7 @@ package net.weavemc.loader
 import net.weavemc.weave.api.GameInfo
 import net.weavemc.weave.api.gameVersion
 import net.weavemc.weave.api.mapper
-import net.weavemc.weave.api.mapping.client.RemapperWrapper
+import net.weavemc.weave.api.mapping.RemapperWrapper
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.commons.ClassRemapper
