@@ -5,6 +5,6 @@ plugins {
 minecraft.version("1.7.10")
 
 dependencies {
-    implementation(project(":api:common"))
+    api(project(":api:common"))
     implementation(libs.bundles.asm)
 }
