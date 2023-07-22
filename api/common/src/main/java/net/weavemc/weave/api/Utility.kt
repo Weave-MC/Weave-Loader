@@ -42,7 +42,7 @@ val gameClient: GameInfo.Client by lazy {
     }
 }
 
-fun getMapper(): IMapper =
+val mapper: IMapper by lazy {
     when (gameClient) {
         VANILLA -> NotchMapper(gameVersion)
         FORGE -> NotchMapper(gameVersion)
@@ -50,3 +50,31 @@ fun getMapper(): IMapper =
         LUNAR -> McpMapper()
         BADLION -> NotchMapper(gameVersion)
     }
+}
+
+/**
+ * net/minecraft/client/Minecraft -> some/mapped/MCClass
+ */
+operator fun String.not(): String = mapper.mapUniversal(this) ?: this
+
+/**
+ * (Lnet/minecraft/client/Minecraft;)V -> (Lsome/mapped/MCClass;)V
+ */
+operator fun String.unaryMinus(): String {
+    val stringBuilder = StringBuilder()
+    var index = 0
+    while (index < length) {
+        val char = this[index]
+        if (char == 'L') {
+            val endIndex = indexOf(';', index)
+            stringBuilder.append('L')
+            stringBuilder.append(!substring(index + 1, endIndex))
+            stringBuilder.append(';')
+            index = endIndex
+        } else {
+            stringBuilder.append(char)
+        }
+        index++
+    }
+    return stringBuilder.toString()
+}

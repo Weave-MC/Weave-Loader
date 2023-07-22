@@ -44,13 +44,13 @@ public object WeaveLoader {
         inst.addTransformer(WeaveMixinTransformer)
         inst.addTransformer(HookManager)
 
-        val (apiJar, modJars, resourceJars) = ModCachingManager.getCachedApiAndMods()
+        val (apiJar, modJars, originalJars) = ModCachingManager.getCachedApiAndMods()
 
         inst.appendToSystemClassLoaderSearch(WeaveApiManager.getCommonApiJar())
         println("[Weave] Added common API jar to classpath")
-        resourceJars.forEach(inst::appendToSystemClassLoaderSearch)
+        originalJars.forEach(inst::appendToSystemClassLoaderSearch)
         addApiHooks(inst, apiJar)
-//        modJars.forEach(inst::appendToSystemClassLoaderSearch)
+        modJars.forEach(inst::appendToSystemClassLoaderSearch)
 
         val json = Json { ignoreUnknownKeys = true }
 

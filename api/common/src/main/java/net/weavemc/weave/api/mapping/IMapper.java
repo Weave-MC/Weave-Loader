@@ -8,6 +8,25 @@ import org.jetbrains.annotations.Nullable;
  */
 public interface IMapper {
     @Nullable
+    default String mapUniversal(@Nullable String name) {
+        String mapped = null;
+
+        mapped = mapClass(name);
+        if (mapped != null) {
+            return mapped;
+        }
+
+        mapped = mapMethod(null, name);
+        if (mapped != null) {
+            return mapped;
+        }
+
+        mapped = mapField(null, name);
+
+        return mapped;
+    }
+
+    @Nullable
     String mapClass(@Nullable String name);
 
     @Nullable
@@ -15,6 +34,25 @@ public interface IMapper {
 
     @Nullable
     String mapField(@Nullable String owner, @Nullable String name);
+
+    @Nullable
+    default String reverseMapUniversal(@Nullable String name) {
+        String mapped = null;
+
+        mapped = reverseMapClass(name);
+        if (mapped != null) {
+            return mapped;
+        }
+
+        mapped = reverseMapMethod(null, name);
+        if (mapped != null) {
+            return mapped;
+        }
+
+        mapped = reverseMapField(null, name);
+
+        return mapped;
+    }
 
     @Nullable
     String reverseMapClass(@Nullable String name);

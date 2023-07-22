@@ -2,7 +2,7 @@ package net.weavemc.loader
 
 import net.weavemc.weave.api.GameInfo
 import net.weavemc.weave.api.gameVersion
-import net.weavemc.weave.api.getMapper
+import net.weavemc.weave.api.mapper
 import net.weavemc.weave.api.mapping.client.RemapperWrapper
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
@@ -21,14 +21,14 @@ internal object ModCachingManager {
     fun getCachedApiAndMods(): Triple<JarFile, List<JarFile>, List<JarFile>> {
         clearUnusedResources()
 
-        val cacheFiles = getCacheFiles()
-
         val apiJar = WeaveApiManager.getApiJar()
         val cacheApi = CacheMod.fromFile(apiJar)
         val modFiles = getModFiles()
 
+        val cacheFiles = getCacheFiles()
+
         for (cacheMod in cacheFiles) {
-            if (modFiles.any { it sha256Equals cacheMod }) {
+            if (cacheApi sha256Equals cacheMod || modFiles.any { it sha256Equals cacheMod }) {
                 continue
             }
 
@@ -36,13 +36,12 @@ internal object ModCachingManager {
             cacheMod.file.deleteRecursively()
         }
 
-        val remapperWrapper by lazy { RemapperWrapper(getMapper()) }
+        val remapperWrapper by lazy { RemapperWrapper(mapper) }
 
         val mappedApi = cacheFiles.find { it sha256Equals cacheApi } ?: createCache(remapperWrapper, cacheApi)
         val mappedMods = modFiles.map { cacheFiles.find { cacheMod -> it sha256Equals cacheMod } ?: createCache(remapperWrapper, it) }
-        val resourceJars = mappedMods.mapNotNull { cacheMod -> cacheMod.resourceJar?.let { JarFile(it) } }
 
-        return Triple(JarFile(mappedApi.file), mappedMods.map { JarFile(it.file) }, resourceJars)
+        return Triple(JarFile(mappedApi.file), mappedMods.map { JarFile(it.file) }, modFiles.map { JarFile(it.file) })
     }
 
     private fun createCache(remapper: RemapperWrapper, cacheMod: CacheMod, outFile: Path = cacheDirectory.resolve(getCacheFileName(file = cacheMod.file))): CacheMod {
@@ -52,10 +51,6 @@ internal object ModCachingManager {
 
         val jarIn = JarFile(cacheMod.file)
         val jarOut = ZipOutputStream(outFile.outputStream())
-
-        var resourceOutCreated = false
-        val resourceFile = File("${outFile.name}.resource")
-        val resourceOut by lazy { ZipOutputStream(resourceFile.outputStream()) }
 
         jarIn.entries()
             .asSequence()
@@ -75,30 +70,17 @@ internal object ModCachingManager {
                     jarOut.putNextEntry(it)
                     jarOut.write(bytes)
                     jarOut.closeEntry()
-                } else {
-                    resourceOut.putNextEntry(it)
-                    resourceOut.write(jarIn.getInputStream(it).readBytes())
-                    resourceOut.closeEntry()
-
-                    if (!resourceOutCreated) {
-                        resourceOutCreated = true
-                    }
                 }
             }
 
-        jarOut.close()
-        if (resourceOutCreated) {
-            resourceOut.close()
-        }
-
-        return CacheMod(outFile.toFile(), cacheMod.sha256, if (resourceOutCreated) resourceFile else null)
+        return CacheMod(outFile.toFile(), cacheMod.sha256)
     }
 
     private fun clearUnusedResources() {
-        val cacheMods = cacheDirectory.listDirectoryEntries("{${gameVersion.versionName},all}-${getMapper().javaClass.simpleName}-*.cache")
+        val cacheMods = cacheDirectory.listDirectoryEntries("{${gameVersion.versionName},all}-${mapper.javaClass.simpleName}-*.cache")
                 .filter { it.isRegularFile() || it.isSymbolicLink() }
 
-        val cacheResources = cacheDirectory.listDirectoryEntries("{${gameVersion.versionName},all}-${getMapper().javaClass.simpleName}-*.cache.resource")
+        val cacheResources = cacheDirectory.listDirectoryEntries("{${gameVersion.versionName},all}-${mapper.javaClass.simpleName}-*.cache.resource")
             .filter { it.isRegularFile() || it.isSymbolicLink() }
 
         for (cacheResource in cacheResources) {
@@ -111,7 +93,7 @@ internal object ModCachingManager {
     }
 
     private fun getCacheFiles(): List<CacheMod> =
-        cacheDirectory.listDirectoryEntries("{${gameVersion.versionName},all}-${getMapper().javaClass.simpleName}-*.cache")
+        cacheDirectory.listDirectoryEntries("{${gameVersion.versionName},all}-${mapper.javaClass.simpleName}-*.cache")
             .filter { it.isRegularFile() || it.isSymbolicLink() }
             .map {
                 val (_, sha256) = runCatching { it.fileName.toString().split("-") }
@@ -122,7 +104,7 @@ internal object ModCachingManager {
                         return@map null
                     }
                 val file = it.toFile()
-                CacheMod(file, sha256, getResourceJar(file))
+                CacheMod(file, sha256)
             }
             .filterNotNull()
 
@@ -143,14 +125,11 @@ internal object ModCachingManager {
         return mods
     }
 
-    private fun getCacheFileName(version: GameInfo.Version = gameVersion, file: File): String = "${version.versionName}-${getMapper().javaClass.simpleName}-${file.toSha256()}.cache"
-
-    private fun getResourceJar(file: File) = File("${file.name}.resource").takeIf { it.exists() && it.isFile }
+    private fun getCacheFileName(version: GameInfo.Version = gameVersion, file: File): String = "${version.versionName}-${mapper.javaClass.simpleName}-${file.toSha256()}.cache"
 
     data class CacheMod(
         val file: File,
         val sha256: String,
-        val resourceJar: File? = null,
         val version: GameInfo.Version? = gameVersion,
     ) {
         infix fun sha256Equals(other: CacheMod): Boolean = sha256 == other.sha256
