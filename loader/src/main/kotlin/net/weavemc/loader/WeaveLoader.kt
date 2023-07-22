@@ -117,12 +117,14 @@ public object WeaveLoader {
         if (dir.exists() && !dir.isDirectory()) Files.delete(dir)
         if (!dir.exists()) dir.createDirectories()
 
-        val apiJar = JarFile(dir.resolve("${mcVersion.replace(".", "_")}.jar").toFile()).also(inst::appendToSystemClassLoaderSearch)
+        val apiJar = JarFile(
+            dir.resolve("${mcVersion.replace(".", "_")}.jar").toFile()
+        ).also(inst::appendToSystemClassLoaderSearch)
 
         val hooks = apiJar.entries()
             .toList()
-            .filter { it.name.startsWith("net/weavemc/weave/hooks/") }
-            .mapNotNull { return instantiate(it.name) }
+            .filter { it.name.startsWith("net/weavemc/weave/api/hooks/") && !it.isDirectory }
+            .mapNotNull { return instantiate(it.name.replace("/", ".",).replace(".class", "")) }
 
         HookManager.hooks += hooks
     }

@@ -2,17 +2,17 @@
 
 package net.weavemc.weave.api.hooks
 
-import CancellableEvent
-import GuiOpenEvent
 import net.weavemc.weave.api.Hook
 import net.weavemc.weave.api.bytecode.asm
 import net.weavemc.weave.api.bytecode.callEvent
 import net.weavemc.weave.api.bytecode.internalNameOf
 import net.weavemc.weave.api.bytecode.named
+import net.weavemc.weave.api.event.CancellableEvent
+import net.weavemc.weave.api.event.GuiOpenEvent
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
 
-internal class GuiOpenEventHook : Hook("net/minecraft/client/Minecraft") {
+class GuiOpenEventHook : Hook("net/minecraft/client/Minecraft") {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         node.methods.named("displayGuiScreen").instructions.insert(asm {
             new(internalNameOf<GuiOpenEvent>())

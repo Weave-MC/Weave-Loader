@@ -2,18 +2,18 @@
 
 package net.weavemc.weave.api.hooks
 
-import ShutdownEvent
 import net.weavemc.weave.api.Hook
 import net.weavemc.weave.api.bytecode.asm
 import net.weavemc.weave.api.bytecode.callEvent
 import net.weavemc.weave.api.bytecode.getSingleton
 import net.weavemc.weave.api.bytecode.named
+import net.weavemc.weave.api.event.ShutdownEvent
 import org.objectweb.asm.tree.ClassNode
 
 /**
  * Corresponds to [ShutdownEvent].
  */
-internal class ShutdownEventHook : Hook("net/minecraft/client/Minecraft") {
+class ShutdownEventHook : Hook("net/minecraft/client/Minecraft") {
 
     /**
      * Inserts a singleton shutdown call at the head of

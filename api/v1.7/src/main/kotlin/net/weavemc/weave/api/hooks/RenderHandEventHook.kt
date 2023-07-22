@@ -2,16 +2,16 @@
 
 package net.weavemc.weave.api.hooks
 
-import CancellableEvent
-import RenderHandEvent
 import net.weavemc.weave.api.Hook
 import net.weavemc.weave.api.bytecode.*
+import net.weavemc.weave.api.event.CancellableEvent
+import net.weavemc.weave.api.event.RenderHandEvent
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.JumpInsnNode
 import org.objectweb.asm.tree.LdcInsnNode
 
-internal class RenderHandEventHook : Hook("net/minecraft/client/renderer/EntityRenderer") {
+class RenderHandEventHook : Hook("net/minecraft/client/renderer/EntityRenderer") {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         val renderWorldPass = node.methods.named("renderWorld")
 

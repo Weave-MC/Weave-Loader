@@ -2,12 +2,13 @@
 
 package net.weavemc.weave.api.hooks
 
-import CancellableEvent
 import net.weavemc.weave.api.Hook
 import net.weavemc.weave.api.bytecode.asm
 import net.weavemc.weave.api.bytecode.callEvent
 import net.weavemc.weave.api.bytecode.internalNameOf
 import net.weavemc.weave.api.bytecode.named
+import net.weavemc.weave.api.event.CancellableEvent
+import net.weavemc.weave.api.event.RenderLivingEvent
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
@@ -15,7 +16,7 @@ import org.objectweb.asm.tree.LabelNode
 /**
  * Corresponds to [RenderLivingEvent.Pre] and [RenderLivingEvent.Post].
  */
-internal class RenderLivingEventHook : Hook("net/minecraft/client/renderer/entity/RendererLivingEntity") {
+class RenderLivingEventHook : Hook("net/minecraft/client/renderer/entity/RendererLivingEntity") {
 
     /**
      * Inserts a call to [RenderLivingEvent.Pre]'s constructor at the head of

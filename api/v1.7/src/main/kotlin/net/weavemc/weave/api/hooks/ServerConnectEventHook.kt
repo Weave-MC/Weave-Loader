@@ -2,18 +2,18 @@
 
 package net.weavemc.weave.api.hooks
 
-import ServerConnectEvent
 import net.weavemc.weave.api.Hook
 import net.weavemc.weave.api.bytecode.asm
 import net.weavemc.weave.api.bytecode.callEvent
 import net.weavemc.weave.api.bytecode.internalNameOf
 import net.weavemc.weave.api.bytecode.named
+import net.weavemc.weave.api.event.ServerConnectEvent
 import org.objectweb.asm.tree.ClassNode
 
 /**
  * Corresponds to [ServerConnectEvent].
  */
-internal class ServerConnectEventHook : Hook("net/minecraft/client/multiplayer/GuiConnecting") {
+class ServerConnectEventHook : Hook("net/minecraft/client/multiplayer/GuiConnecting") {
 
     /**
      * Inserts a call to [ServerConnectEvent]'s constructor at the head of

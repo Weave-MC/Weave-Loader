@@ -1,3 +1,5 @@
+package net.weavemc.weave.api.event
+
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiPlayerInfo
 import net.minecraft.client.gui.GuiScreen
@@ -8,29 +10,10 @@ import net.minecraft.entity.EntityLivingBase
 import net.minecraft.network.Packet
 import net.minecraft.util.IChatComponent
 import net.minecraft.world.World
+import net.weavemc.weave.api.event.CancellableEvent
+import net.weavemc.weave.api.event.Event
 import org.lwjgl.input.Keyboard
 import org.lwjgl.input.Mouse
-
-/**
- * This is the base class for all events provided by the Weave Loader.
- */
-public abstract class Event
-
-/**
- * This is the base class for all *cancellable* events provided by the
- * Weave Loader, extending [Event].
- */
-public abstract class CancellableEvent : Event() {
-
-    /**
-     * This field defines whether the event is cancelled or not. Any mod can cancel and
-     * un-cancel an event. What an event does when cancelled is event-specific, and noted in
-     * that event's documentation.
-     */
-    @get:JvmName("isCancelled")
-    public var cancelled: Boolean = false
-
-}
 
 /**
  * This is the base class for a Tick Event. Tick Events can be Pre and Post, but you will never
@@ -48,6 +31,10 @@ public sealed class TickEvent : Event() {
      * Post Tick Events are called at the end of a tick.
      */
     public object Post: TickEvent()
+}
+
+class TestClass {
+
 }
 
 /**

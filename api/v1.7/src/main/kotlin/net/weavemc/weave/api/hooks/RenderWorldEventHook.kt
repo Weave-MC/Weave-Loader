@@ -2,19 +2,19 @@
 
 package net.weavemc.weave.api.hooks
 
-import RenderWorldEvent
 import net.weavemc.weave.api.Hook
 import net.weavemc.weave.api.bytecode.asm
 import net.weavemc.weave.api.bytecode.callEvent
 import net.weavemc.weave.api.bytecode.internalNameOf
 import net.weavemc.weave.api.bytecode.named
+import net.weavemc.weave.api.event.RenderWorldEvent
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LdcInsnNode
 
 /**
  * Corresponds to [RenderWorldEvent].
  */
-internal class RenderWorldEventHook : Hook("net/minecraft/client/renderer/EntityRenderer") {
+class RenderWorldEventHook : Hook("net/minecraft/client/renderer/EntityRenderer") {
 
     /**
      * Inserts a call to [RenderWorldEvent]'s constructor at the head of

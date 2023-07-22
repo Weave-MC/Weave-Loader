@@ -9,13 +9,14 @@ import net.weavemc.weave.api.Hook
 import net.weavemc.weave.api.bytecode.asm
 import net.weavemc.weave.api.bytecode.callEvent
 import net.weavemc.weave.api.bytecode.internalNameOf
+import net.weavemc.weave.api.event.WorldEvent
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
 
 /**
  * Corresponds to [WorldEvent.Load] and [WorldEvent.Unload].
  */
-internal class WorldEventHook: Hook("net/minecraft/client/Minecraft") {
+class WorldEventHook: Hook("net/minecraft/client/Minecraft") {
 
     /**
      * Inserts a call in [net.minecraft.client.Minecraft.loadWorld] to [WorldEvent.Load] and later [WorldEvent.Unload].

@@ -2,16 +2,16 @@
 
 package net.weavemc.weave.api.hooks
 
-import KeyboardEvent
 import net.weavemc.weave.api.Hook
 import net.weavemc.weave.api.bytecode.asm
 import net.weavemc.weave.api.bytecode.callEvent
 import net.weavemc.weave.api.bytecode.internalNameOf
 import net.weavemc.weave.api.bytecode.named
+import net.weavemc.weave.api.event.KeyboardEvent
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodInsnNode
 
-internal class KeyboardEventHook : Hook("net/minecraft/client/Minecraft") {
+class KeyboardEventHook : Hook("net/minecraft/client/Minecraft") {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         node.methods.named("runTick").let { mn ->
             mn.instructions.insert(

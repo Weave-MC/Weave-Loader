@@ -7,13 +7,14 @@ import net.weavemc.weave.api.bytecode.asm
 import net.weavemc.weave.api.bytecode.callEvent
 import net.weavemc.weave.api.bytecode.getSingleton
 import net.weavemc.weave.api.bytecode.named
+import net.weavemc.weave.api.event.StartGameEvent
 import org.objectweb.asm.Opcodes.RETURN
 import org.objectweb.asm.tree.ClassNode
 
 /**
  * Corresponds to [StartGameEvent.Pre] and [StartGameEvent.Post].
  */
-internal class StartGameEventHook : Hook("net/minecraft/client/Minecraft") {
+class StartGameEventHook : Hook("net/minecraft/client/Minecraft") {
 
     /**
      * Inserts a call in [net.minecraft.client.Minecraft.startGame] to [StartGameEvent.Pre] and later [StartGameEvent.Post].
