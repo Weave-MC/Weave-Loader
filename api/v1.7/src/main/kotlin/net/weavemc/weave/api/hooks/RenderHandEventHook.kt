@@ -6,20 +6,24 @@ import net.weavemc.weave.api.Hook
 import net.weavemc.weave.api.bytecode.*
 import net.weavemc.weave.api.event.CancellableEvent
 import net.weavemc.weave.api.event.RenderHandEvent
+import net.weavemc.weave.api.not
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.JumpInsnNode
 import org.objectweb.asm.tree.LdcInsnNode
 
-class RenderHandEventHook : Hook("net/minecraft/client/renderer/EntityRenderer") {
+/**
+ * @see net.minecraft.client.renderer.EntityRenderer.renderWorld
+ */
+class RenderHandEventHook : Hook(!"net/minecraft/client/renderer/EntityRenderer") {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
-        val renderWorldPass = node.methods.named("renderWorld")
+        val renderWorld = node.methods.search(!"renderWorld", "V", "F", "J")
 
-        val ifeq = renderWorldPass.instructions.find {
+        val ifeq = renderWorld.instructions.find {
             it is LdcInsnNode && it.cst == "hand"
         }!!.next<JumpInsnNode> { it.opcode == Opcodes.IFEQ }!!
 
-        renderWorldPass.instructions.insert(
+        renderWorld.instructions.insert(
             ifeq,
             asm {
                 new(internalNameOf<RenderHandEvent>())

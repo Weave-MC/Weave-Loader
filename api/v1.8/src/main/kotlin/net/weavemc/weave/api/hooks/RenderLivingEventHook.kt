@@ -6,9 +6,11 @@ import net.weavemc.weave.api.Hook
 import net.weavemc.weave.api.bytecode.asm
 import net.weavemc.weave.api.bytecode.callEvent
 import net.weavemc.weave.api.bytecode.internalNameOf
-import net.weavemc.weave.api.bytecode.named
+import net.weavemc.weave.api.bytecode.search
 import net.weavemc.weave.api.event.CancellableEvent
 import net.weavemc.weave.api.event.RenderLivingEvent
+import net.weavemc.weave.api.not
+import net.weavemc.weave.api.unaryMinus
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
@@ -16,7 +18,7 @@ import org.objectweb.asm.tree.LabelNode
 /**
  * Corresponds to [RenderLivingEvent.Pre] and [RenderLivingEvent.Post].
  */
-internal class RenderLivingEventHook : Hook("net/minecraft/client/renderer/entity/RendererLivingEntity") {
+class RenderLivingEventHook : Hook(!"net/minecraft/client/renderer/entity/RendererLivingEntity") {
 
     /**
      * Inserts a call to [RenderLivingEvent.Pre]'s constructor at the head of
@@ -24,8 +26,9 @@ internal class RenderLivingEventHook : Hook("net/minecraft/client/renderer/entit
      * is called in the event of any entity render.
      */
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
-        val mn = node.methods.named("doRender")
-        mn.instructions.insert(asm {
+        val doRender = node.methods.search(!"doRender", "V", -"Lnet/minecraft/entity/EntityLivingBase;", "D", "D", "D", "F", "F")
+
+        doRender.instructions.insert(asm {
             new(internalNameOf<RenderLivingEvent.Pre>())
             dup
             dup
@@ -38,12 +41,7 @@ internal class RenderLivingEventHook : Hook("net/minecraft/client/renderer/entit
             invokespecial(
                 internalNameOf<RenderLivingEvent.Pre>(),
                 "<init>",
-                "(Lnet/minecraft/client/renderer/entity/RendererLivingEntity;" +
-                        "Lnet/minecraft/entity/EntityLivingBase;" +
-                        "D" +
-                        "D" +
-                        "D" +
-                        "F)V"
+                -"(Lnet/minecraft/client/renderer/entity/RendererLivingEntity;Lnet/minecraft/entity/EntityLivingBase;DDDF)V"
             )
             callEvent()
 
@@ -57,7 +55,8 @@ internal class RenderLivingEventHook : Hook("net/minecraft/client/renderer/entit
             +end
             f_same()
         })
-        mn.instructions.insertBefore(mn.instructions.findLast { it.opcode == Opcodes.RETURN }, asm {
+
+        doRender.instructions.insertBefore(doRender.instructions.findLast { it.opcode == Opcodes.RETURN }, asm {
             new(internalNameOf<RenderLivingEvent.Post>())
             dup
             dup
@@ -70,12 +69,7 @@ internal class RenderLivingEventHook : Hook("net/minecraft/client/renderer/entit
             invokespecial(
                 internalNameOf<RenderLivingEvent.Post>(),
                 "<init>",
-                "(Lnet/minecraft/client/renderer/entity/RendererLivingEntity;" +
-                    "Lnet/minecraft/entity/EntityLivingBase;" +
-                    "D" +
-                    "D" +
-                    "D" +
-                    "F)V"
+                -"(Lnet/minecraft/client/renderer/entity/RendererLivingEntity;Lnet/minecraft/entity/EntityLivingBase;DDDF)V"
             )
             callEvent()
         })

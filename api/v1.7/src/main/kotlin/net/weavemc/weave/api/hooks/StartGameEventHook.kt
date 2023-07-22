@@ -6,15 +6,16 @@ import net.weavemc.weave.api.Hook
 import net.weavemc.weave.api.bytecode.asm
 import net.weavemc.weave.api.bytecode.callEvent
 import net.weavemc.weave.api.bytecode.getSingleton
-import net.weavemc.weave.api.bytecode.named
+import net.weavemc.weave.api.bytecode.search
 import net.weavemc.weave.api.event.StartGameEvent
+import net.weavemc.weave.api.not
 import org.objectweb.asm.Opcodes.RETURN
 import org.objectweb.asm.tree.ClassNode
 
 /**
  * Corresponds to [StartGameEvent.Pre] and [StartGameEvent.Post].
  */
-class StartGameEventHook : Hook("net/minecraft/client/Minecraft") {
+class StartGameEventHook : Hook(!"net/minecraft/client/Minecraft") {
 
     /**
      * Inserts a call in [net.minecraft.client.Minecraft.startGame] to [StartGameEvent.Pre] and later [StartGameEvent.Post].
@@ -22,14 +23,14 @@ class StartGameEventHook : Hook("net/minecraft/client/Minecraft") {
      * @see net.minecraft.client.Minecraft.startGame
      */
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
-        val mn = node.methods.named("startGame")
+        val startGame = node.methods.search(!"startGame", "V")
 
-        mn.instructions.insert(asm {
+        startGame.instructions.insert(asm {
             getSingleton<StartGameEvent.Pre>()
             callEvent()
         })
 
-        mn.instructions.insertBefore(mn.instructions.findLast { it.opcode == RETURN }, asm {
+        startGame.instructions.insertBefore(startGame.instructions.findLast { it.opcode == RETURN }, asm {
             getSingleton<StartGameEvent.Post>()
             callEvent()
             invokestatic(

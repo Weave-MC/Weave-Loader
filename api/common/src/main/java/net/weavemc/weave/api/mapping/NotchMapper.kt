@@ -3,7 +3,7 @@ package net.weavemc.weave.api.mapping
 import net.weavemc.weave.api.GameInfo
 
 class NotchMapper(gameVersion: GameInfo.Version) : IMapper {
-    private val xSrgReader by lazy { XSrgReader("/weave/mapping/$gameVersion") }
+    private val xSrgReader by lazy { XSrgReader("/weave/mapping/${gameVersion.versionName}.xsrg") }
 
     private val classes = xSrgReader.classMappings
     private val methods = xSrgReader.methodMappings

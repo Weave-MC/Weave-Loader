@@ -6,15 +6,20 @@ import net.weavemc.weave.api.Hook
 import net.weavemc.weave.api.bytecode.asm
 import net.weavemc.weave.api.bytecode.callEvent
 import net.weavemc.weave.api.bytecode.internalNameOf
-import net.weavemc.weave.api.bytecode.named
+import net.weavemc.weave.api.bytecode.search
 import net.weavemc.weave.api.event.CancellableEvent
 import net.weavemc.weave.api.event.ChatReceivedEvent
+import net.weavemc.weave.api.not
+import net.weavemc.weave.api.unaryMinus
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
 
-internal class ChatReceivedEventHook : Hook("net/minecraft/client/gui/GuiNewChat") {
+/**
+ * @see net.minecraft.client.gui.GuiNewChat.printChatMessageWithOptionalDeletion
+ */
+class ChatReceivedEventHook : Hook(!"net/minecraft/client/gui/GuiNewChat") {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
-        node.methods.named("printChatMessageWithOptionalDeletion").instructions.insert(asm {
+        node.methods.search(!"printChatMessageWithOptionalDeletion", "V", -"Lnet/minecraft/util/IChatComponent;", "I").instructions.insert(asm {
             new(internalNameOf<ChatReceivedEvent>())
             dup
             dup
@@ -22,7 +27,7 @@ internal class ChatReceivedEventHook : Hook("net/minecraft/client/gui/GuiNewChat
             invokespecial(
                 internalNameOf<ChatReceivedEvent>(),
                 "<init>",
-                "(Lnet/minecraft/util/IChatComponent;)V"
+                -"(Lnet/minecraft/util/IChatComponent;)V"
             )
             callEvent()
 

@@ -237,7 +237,10 @@ public fun MethodVisitor.visitAsm(block: InsnBuilder.() -> Unit) {
 }
 
 public fun List<MethodNode>.named(name: String) = find { it.name == name }!!
+public fun List<MethodNode>.search(name: String, returnType: String) = find { it.name == name && it.desc.endsWith(")$returnType") }!!
+public fun List<MethodNode>.search(name: String, returnType: String, vararg args: String) = find { it.name == name && it.desc == "(${args.joinToString("")})$returnType" }!!
 public fun List<FieldNode>.named(name: String) = find { it.name == name }!!
+public fun List<FieldNode>.search(name: String, type: String) = find { it.name == name && it.desc == type }!!
 
 public inline fun <reified T : Any> internalNameOf(): String = Type.getInternalName(T::class.java)
 

@@ -6,16 +6,20 @@ import net.weavemc.weave.api.Hook
 import net.weavemc.weave.api.bytecode.asm
 import net.weavemc.weave.api.bytecode.callEvent
 import net.weavemc.weave.api.bytecode.internalNameOf
-import net.weavemc.weave.api.bytecode.named
+import net.weavemc.weave.api.bytecode.search
 import net.weavemc.weave.api.event.KeyboardEvent
+import net.weavemc.weave.api.not
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodInsnNode
 
-internal class KeyboardEventHook : Hook("net/minecraft/client/Minecraft") {
+/**
+ * @see net.minecraft.client.Minecraft.runTick
+ */
+class KeyboardEventHook : Hook(!"net/minecraft/client/Minecraft") {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
-        node.methods.named("runTick").let { mn ->
+        node.methods.search(!"runTick", "V").let { mn ->
             mn.instructions.insert(
-                mn.instructions.find { it is MethodInsnNode && it.name == "dispatchKeypresses" },
+                mn.instructions.find { it is MethodInsnNode && it.name == !"dispatchKeypresses" },
                 asm {
                     new(internalNameOf<KeyboardEvent>())
                     dup

@@ -5,13 +5,8 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
 import net.weavemc.loader.analytics.launchStart
-import net.weavemc.loader.mixins.WeaveMixinService
-import net.weavemc.loader.mixins.WeaveMixinTransformer
 import net.weavemc.weave.api.Hook
 import net.weavemc.weave.api.ModInitializer
-import org.spongepowered.asm.launch.MixinBootstrap
-import org.spongepowered.asm.mixin.Mixins
-import org.spongepowered.asm.service.MixinService
 import java.lang.instrument.Instrumentation
 import java.util.jar.JarFile
 
@@ -38,16 +33,18 @@ public object WeaveLoader {
         println("[Weave] Initializing Weave")
         launchStart = System.currentTimeMillis()
 
-        MixinBootstrap.init()
-        check(MixinService.getService() is WeaveMixinService) { "Active mixin service is NOT WeaveMixinService" }
+//        MixinBootstrap.init()
+//        check(MixinService.getService() is WeaveMixinService) { "Active mixin service is NOT WeaveMixinService" }
 
-        inst.addTransformer(WeaveMixinTransformer)
+//        inst.addTransformer(WeaveMixinTransformer)
         inst.addTransformer(HookManager)
 
         val (apiJar, modJars, originalJars) = ModCachingManager.getCachedApiAndMods()
+        println("apiJar = ${apiJar.name}")
+        println("modJars = ${modJars.map { it.name }}")
+        println("originalJars = ${originalJars.map { it.name }}")
 
         inst.appendToSystemClassLoaderSearch(WeaveApiManager.getCommonApiJar())
-        println("[Weave] Added common API jar to classpath")
         originalJars.forEach(inst::appendToSystemClassLoaderSearch)
         addApiHooks(inst, apiJar)
         modJars.forEach(inst::appendToSystemClassLoaderSearch)
@@ -61,7 +58,7 @@ public object WeaveLoader {
             val config = json.decodeFromStream<ModConfig>(jar.getInputStream(configEntry))
             val name = config.name ?: jar.name.removeSuffix(".jar")
 
-            config.mixinConfigs.forEach(Mixins::addConfiguration)
+//            config.mixinConfigs.forEach(Mixins::addConfiguration)
             HookManager.hooks += config.hooks.map(::instantiate)
 
             // TODO: Add a name field to the config.
@@ -110,9 +107,7 @@ public object WeaveLoader {
                 runCatching {
                     val clazz = Class.forName(it.name.removeSuffix(".class").replace('/', '.'))
                     if (clazz.superclass == Hook::class.java) {
-                        val hook = clazz.getConstructor().newInstance() as Hook
-                        HookManager.hooks += hook
-                        println("[Weave] Added hook ${clazz.simpleName}")
+                        HookManager.hooks += clazz.getConstructor().newInstance() as Hook
                     }
                 }
             }
