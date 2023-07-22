@@ -22,14 +22,14 @@ class RenderWorldEventHook : Hook("net/minecraft/client/renderer/EntityRenderer"
      * is called in the event of any world render.
      */
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
-        val mn = node.methods.named("renderWorldPass")
+        val mn = node.methods.named("renderWorld")
 
         mn.instructions.insertBefore(
             mn.instructions.find { it is LdcInsnNode && it.cst == "hand" },
             asm {
                 new(internalNameOf<RenderWorldEvent>())
                 dup
-                fload(2)
+                fload(1)
                 invokespecial(internalNameOf<RenderWorldEvent>(), "<init>", "(F)V")
                 callEvent()
             }

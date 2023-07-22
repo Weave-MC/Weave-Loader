@@ -16,7 +16,7 @@ class PlayerListEventHook : Hook("net/minecraft/client/network/NetHandlerPlayCli
         val addInsn = asm {
             new(internalNameOf<PlayerListEvent.Add>())
             dup
-            aload(3)
+            aload(2)
             invokespecial(
                 internalNameOf<PlayerListEvent.Add>(),
                 "<init>",
@@ -28,7 +28,7 @@ class PlayerListEventHook : Hook("net/minecraft/client/network/NetHandlerPlayCli
         val removeInsn = asm {
             new(internalNameOf<PlayerListEvent.Remove>())
             dup
-            aload(3)
+            aload(2)
             invokespecial(
                 internalNameOf<PlayerListEvent.Remove>(),
                 "<init>",

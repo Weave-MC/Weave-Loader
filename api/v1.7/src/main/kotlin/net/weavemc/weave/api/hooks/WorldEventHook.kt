@@ -3,6 +3,7 @@
 package net.weavemc.weave.api.hooks
 
 import net.minecraft.client.Minecraft
+import net.minecraft.world.World
 import net.weavemc.weave.api.Hook
 import net.weavemc.weave.api.bytecode.asm
 import net.weavemc.weave.api.bytecode.callEvent
@@ -39,14 +40,14 @@ class WorldEventHook: Hook("net/minecraft/client/Minecraft") {
             dup
             aload(0)
             getfield(
-                internalNameOf<Minecraft>(),
+                "net/minecraft/client/Minecraft",
                 "theWorld",
                 "Lnet/minecraft/client/multiplayer/WorldClient;"
             )
             invokespecial(
                 internalNameOf<WorldEvent.Unload>(),
                 "<init>",
-                "(Lnet/minecraft/client/World;)V"
+                "(Lnet/minecraft/world/World;)V"
             )
             callEvent()
 
@@ -63,7 +64,7 @@ class WorldEventHook: Hook("net/minecraft/client/Minecraft") {
             invokespecial(
                 internalNameOf<WorldEvent.Load>(),
                 "<init>",
-                "(Lnet/minecraft/client/World;)V"
+                "(Lnet/minecraft/world/World;)V"
             )
             callEvent()
 
