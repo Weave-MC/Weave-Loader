@@ -50,7 +50,7 @@ public object WeaveLoader {
         println("[Weave] Added common API jar to classpath")
         resourceJars.forEach(inst::appendToSystemClassLoaderSearch)
         addApiHooks(inst, apiJar)
-//        modJars.forEach(inst::appendToSystemClassLoaderSearch)
+        modJars.forEach(inst::appendToSystemClassLoaderSearch)
 
         val json = Json { ignoreUnknownKeys = true }
 
