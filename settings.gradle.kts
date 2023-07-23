@@ -17,3 +17,5 @@ include("api:v1.8")
 include("api:v1.12")
 //include("api:example")
 //findProject("`:api:example")?.name = "example"
+include("api:example")
+findProject(":api:example")?.name = "example"
