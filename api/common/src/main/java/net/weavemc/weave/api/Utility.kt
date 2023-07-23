@@ -6,6 +6,7 @@ import net.weavemc.weave.api.GameInfo.Client.*
 import net.weavemc.weave.api.mapping.IMapper
 import net.weavemc.weave.api.mapping.McpMapper
 import net.weavemc.weave.api.mapping.NotchMapper
+import net.weavemc.weave.api.mapping.SeargeMapper
 
 val gameInfo by lazy {
     GameInfo(
@@ -48,7 +49,7 @@ val gameClient: GameInfo.Client by lazy {
 val mapper: IMapper by lazy {
     when (gameClient) {
         VANILLA -> NotchMapper(gameVersion)
-        FORGE -> NotchMapper(gameVersion)
+        FORGE -> SeargeMapper(gameVersion)
         LABYMOD -> NotchMapper(gameVersion)
         LUNAR -> McpMapper()
         BADLION -> NotchMapper(gameVersion)

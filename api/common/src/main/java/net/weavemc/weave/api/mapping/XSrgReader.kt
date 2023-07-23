@@ -18,44 +18,44 @@ class XSrgReader(srgResourcePath: String) {
             .forEach { (type, data) ->
                 when (type) {
                     "CL" -> {
-                        val (notchName, mcpName) = data.split(' ')
-                        classMappings.add(ClassMapping(mcpName, notchName))
+                        val (firstName, secondName) = data.split(' ')
+                        classMappings.add(ClassMapping(firstName, secondName))
                     }
 
                     "MD" -> {
-                        val (notch, _, mcp, _) = data.split(' ')
-                        val (notchOwner, notchName) = notch.splitLast('/')
-                        val (mcpOwner, mcpName) = mcp.splitLast('/')
-                        methodMappings.add(MethodMapping(mcpOwner, mcpName, notchOwner, notchName))
+                        val (first, _, second, _) = data.split(' ')
+                        val (firstOwner, firstName) = first.splitLast('/')
+                        val (secondOwner, secondName) = second.splitLast('/')
+                        methodMappings.add(MethodMapping(firstOwner, firstName, secondOwner, secondName))
                     }
 
                     "FD" -> {
-                        val (notch, _, mcp, _) = data.split(' ')
-                        val (notchOwner, notchName) = notch.splitLast('/')
-                        val (mcpOwner, mcpName) = mcp.splitLast('/')
-                        fieldMappings.add(FieldMapping(mcpOwner, mcpName, notchOwner, notchName))
+                        val (first, _, second, _) = data.split(' ')
+                        val (firstOwner, firstName) = first.splitLast('/')
+                        val (secondOwner, secondName) = second.splitLast('/')
+                        fieldMappings.add(FieldMapping(firstOwner, firstName, secondOwner, secondName))
                     }
                 }
             }
     }
 
     data class ClassMapping(
-        val mcpName: String,
-        val notchName: String,
+        val firstName: String,
+        val secondName: String,
     )
 
     data class MethodMapping(
-        val mcpOwner: String,
-        val mcpName: String,
-        val notchOwner: String,
-        val notchName: String,
+        val firstOwner: String,
+        val firstName: String,
+        val secondOwner: String,
+        val secondName: String,
     )
 
     data class FieldMapping(
-        val mcpOwner: String,
-        val mcpName: String,
-        val notchOwner: String,
-        val notchName: String,
+        val firstOwner: String,
+        val firstName: String,
+        val secondOwner: String,
+        val secondName: String,
     )
 
     private fun CharSequence.splitLast(delimiter: Char): Pair<String, String> {

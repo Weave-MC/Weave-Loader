@@ -139,7 +139,7 @@ internal object ModCachingManager {
     private fun getCacheFileName(version: GameInfo.Version = gameVersion, file: File): String = "${version.versionName}-${mapper.javaClass.simpleName}-${file.toSha256()}.cache"
 
     /**
-     * Represents a original mod jar or a cache file.
+     * Represents an original mod jar or a cache file.
      *
      * @property file Either the original mod jar OR the cache file.
      * @property sha256 Either the sha256 of the mod jar OR the sha256 in the cache file name.
