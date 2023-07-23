@@ -18,10 +18,11 @@ val gameInfo by lazy {
 val command: String = System.getProperty("sun.java.command") ?: error("Could not find command")
 
 val gameVersion: GameInfo.Version by lazy {
-    """--version\s+(LabyMod-4-)?(\S+)"""
+    """--version\s+(?:\S*?)?(\d+\.\d+(?:\.\d+)?)"""
         .toRegex()
         .find(command)?.groupValues
-        ?.get(2)
+        .also { it?.forEach(::println) }
+        ?.get(1)
         ?.let(GameInfo.Version::fromVersionName)
         ?: error("Could not find game version")
 }
@@ -38,8 +39,8 @@ val gameClient: GameInfo.Client by lazy {
 
     when {
 //        isClassExists("net.minecraft.client.Minecraft") -> GameInfo.Client.VANILLA
-//        isClassExists("net.minecraftforge.common.MinecraftForge") -> GameInfo.Client.FORGE
-        isClassExists("net.labymod.core.loader.vanilla.launchwrapper.LabyModLaunchWrapperTweaker") -> LABYMOD
+        isClassExists("net.minecraftforge.common.MinecraftForge") -> GameInfo.Client.FORGE
+//        isClassExists("net.labymod.core.loader.vanilla.launchwrapper.LabyModLaunchWrapperTweaker") -> LABYMOD
         isClassExists ("com.moonsworth.lunar.genesis.Genesis") -> LUNAR
 //        isClassExists("net.badlion.client.Wrapper") -> GameInfo.Client.BADLION
         else -> error("Could not find game client")

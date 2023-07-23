@@ -10,8 +10,6 @@ import net.minecraft.entity.EntityLivingBase
 import net.minecraft.network.Packet
 import net.minecraft.util.IChatComponent
 import net.minecraft.world.World
-import net.weavemc.weave.api.event.CancellableEvent
-import net.weavemc.weave.api.event.Event
 import org.lwjgl.input.Keyboard
 import org.lwjgl.input.Mouse
 
