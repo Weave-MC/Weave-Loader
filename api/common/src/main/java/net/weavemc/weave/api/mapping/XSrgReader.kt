@@ -30,7 +30,7 @@ class XSrgReader(srgResourcePath: String) {
                     }
 
                     "FD" -> {
-                        val (first, _, second, _) = data.split(' ')
+                        val (first, second) = data.split(' ')
                         val (firstOwner, firstName) = first.splitLast('/')
                         val (secondOwner, secondName) = second.splitLast('/')
                         fieldMappings.add(FieldMapping(firstOwner, firstName, secondOwner, secondName))

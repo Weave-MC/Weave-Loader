@@ -9,6 +9,7 @@ import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.commons.ClassRemapper
 import java.io.File
 import java.nio.file.Path
+import java.util.jar.JarEntry
 import java.util.jar.JarFile
 import java.util.zip.ZipOutputStream
 import kotlin.io.path.*
@@ -62,27 +63,33 @@ internal object ModCachingManager {
 
         val jarIn = JarFile(modJar.file)
         val jarOut = ZipOutputStream(outFile.outputStream())
+        val modifiedEntries = mutableListOf<Pair<JarEntry, ByteArray>>()
 
         jarIn.entries()
             .asSequence()
-            .forEach {
-                val name = it.name
+            .forEach { entry ->
+                val name = entry.name
 
                 if (name == "weave.mod.json") {
-                    jarOut.putNextEntry(it)
-                    jarOut.write(jarIn.getInputStream(it).readBytes())
-                    jarOut.closeEntry()
+                    // Process "weave.mod.json" entry and store the modified entry in the list
+                    val bytes = jarIn.getInputStream(entry).readBytes()
+                    modifiedEntries.add(JarEntry(entry.name) to bytes)
                 } else if (name.endsWith(".class")) {
-                    val classBytes = jarIn.getInputStream(it).readBytes()
+                    // Process class entries and store the modified entry in the list
+                    val classBytes = jarIn.getInputStream(entry).readBytes()
                     val classReader = ClassReader(classBytes)
                     val classWriter = ClassWriter(classReader, 0)
                     classReader.accept(ClassRemapper(classWriter, remapper), 0)
                     val bytes = classWriter.toByteArray()
-                    jarOut.putNextEntry(it)
-                    jarOut.write(bytes)
-                    jarOut.closeEntry()
+                    modifiedEntries.add(JarEntry(entry.name) to bytes)
                 }
             }
+
+        modifiedEntries.forEach { (entry, bytes) ->
+            jarOut.putNextEntry(entry)
+            jarOut.write(bytes)
+            jarOut.closeEntry()
+        }
 
         jarIn.close()
         jarOut.close()
