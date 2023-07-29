@@ -14,8 +14,8 @@ object WeaveApiManager {
 
     private val apiDirectory = getOrCreateDirectory("api")
 
-    fun getCommonApiJar(): JarFile =
-        JarFile(apiDirectory.resolve("common.jar").toFile())
+    fun getCommonApiJar(): File =
+        apiDirectory.resolve("common.jar").toFile()
 
     fun getApiJar(): File =
         apiDirectory.listDirectoryEntries()

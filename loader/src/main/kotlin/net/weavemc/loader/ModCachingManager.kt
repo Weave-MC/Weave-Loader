@@ -24,7 +24,7 @@ internal object ModCachingManager {
      *
      * @return The cached api, mapped mods, and original mods.
      */
-    fun getCachedApiAndMods(): Triple<JarFile, List<JarFile>, List<JarFile>> {
+    fun getCachedApiAndMods(): Triple<File, List<File>, List<File>> {
         val apiJar = WeaveApiManager.getApiJar()
         val cacheApi = ModJar.fromFile(apiJar)
         val modFiles = getModFiles()
@@ -45,7 +45,7 @@ internal object ModCachingManager {
         val mappedApi = cacheFiles.find { it sha256Equals cacheApi } ?: createCache(remapperWrapper, cacheApi)
         val mappedMods = modFiles.map { cacheFiles.find { cacheMod -> it sha256Equals cacheMod } ?: createCache(remapperWrapper, it) }
 
-        return Triple(JarFile(mappedApi.file), mappedMods.map { JarFile(it.file) }, modFiles.map { JarFile(it.file) })
+        return Triple(mappedApi.file, mappedMods.map { it.file }, modFiles.map { it.file })
     }
 
     /**
