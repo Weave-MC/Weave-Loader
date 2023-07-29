@@ -3,10 +3,10 @@ package net.weavemc.loader
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.decodeFromStream
 import net.weavemc.loader.analytics.launchStart
 import net.weavemc.weave.api.Hook
 import net.weavemc.weave.api.ModInitializer
+import java.io.File
 import java.lang.instrument.Instrumentation
 import java.util.jar.JarFile
 
@@ -29,7 +29,7 @@ public object WeaveLoader {
      */
     @JvmStatic
     @OptIn(ExperimentalSerializationApi::class)
-    public fun init(inst: Instrumentation) {
+    public fun init(inst: Instrumentation, apiJar: File, modJars: List<File>) {
         println("[Weave] Initializing Weave")
         launchStart = System.currentTimeMillis()
 
@@ -39,31 +39,9 @@ public object WeaveLoader {
 //        inst.addTransformer(WeaveMixinTransformer)
         inst.addTransformer(HookManager)
 
-        val (apiJar, modJars, originalJars) = ModCachingManager.getCachedApiAndMods()
-        println("apiJar = ${apiJar.name}")
-        println("modJars = ${modJars.map { it.name }}")
-        println("originalJars = ${originalJars.map { it.name }}")
 
-        inst.appendToSystemClassLoaderSearch(WeaveApiManager.getCommonApiJar())
-        originalJars.forEach(inst::appendToSystemClassLoaderSearch)
-        addApiHooks(inst, apiJar)
-        modJars.forEach(inst::appendToSystemClassLoaderSearch)
-
-        val json = Json { ignoreUnknownKeys = true }
-
-        modJars.forEach { jar ->
-            println("[Weave] Loading ${jar.name}")
-
-            val configEntry = jar.getEntry("weave.mod.json") ?: error("${jar.name} does not contain a weave.mod.json!")
-            val config = json.decodeFromStream<ModConfig>(jar.getInputStream(configEntry))
-            val name = config.name ?: jar.name.removeSuffix(".jar")
-
-//            config.mixinConfigs.forEach(Mixins::addConfiguration)
-            HookManager.hooks += config.hooks.map(::instantiate)
-
-            // TODO: Add a name field to the config.
-            mods += WeaveMod(name, config)
-        }
+        addApiHooks(apiJar)
+        addMods(modJars)
 
         // Call preInit() once everything is done.
         mods.forEach { weaveMod ->
@@ -97,9 +75,8 @@ public object WeaveLoader {
     /**
      * Adds hooks for Weave events, corresponding to the Minecraft version
      */
-    private fun addApiHooks(inst: Instrumentation, apiJar: JarFile) {
-        inst.appendToSystemClassLoaderSearch(apiJar)
-
+    private fun addApiHooks(apiFile: File) {
+        val apiJar = JarFile(apiFile)
         apiJar.entries()
             .toList()
             .filter { it.name.startsWith("net/weavemc/weave/api/hooks/") && !it.isDirectory }
@@ -111,6 +88,28 @@ public object WeaveLoader {
                     }
                 }
             }
+    }
+
+    /**
+     * Adds Weave Mod's Hooks to HookManager and adds to mods list for later instantiation
+     */
+    private fun addMods(modJars: List<File>) {
+        val json = Json { ignoreUnknownKeys = true }
+
+        modJars.forEach { file ->
+            val jar = JarFile(file)
+            println("[Weave] Loading ${jar.name}")
+
+            val configEntry = jar.getEntry("weave.mod.json") ?: error("${jar.name} does not contain a weave.mod.json!")
+            val config = json.decodeFromString<ModConfig>(jar.getInputStream(configEntry).readBytes().toString(Charsets.UTF_8))
+            val name = config.name ?: jar.name.removeSuffix(".jar")
+
+//            config.mixinConfigs.forEach(Mixins::addConfiguration)
+            HookManager.hooks += config.hooks.map(::instantiate)
+
+            // TODO: Add a name field to the config.
+            mods += WeaveMod(name, config)
+        }
     }
 
     private inline fun<reified T> instantiate(className: String): T =
