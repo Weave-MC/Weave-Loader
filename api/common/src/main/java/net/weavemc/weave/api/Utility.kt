@@ -18,7 +18,6 @@ val gameVersion: GameInfo.Version by lazy {
     """--version\s+(?:\S*?)?(\d+\.\d+(?:\.\d+)?)"""
         .toRegex()
         .find(command)?.groupValues
-        .also { it?.forEach(::println) }
         ?.get(1)
         ?.let(GameInfo.Version::fromVersionName)
         ?: error("Could not find game version")
