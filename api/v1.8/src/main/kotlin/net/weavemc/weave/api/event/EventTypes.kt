@@ -60,7 +60,6 @@ public class KeyboardEvent : Event() {
  * If cancelled, the event's actions will not affect the game.
  */
 public class MouseEvent : CancellableEvent() {
-
     /**
      * The mouse's X position on the screen.
      */
@@ -70,18 +69,6 @@ public class MouseEvent : CancellableEvent() {
      * The mouse's Y position on the screen.
      */
     public val y: Int  = Mouse.getEventY()
-
-    /**
-     * The X distance the mouse has travelled.
-     */
-    @get:JvmName("getDX")
-    public val dx: Int = Mouse.getEventDX()
-
-    /**
-     * The Y distance the mouse has travelled.
-     */
-    @get:JvmName("getDY")
-    public val dy: Int = Mouse.getEventDY()
 
     /**
      * The amount the mouse's scroll wheel has scrolled, negative if scrolling backwards.
