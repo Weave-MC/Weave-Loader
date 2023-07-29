@@ -23,16 +23,19 @@ class XSrgReader(srgResourcePath: String) {
                     }
 
                     "MD" -> {
-                        val (first, _, second, _) = data.split(' ')
-                        val (firstOwner, firstName) = first.splitLast('/')
-                        val (secondOwner, secondName) = second.splitLast('/')
-                        methodMappings.add(MethodMapping(firstOwner, firstName, secondOwner, secondName))
+                        val (firstPath, firstDescriptor, secondPath, secondDescriptor) = data.split(' ')
+                        val (firstOwner, firstName) = firstPath.splitLast('/')
+                        val (secondOwner, secondName) = secondPath.splitLast('/')
+                        methodMappings.add(MethodMapping(
+                            firstOwner, firstName, firstDescriptor,
+                            secondOwner, secondName, secondDescriptor
+                        ))
                     }
 
                     "FD" -> {
-                        val (first, second) = data.split(' ')
-                        val (firstOwner, firstName) = first.splitLast('/')
-                        val (secondOwner, secondName) = second.splitLast('/')
+                        val (firstPath, firstDescriptor, secondPath, secondDescriptor) = data.split(' ')
+                        val (firstOwner, firstName) = firstPath.splitLast('/')
+                        val (secondOwner, secondName) = secondPath.splitLast('/')
                         fieldMappings.add(FieldMapping(firstOwner, firstName, secondOwner, secondName))
                     }
                 }
@@ -47,8 +50,10 @@ class XSrgReader(srgResourcePath: String) {
     data class MethodMapping(
         val firstOwner: String,
         val firstName: String,
+        val firstDescriptor: String,
         val secondOwner: String,
         val secondName: String,
+        val secondDescriptor: String
     )
 
     data class FieldMapping(
