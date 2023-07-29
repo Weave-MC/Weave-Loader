@@ -31,13 +31,13 @@ internal object ModCachingManager {
 
         val cacheFiles = getCacheFiles()
 
-        for (cacheMod in cacheFiles) {
-            if (cacheApi sha256Equals cacheMod || modFiles.any { it sha256Equals cacheMod }) {
+        for (cacheFile in cacheFiles) {
+            if (cacheApi sha256Equals cacheFile || modFiles.any { it sha256Equals cacheFile }) {
                 continue
             }
 
-            println("[Weave] Deleting unused cache for ${cacheMod.file.name}")
-            cacheMod.file.deleteRecursively()
+            println("[Weave] Deleting unused cache for ${cacheFile.file.name}")
+            cacheFile.file.deleteRecursively()
         }
 
         val remapperWrapper by lazy { RemapperWrapper(mapper) }
