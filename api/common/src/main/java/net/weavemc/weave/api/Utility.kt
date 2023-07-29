@@ -35,7 +35,7 @@ val gameClient: GameInfo.Client by lazy {
 
     when {
 //        isClassExists("net.minecraft.client.Minecraft") -> GameInfo.Client.VANILLA
-//        isClassExists("net.minecraftforge.common.MinecraftForge") -> FORGE
+        isClassExists("net.minecraftforge.common.MinecraftForge") -> FORGE
         isClassExists("net.labymod.core.loader.vanilla.launchwrapper.LabyModLaunchWrapperTweaker") -> LABYMOD
         isClassExists ("com.moonsworth.lunar.genesis.Genesis") -> LUNAR
 //        isClassExists("net.badlion.client.Wrapper") -> GameInfo.Client.BADLION

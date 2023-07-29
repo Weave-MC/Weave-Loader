@@ -23,7 +23,6 @@ public fun premain(opt: String?, inst: Instrumentation) {
     println("[Weave] Detected Minecraft version: $version")
 
     inst.addTransformer(URLClassLoaderTransformer)
-
     inst.addTransformer(object : SafeTransformer {
         override fun transform(loader: ClassLoader, className: String, originalClass: ByteArray): ByteArray? {
             // net/minecraft/ false flags on launchwrapper which gets loaded earlier

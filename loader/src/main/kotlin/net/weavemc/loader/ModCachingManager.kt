@@ -77,9 +77,12 @@ internal object ModCachingManager {
                 } else if (name.endsWith(".class")) {
                     // Process class entries and store the modified entry in the list
                     val classBytes = jarIn.getInputStream(entry).readBytes()
+
                     val classReader = ClassReader(classBytes)
                     val classWriter = ClassWriter(classReader, 0)
+
                     classReader.accept(ClassRemapper(classWriter, remapper), 0)
+
                     val bytes = classWriter.toByteArray()
                     modifiedEntries.add(JarEntry(entry.name) to bytes)
                 }
