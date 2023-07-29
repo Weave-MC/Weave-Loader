@@ -15,7 +15,7 @@ internal class EntityListEventAddHook : Hook("net/minecraft/world/World") {
         val mappedMethod = getMappedMethod(
             "net/minecraft/world/World",
             "spawnEntityInWorld",
-            "(Lnet/minecraft/entity/Entity;)V"
+            "(Lnet/minecraft/entity/Entity;)Z"
         ) ?: error("Failed to find mapping for spawnEntityInWorld")
 
         node.methods.search(mappedMethod.name, mappedMethod.descriptor).instructions.insert(asm {
