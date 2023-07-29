@@ -5,7 +5,6 @@ import net.weavemc.loader.WeaveApiManager
 import net.weavemc.loader.WeaveLoader
 import net.weavemc.weave.api.GameInfo.Version.*
 import net.weavemc.weave.api.gameVersion
-import org.objectweb.asm.ClassReader
 import java.io.File
 import java.lang.instrument.Instrumentation
 
@@ -32,10 +31,9 @@ public fun premain(opt: String?, inst: Instrumentation) {
                 inst.removeTransformer(this)
 
                 require(loader is URLClassLoaderAccessor) { "ClassLoader was not transformed to implement URLClassLoaderAccessor interface. Report to Developers." }
-                val (apiJar, modJars, originalJars) = ModCachingManager.getCachedApiAndMods()
+                val (apiJar, modJars, _) = ModCachingManager.getCachedApiAndMods()
 
                 loader.addWeaveURL(WeaveApiManager.getCommonApiJar().toURI().toURL())
-                originalJars.forEach { loader.addWeaveURL(it.toURI().toURL()) }
                 loader.addWeaveURL(apiJar.toURI().toURL())
                 modJars.forEach { loader.addWeaveURL(it.toURI().toURL()) }
 
