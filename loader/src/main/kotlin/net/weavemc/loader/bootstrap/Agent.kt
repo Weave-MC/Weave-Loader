@@ -23,14 +23,10 @@ public fun premain(opt: String?, inst: Instrumentation) {
 
     println("[Weave] Detected Minecraft version: $version")
 
+    inst.addTransformer(URLClassLoaderTransformer)
+
     inst.addTransformer(object : SafeTransformer {
         override fun transform(loader: ClassLoader, className: String, originalClass: ByteArray): ByteArray? {
-            val classReader = ClassReader(originalClass)
-
-            // Transform all URLClassLoader children to implement URLClassLoaderAccessor
-            if (classReader.superName.equals("java/net/URLClassLoader"))
-                return transformURLClassLoader(classReader)
-
             // net/minecraft/ false flags on launchwrapper which gets loaded earlier
             if (className.startsWith("net/minecraft/client/")) {
                 inst.removeTransformer(this)
