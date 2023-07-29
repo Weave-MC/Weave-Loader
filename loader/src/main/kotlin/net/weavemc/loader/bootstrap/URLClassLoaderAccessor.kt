@@ -32,18 +32,32 @@ object URLClassLoaderTransformer : SafeTransformer {
             _return
         }
 
-        val loadClass = cn.methods.find { it.name == "loadClass" && it.desc == "(Ljava/lang/String;Z)Ljava/lang/Class;" }
-        loadClass?.instructions?.insert(asm {
+
+        val loadClass = cn.methods.find { it.name == "loadClass" && it.desc == "(Ljava/lang/String;Z)Ljava/lang/Class;" } ?: run {
+            val mn = MethodNode(Opcodes.ACC_PUBLIC, "loadClass", "(Ljava/lang/String;Z)Ljava/lang/Class;", null, null)
+            mn.instructions = asm {
+                aload(0)
+                aload(1)
+                iload(2)
+                invokespecial(cn.superName, "loadClass", "(Ljava/lang/String;Z)Ljava/lang/Class;")
+                areturn
+            }
+            cn.methods.add(mn)
+            mn
+        }
+
+        loadClass.instructions.insert(asm {
             val end = LabelNode()
             aload(1)
             ldc("org.objectweb.asm.")
             invokevirtual("java/lang/String", "startsWith", "(Ljava/lang/String;)Z")
             ifeq(end)
 
-            aload(0)
+            invokestatic("java/lang/ClassLoader", "getSystemClassLoader", "()Ljava/lang/ClassLoader;")
             aload(1)
             iload(2)
-            invokespecial(cn.superName, "loadClass", "(Ljava/lang/String;Z)Ljava/lang/Class;")
+            invokespecial("java/lang/ClassLoader", "loadClass", "(Ljava/lang/String;Z)Ljava/lang/Class;")
+            areturn
 
             +end
             f_same()
