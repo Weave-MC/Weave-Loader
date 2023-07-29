@@ -3,10 +3,7 @@
 package net.weavemc.weave.api
 
 import net.weavemc.weave.api.GameInfo.Client.*
-import net.weavemc.weave.api.mapping.IMapper
-import net.weavemc.weave.api.mapping.McpMapper
-import net.weavemc.weave.api.mapping.NotchMapper
-import net.weavemc.weave.api.mapping.SeargeMapper
+import net.weavemc.weave.api.mapping.*
 
 val gameInfo by lazy {
     GameInfo(
@@ -39,8 +36,8 @@ val gameClient: GameInfo.Client by lazy {
 
     when {
 //        isClassExists("net.minecraft.client.Minecraft") -> GameInfo.Client.VANILLA
-        isClassExists("net.minecraftforge.common.MinecraftForge") -> GameInfo.Client.FORGE
-//        isClassExists("net.labymod.core.loader.vanilla.launchwrapper.LabyModLaunchWrapperTweaker") -> LABYMOD
+//        isClassExists("net.minecraftforge.common.MinecraftForge") -> FORGE
+        isClassExists("net.labymod.core.loader.vanilla.launchwrapper.LabyModLaunchWrapperTweaker") -> LABYMOD
         isClassExists ("com.moonsworth.lunar.genesis.Genesis") -> LUNAR
 //        isClassExists("net.badlion.client.Wrapper") -> GameInfo.Client.BADLION
         else -> error("Could not find game client")
@@ -57,22 +54,17 @@ val mapper: IMapper by lazy {
     }
 }
 
-fun mapUniversal(name: String): String = mapper.mapUniversal(name) ?: name
-fun mapUniversalDesc(desc: String): String {
-    val stringBuilder = StringBuilder()
-    var index = 0
-    while (index < desc.length) {
-        val char = desc[index]
-        if (char == 'L') {
-            val endIndex = desc.indexOf(';', index)
-            stringBuilder.append('L')
-            stringBuilder.append(mapUniversal(desc.substring(index + 1, endIndex)))
-            stringBuilder.append(';')
-            index = endIndex
-        } else {
-            stringBuilder.append(char)
-        }
-        index++
-    }
-    return stringBuilder.toString()
-}
+fun getMappedMethod(
+    owner: String,
+    name: String,
+    descriptor: String
+): MappedMethod? = mapper.mapMethod(owner, name, descriptor)
+
+fun getMappedField(
+    owner: String,
+    name: String
+): MappedField? = mapper.mapField(owner, name)
+
+fun getMappedClass(
+    name: String
+): String? = mapper.mapClass(name)

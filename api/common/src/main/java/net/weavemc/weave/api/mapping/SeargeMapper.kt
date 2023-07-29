@@ -18,30 +18,58 @@ class SeargeMapper(gameVersion: GameInfo.Version) : IMapper {
     // First = Searge, Second = MCP
     private val seargeMcpMethods = notchMcpMethods.map { methodMapping ->
         XSrgReader.MethodMapping(
-            notchSeargeMethods.find { it.firstName == methodMapping.firstName }?.secondOwner ?: methodMapping.firstOwner,
-            notchSeargeMethods.find { it.firstName == methodMapping.firstName }?.secondName ?: methodMapping.firstName,
+            notchSeargeMethods.find { it.firstOwner == methodMapping.firstOwner && it.firstName == methodMapping.firstName && it.firstDescriptor == methodMapping.firstDescriptor }?.secondOwner ?: methodMapping.firstOwner,
+            notchSeargeMethods.find { it.firstOwner == methodMapping.firstOwner && it.firstName == methodMapping.firstName && it.firstDescriptor == methodMapping.firstDescriptor }?.secondName ?: methodMapping.firstName,
+            notchSeargeMethods.find { it.firstOwner == methodMapping.firstOwner && it.firstName == methodMapping.firstName && it.firstDescriptor == methodMapping.firstDescriptor }?.secondDescriptor ?: methodMapping.firstDescriptor,
             methodMapping.secondOwner,
-            methodMapping.secondName
+            methodMapping.secondName,
+            methodMapping.secondDescriptor
         )
     }
     private val seargeMcpFields = notchMcpFields.map { fieldMapping ->
         XSrgReader.FieldMapping(
-            notchSeargeFields.find { it.firstName == fieldMapping.firstName }?.secondOwner ?: fieldMapping.firstOwner,
-            notchSeargeFields.find { it.firstName == fieldMapping.firstName }?.secondName ?: fieldMapping.firstName,
+            notchSeargeFields.find { it.firstOwner == fieldMapping.firstOwner && it.firstName == fieldMapping.firstName }?.secondOwner ?: fieldMapping.firstOwner,
+            notchSeargeFields.find { it.firstOwner == fieldMapping.firstOwner && it.firstName == fieldMapping.firstName }?.secondName ?: fieldMapping.firstName,
             fieldMapping.secondOwner,
             fieldMapping.secondName
         )
     }
 
-    override fun mapClass(name: String?): String? = notchMcpClasses.find { it.secondName == name }?.firstName
+    override fun mapClass(name: String): String? = notchMcpClasses.find { it.secondName == name }?.firstName
 
-    override fun mapMethod(owner: String?, name: String?): String? = seargeMcpMethods.find { it.secondOwner == owner && it.secondName == name }?.firstName
+    override fun mapMethod(owner: String, name: String, descriptor: String): MappedMethod? {
+        val method = seargeMcpMethods.find { it.secondOwner == owner && it.secondName == name && it.secondDescriptor == descriptor } ?: return null
+        return MappedMethod(
+            method.firstOwner,
+            method.firstName,
+            method.firstDescriptor
+        )
+    }
 
-    override fun mapField(owner: String?, name: String?): String? = seargeMcpFields.find { it.secondOwner == owner && it.secondName == name }?.firstName
+    override fun mapField(owner: String, name: String): MappedField? {
+        val field = seargeMcpFields.find { it.secondOwner == owner && it.secondName == name } ?: return null
+        return MappedField(
+            field.firstOwner,
+            field.firstName
+        )
+    }
 
-    override fun reverseMapClass(name: String?): String? = notchMcpClasses.find { it.firstName == name }?.secondName
+    override fun reverseMapClass(name: String): String? = notchMcpClasses.find { it.firstName == name }?.secondName
 
-    override fun reverseMapMethod(owner: String?, name: String?): String? = seargeMcpMethods.find { it.firstOwner == owner && it.firstName == name }?.secondName
+    override fun reverseMapMethod(owner: String, name: String, descriptor: String): MappedMethod? {
+        val method = seargeMcpMethods.find { it.firstOwner == owner && it.firstName == name && it.firstDescriptor == descriptor } ?: return null
+        return MappedMethod(
+            method.secondOwner,
+            method.secondName,
+            method.secondDescriptor
+        )
+    }
 
-    override fun reverseMapField(owner: String?, name: String?): String? = seargeMcpFields.find { it.firstOwner == owner && it.firstName == name }?.secondName
+    override fun reverseMapField(owner: String, name: String): MappedField? {
+        val field = seargeMcpFields.find { it.firstOwner == owner && it.firstName == name } ?: return null
+        return MappedField(
+            field.secondOwner,
+            field.secondName
+        )
+    }
 }
