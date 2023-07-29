@@ -3,25 +3,50 @@
     src="https://raw.githubusercontent.com/Weave-MC/.github/master/assets/icon.png"
 />
 
-### Weave Loader, a Lunar Client Mod Loader
+# Weave Loader, A Universal Minecraft Mod Loader
 
-<img
-    align="left" alt="Workflow Badge"
-    src="https://github.com/Weave-MC/Weave-Loader/actions/workflows/gradle.yml/badge.svg"
-/>
-
----
-
-Weave Loader is a tool designed to simplify the process of modding Minecraft, and specifically Lunar Client. It allows
+Weave Loader is a tool designed to simplify the process of modding Minecraft. It allows
 developers to easily create mods by providing a simple and intuitive API for interacting with Minecraft's codebase,
 while injecting into clients that are somewhat closed-off to developers.
 
-### Installation
+## Supported Clients / Versions
+
+<table>
+<tr><th>Supported Clients</th><th>Supported Versions</th></tr>
+<tr><td>
+        
+| Client  | Supported |
+| ------- | :-------: |
+| Vanilla | :white_check_mark: |
+| Forge   | :white_check_mark: |
+| Lunar   | :white_check_mark: |
+| Badlion | :x: |
+| Feather | :white_check_mark: |
+| Labymod | :white_check_mark: |
+
+</td><td>
+    
+| Version | Supported |
+| ------- | :-------: |
+| 1.7     | :white_check_mark: |
+| 1.8     | :white_check_mark: |
+| 1.12    | :white_check_mark: |
+| 1.16    | :x: |
+| 1.17    | :x: |
+| 1.18    | :x: |
+| 1.19    | :x: |
+| 1.20    | :x: |
+
+</td></tr>
+</table>
+
+
+## Installation
 
 To install Weave-Loader, you can either download a pre-built release from
 the [releases page](https://github.com/Weave-MC/Weave-Loader/releases), or build it yourself from source.
 
-#### Building with Gradle
+### Building with Gradle
 
 - `git clone` the project, this can be achieved by installing [git][git], then running
 
@@ -43,7 +68,10 @@ cd Weave-Loader && .\gradlew.bat agent
 
 ## Usage
 
-To use Weave-Loader you have to take the agent from the last step and launch Lunar with `-javaagent:$PATH_TO_AGENT` appended to the JVM arguments.
+To use Weave-Loader, you have two options:
+1. Use [Weave-Manager](https://github.com/Weave-MC/Weave-Manager) to handle the process of attaching Weave to your preferred Minecraft client automatically.
+2. Manually add the agent mentioned in the previous step to the JVM arguments when launching Minecraft. You need to include the follow argument: `-javaagent:$PATH_TO_AGENT`
+
 Weave will automatically load mods from `~/.weave/mods/`.
 
 ## Contributing
