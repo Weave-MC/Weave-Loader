@@ -3,6 +3,7 @@ plugins {
     kotlin("plugin.serialization")
     kotlin("plugin.lombok")
     `maven-publish`
+    id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
 repositories {
@@ -26,6 +27,10 @@ tasks.jar {
     )
 }
 
+tasks.assemble {
+    dependsOn("shadowJar")
+}
+
 publishing {
     publications {
         create<MavenPublication>("mavenJava") {
@@ -33,3 +38,4 @@ publishing {
         }
     }
 }
+
