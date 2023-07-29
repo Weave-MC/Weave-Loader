@@ -1,7 +1,6 @@
 package net.weavemc.weave.api.mapping
 
 interface IMapper {
-
     fun mapClass(name: String): String?
     fun mapMethod(owner: String, name: String, descriptor: String): MappedMethod?
     fun mapField(owner: String, name: String): MappedField?
@@ -13,9 +12,10 @@ interface IMapper {
 data class MappedMethod(
     val owner: String,
     val name: String,
-    val descriptor: String
+    val descriptor: String,
 )
+
 data class MappedField(
     val owner: String,
-    val name: String
+    val name: String,
 )

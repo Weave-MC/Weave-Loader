@@ -45,11 +45,11 @@ val gameClient: GameInfo.Client by lazy {
 
 val mapper: IMapper by lazy {
     when (gameClient) {
-        VANILLA -> NotchMapper(gameVersion)
-        FORGE -> SeargeMapper(gameVersion)
-        LABYMOD -> NotchMapper(gameVersion)
+        VANILLA -> GenericMapper(gameVersion, "notch")
+        FORGE -> GenericMapper(gameVersion, "searge")
+        LABYMOD -> GenericMapper(gameVersion, "notch")
         LUNAR -> McpMapper()
-        BADLION -> NotchMapper(gameVersion)
+        BADLION -> GenericMapper(gameVersion, "notch")
     }
 }
 
