@@ -11,7 +11,7 @@ import java.io.File
 import java.nio.file.Path
 import java.util.jar.JarEntry
 import java.util.jar.JarFile
-import java.util.zip.ZipOutputStream
+import java.util.jar.JarOutputStream
 import kotlin.io.path.*
 
 internal object ModCachingManager {
@@ -61,38 +61,37 @@ internal object ModCachingManager {
 
         outFile.deleteIfExists()
 
-        val jarIn = JarFile(modJar.file)
-        val jarOut = ZipOutputStream(outFile.outputStream())
-        val modifiedEntries = mutableListOf<Pair<JarEntry, ByteArray>>()
+        JarFile(modJar.file).use { jarIn ->
+            JarOutputStream(outFile.outputStream()).use { jarOut ->
+                val modifiedEntries = mutableListOf<Pair<JarEntry, ByteArray>>()
 
-        jarIn.entries()
-            .asSequence()
-            .forEach { entry ->
-                val name = entry.name
+                jarIn.entries()
+                    .asSequence()
+                    .forEach { entry ->
+                        val name = entry.name
 
-                if (name == "weave.mod.json") {
-                    // Process "weave.mod.json" entry and store the modified entry in the list
-                    val bytes = jarIn.getInputStream(entry).readBytes()
-                    modifiedEntries.add(JarEntry(entry.name) to bytes)
-                } else if (name.endsWith(".class")) {
-                    // Process class entries and store the modified entry in the list
-                    val classBytes = jarIn.getInputStream(entry).readBytes()
-                    val classReader = ClassReader(classBytes)
-                    val classWriter = ClassWriter(classReader, 0)
-                    classReader.accept(ClassRemapper(classWriter, remapper), 0)
-                    val bytes = classWriter.toByteArray()
-                    modifiedEntries.add(JarEntry(entry.name) to bytes)
+                        if (name == "weave.mod.json") {
+                            // Process "weave.mod.json" entry and store the modified entry in the list
+                            val bytes = jarIn.getInputStream(entry).readBytes()
+                            modifiedEntries.add(JarEntry(entry.name) to bytes)
+                        } else if (name.endsWith(".class")) {
+                            // Process class entries and store the modified entry in the list
+                            val classBytes = jarIn.getInputStream(entry).readBytes()
+                            val classReader = ClassReader(classBytes)
+                            val classWriter = ClassWriter(classReader, 0)
+                            classReader.accept(ClassRemapper(classWriter, remapper), 0)
+                            val bytes = classWriter.toByteArray()
+                            modifiedEntries.add(JarEntry(entry.name) to bytes)
+                        }
+                    }
+
+                modifiedEntries.forEach { (entry, bytes) ->
+                    jarOut.putNextEntry(entry)
+                    jarOut.write(bytes)
+                    jarOut.closeEntry()
                 }
             }
-
-        modifiedEntries.forEach { (entry, bytes) ->
-            jarOut.putNextEntry(entry)
-            jarOut.write(bytes)
-            jarOut.closeEntry()
         }
-
-        jarIn.close()
-        jarOut.close()
 
         return ModJar(outFile.toFile(), modJar.sha256)
     }
