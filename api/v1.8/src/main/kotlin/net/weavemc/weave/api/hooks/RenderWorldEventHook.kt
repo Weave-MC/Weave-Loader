@@ -3,19 +3,17 @@
 package net.weavemc.weave.api.hooks
 
 import net.weavemc.weave.api.Hook
-import net.weavemc.weave.api.bytecode.asm
-import net.weavemc.weave.api.bytecode.callEvent
-import net.weavemc.weave.api.bytecode.internalNameOf
-import net.weavemc.weave.api.bytecode.search
+import net.weavemc.weave.api.bytecode.*
 import net.weavemc.weave.api.event.RenderWorldEvent
-import net.weavemc.weave.api.not
+import net.weavemc.weave.api.getMappedClass
+import net.weavemc.weave.api.getMappedMethod
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LdcInsnNode
 
 /**
  * Corresponds to [RenderWorldEvent].
  */
-class RenderWorldEventHook : Hook(!"net/minecraft/client/renderer/EntityRenderer") {
+internal class RenderWorldEventHook : Hook(getMappedClass("net/minecraft/client/renderer/EntityRenderer")) {
 
     /**
      * Inserts a call to [RenderWorldEvent]'s constructor at the head of
@@ -23,10 +21,16 @@ class RenderWorldEventHook : Hook(!"net/minecraft/client/renderer/EntityRenderer
      * is called in the event of any world render.
      */
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
-        val renderWorldPass = node.methods.search(!"renderWorldPass", "V", "I", "F", "J")
+        val mappedMethod = getMappedMethod(
+            "net/minecraft/client/renderer/EntityRenderer",
+            "renderWorldPass",
+            "(IFJ)V"
+        ) ?: error("Failed to find mapping for renderWorldPass")
 
-        renderWorldPass.instructions.insertBefore(
-            renderWorldPass.instructions.find { it is LdcInsnNode && it.cst == "hand" },
+        val mn = node.methods.search(mappedMethod.name, mappedMethod.descriptor)
+
+        mn.instructions.insertBefore(
+            mn.instructions.find { it is LdcInsnNode && it.cst == "hand" },
             asm {
                 new(internalNameOf<RenderWorldEvent>())
                 dup

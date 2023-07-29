@@ -3,18 +3,16 @@
 package net.weavemc.weave.api.hooks
 
 import net.weavemc.weave.api.Hook
-import net.weavemc.weave.api.bytecode.asm
-import net.weavemc.weave.api.bytecode.callEvent
-import net.weavemc.weave.api.bytecode.getSingleton
-import net.weavemc.weave.api.bytecode.search
+import net.weavemc.weave.api.bytecode.*
 import net.weavemc.weave.api.event.ShutdownEvent
-import net.weavemc.weave.api.not
+import net.weavemc.weave.api.getMappedClass
+import net.weavemc.weave.api.getMappedMethod
 import org.objectweb.asm.tree.ClassNode
 
 /**
  * Corresponds to [ShutdownEvent].
  */
-class ShutdownEventHook : Hook(!"net/minecraft/client/Minecraft") {
+internal class ShutdownEventHook : Hook(getMappedClass("net/minecraft/client/Minecraft")) {
 
     /**
      * Inserts a singleton shutdown call at the head of
@@ -23,7 +21,13 @@ class ShutdownEventHook : Hook(!"net/minecraft/client/Minecraft") {
      * @see net.minecraft.client.Minecraft.shutdownMinecraftApplet
      */
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
-        node.methods.search(!"shutdownMinecraftApplet", "V").instructions.insert(asm {
+        val mappedMethod = getMappedMethod(
+            "net/minecraft/client/Minecraft",
+            "shutdownMinecraftApplet",
+            "()V"
+        ) ?: error("Failed to find mapping for shutdownMinecraftApplet")
+
+        node.methods.search(mappedMethod.name, mappedMethod.descriptor).instructions.insert(asm {
             getSingleton<ShutdownEvent>()
             callEvent()
         })

@@ -3,25 +3,26 @@
 package net.weavemc.weave.api.hooks
 
 import net.weavemc.weave.api.Hook
-import net.weavemc.weave.api.bytecode.asm
-import net.weavemc.weave.api.bytecode.callEvent
-import net.weavemc.weave.api.bytecode.internalNameOf
-import net.weavemc.weave.api.bytecode.search
+import net.weavemc.weave.api.bytecode.*
+import net.weavemc.weave.api.bytecode.named
 import net.weavemc.weave.api.event.CancellableEvent
 import net.weavemc.weave.api.event.MouseEvent
-import net.weavemc.weave.api.not
+import net.weavemc.weave.api.getMappedClass
+import net.weavemc.weave.api.getMappedMethod
 import org.lwjgl.input.Mouse
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
 import org.objectweb.asm.tree.MethodInsnNode
 
-/**
- * @see net.minecraft.client.Minecraft.runTick
- */
-class MouseEventHook : Hook(!"net/minecraft/client/Minecraft") {
+internal class MouseEventHook : Hook(getMappedClass("net/minecraft/client/Minecraft")) {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
-        val mn = node.methods.search(!"runTick", "V")
+        val mappedMethod = getMappedMethod(
+            "net/minecraft/client/Minecraft",
+            "runTick",
+            "()V"
+        ) ?: error("Failed to find mapping for runTick")
 
+        val mn = node.methods.search(mappedMethod.name, mappedMethod.descriptor)
         val mouseNext = mn.instructions.find {
             it is MethodInsnNode && it.owner == internalNameOf<Mouse>() && it.name == "next"
         }!!
