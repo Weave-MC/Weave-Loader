@@ -56,7 +56,7 @@ object URLClassLoaderTransformer : SafeTransformer {
             invokestatic("java/lang/ClassLoader", "getSystemClassLoader", "()Ljava/lang/ClassLoader;")
             aload(1)
             iload(2)
-            invokespecial("java/lang/ClassLoader", "loadClass", "(Ljava/lang/String;Z)Ljava/lang/Class;")
+            invokevirtual("java/lang/ClassLoader", "loadClass", "(Ljava/lang/String;Z)Ljava/lang/Class;")
             areturn
 
             +end
