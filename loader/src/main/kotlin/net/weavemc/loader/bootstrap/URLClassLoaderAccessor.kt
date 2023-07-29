@@ -34,7 +34,7 @@ object URLClassLoaderTransformer : SafeTransformer {
 
 
         val loadClass = cn.methods.find { it.name == "loadClass" && it.desc == "(Ljava/lang/String;Z)Ljava/lang/Class;" } ?: run {
-            val mn = MethodNode(Opcodes.ACC_PUBLIC, "loadClass", "(Ljava/lang/String;Z)Ljava/lang/Class;", null, null)
+            val mn = MethodNode(Opcodes.ACC_PROTECTED, "loadClass", "(Ljava/lang/String;Z)Ljava/lang/Class;", null, null)
             mn.instructions = asm {
                 aload(0)
                 aload(1)
