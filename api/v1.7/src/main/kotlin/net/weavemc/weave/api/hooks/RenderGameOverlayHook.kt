@@ -8,7 +8,8 @@ import net.weavemc.weave.api.bytecode.callEvent
 import net.weavemc.weave.api.bytecode.internalNameOf
 import net.weavemc.weave.api.bytecode.search
 import net.weavemc.weave.api.event.RenderGameOverlayEvent
-import net.weavemc.weave.api.not
+import net.weavemc.weave.api.getMappedClass
+import net.weavemc.weave.api.getMappedMethod
 import org.objectweb.asm.Opcodes.RETURN
 import org.objectweb.asm.tree.ClassNode
 
@@ -16,11 +17,17 @@ import org.objectweb.asm.tree.ClassNode
  * @see net.minecraft.client.gui.GuiIngame.renderGameOverlay
  */
 class RenderGameOverlayHook : Hook(
-    !"net/minecraft/client/gui/GuiIngame",
+    getMappedClass("net/minecraft/client/gui/GuiIngame"),
     "net/minecraftforge/client/GuiIngameForge"
 ) {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
-        val mn = node.methods.search(!"renderGameOverlay", "V", "F", "Z", "I", "I")
+        val mappedMethod = getMappedMethod(
+            "net/minecraft/client/gui/GuiIngame",
+            "renderGameOverlay",
+            "(FZII)V"
+        ) ?: error("Failed to find mapping for GuiIngame#renderGameOverlay")
+
+        val mn = node.methods.search(mappedMethod.name, mappedMethod.descriptor)
 
         mn.instructions.insert(asm {
             new(internalNameOf<RenderGameOverlayEvent.Pre>())

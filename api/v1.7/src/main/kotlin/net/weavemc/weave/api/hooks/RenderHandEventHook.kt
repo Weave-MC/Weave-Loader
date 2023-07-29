@@ -6,7 +6,8 @@ import net.weavemc.weave.api.Hook
 import net.weavemc.weave.api.bytecode.*
 import net.weavemc.weave.api.event.CancellableEvent
 import net.weavemc.weave.api.event.RenderHandEvent
-import net.weavemc.weave.api.not
+import net.weavemc.weave.api.getMappedClass
+import net.weavemc.weave.api.getMappedMethod
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.JumpInsnNode
@@ -15,9 +16,15 @@ import org.objectweb.asm.tree.LdcInsnNode
 /**
  * @see net.minecraft.client.renderer.EntityRenderer.renderWorld
  */
-class RenderHandEventHook : Hook(!"net/minecraft/client/renderer/EntityRenderer") {
+class RenderHandEventHook : Hook(getMappedClass("net/minecraft/client/renderer/EntityRenderer")) {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
-        val renderWorld = node.methods.search(!"renderWorld", "V", "F", "J")
+        val mappedMethod = getMappedMethod(
+            "net/minecraft/client/renderer/EntityRenderer",
+            "renderWorld",
+            "(FJ)V"
+        ) ?: error("Failed to find mapping for EntityRenderer#renderWorld")
+
+        val renderWorld = node.methods.search(mappedMethod.name, mappedMethod.descriptor)
 
         val ifeq = renderWorld.instructions.find {
             it is LdcInsnNode && it.cst == "hand"

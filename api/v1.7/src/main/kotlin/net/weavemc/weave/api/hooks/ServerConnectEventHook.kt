@@ -8,13 +8,14 @@ import net.weavemc.weave.api.bytecode.callEvent
 import net.weavemc.weave.api.bytecode.internalNameOf
 import net.weavemc.weave.api.bytecode.search
 import net.weavemc.weave.api.event.ServerConnectEvent
-import net.weavemc.weave.api.not
+import net.weavemc.weave.api.getMappedClass
+import net.weavemc.weave.api.getMappedMethod
 import org.objectweb.asm.tree.ClassNode
 
 /**
  * Corresponds to [ServerConnectEvent].
  */
-class ServerConnectEventHook : Hook(!"net/minecraft/client/multiplayer/GuiConnecting") {
+class ServerConnectEventHook : Hook(getMappedClass("net/minecraft/client/multiplayer/GuiConnecting")) {
 
     /**
      * Inserts a call to [ServerConnectEvent]'s constructor at the head of
@@ -23,7 +24,13 @@ class ServerConnectEventHook : Hook(!"net/minecraft/client/multiplayer/GuiConnec
      * which is called when the player clicks the 'connect' button in the server list.
      */
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
-        node.methods.search(!"connect", "V", "Ljava/lang/String;", "I").instructions.insert(asm {
+        val mappedMethod = getMappedMethod(
+            "net/minecraft/client/multiplayer/GuiConnecting",
+            "connect",
+            "(Ljava/lang/String;I)V"
+        ) ?: error("Failed to find mapping for GuiConnecting#connect")
+
+        node.methods.search(mappedMethod.name, mappedMethod.descriptor).instructions.insert(asm {
             new(internalNameOf<ServerConnectEvent>())
             dup
             aload(1)

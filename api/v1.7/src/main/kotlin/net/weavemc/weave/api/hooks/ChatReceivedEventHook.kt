@@ -9,17 +9,23 @@ import net.weavemc.weave.api.bytecode.internalNameOf
 import net.weavemc.weave.api.bytecode.search
 import net.weavemc.weave.api.event.CancellableEvent
 import net.weavemc.weave.api.event.ChatReceivedEvent
-import net.weavemc.weave.api.not
-import net.weavemc.weave.api.unaryMinus
+import net.weavemc.weave.api.getMappedClass
+import net.weavemc.weave.api.getMappedMethod
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
 
 /**
  * @see net.minecraft.client.gui.GuiNewChat.printChatMessageWithOptionalDeletion
  */
-class ChatReceivedEventHook : Hook(!"net/minecraft/client/gui/GuiNewChat") {
+class ChatReceivedEventHook : Hook(getMappedClass("net/minecraft/client/gui/GuiNewChat")) {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
-        node.methods.search(!"printChatMessageWithOptionalDeletion", "V", -"Lnet/minecraft/util/IChatComponent;", "I").instructions.insert(asm {
+        val mappedMethod = getMappedMethod(
+            "net/minecraft/client/gui/GuiNewChat",
+            "printChatMessageWithOptionalDeletion",
+            "(Lnet/minecraft/util/IChatComponent;I)V"
+        ) ?: error("Failed to find mapping for GuiNewChat#printChatMessageWithOptionalDeletion")
+
+        node.methods.search(mappedMethod.name, mappedMethod.descriptor).instructions.insert(asm {
             new(internalNameOf<ChatReceivedEvent>())
             dup
             dup
@@ -27,7 +33,7 @@ class ChatReceivedEventHook : Hook(!"net/minecraft/client/gui/GuiNewChat") {
             invokespecial(
                 internalNameOf<ChatReceivedEvent>(),
                 "<init>",
-                -"(Lnet/minecraft/util/IChatComponent;)V"
+                "(L${getMappedClass("net/minecraft/util/IChatComponent")};)V"
             )
             callEvent()
 

@@ -9,17 +9,23 @@ import net.weavemc.weave.api.bytecode.internalNameOf
 import net.weavemc.weave.api.bytecode.search
 import net.weavemc.weave.api.event.CancellableEvent
 import net.weavemc.weave.api.event.GuiOpenEvent
-import net.weavemc.weave.api.not
-import net.weavemc.weave.api.unaryMinus
+import net.weavemc.weave.api.getMappedClass
+import net.weavemc.weave.api.getMappedMethod
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
 
 /**
  * @see net.minecraft.client.Minecraft.displayGuiScreen
  */
-class GuiOpenEventHook : Hook(!"net/minecraft/client/Minecraft") {
+class GuiOpenEventHook : Hook(getMappedClass("net/minecraft/client/Minecraft")) {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
-        node.methods.search(!"displayGuiScreen", "V", -"Lnet/minecraft/client/gui/GuiScreen;").instructions.insert(asm {
+        val mappedMethod = getMappedMethod(
+            "net/minecraft/client/Minecraft",
+            "displayGuiScreen",
+            "(Lnet/minecraft/client/gui/GuiScreen;)V"
+        ) ?: error("Failed to find mapping for Minecraft#displayGuiScreen")
+
+        node.methods.search(mappedMethod.name, mappedMethod.descriptor).instructions.insert(asm {
             new(internalNameOf<GuiOpenEvent>())
             dup
             dup
@@ -27,7 +33,7 @@ class GuiOpenEventHook : Hook(!"net/minecraft/client/Minecraft") {
             invokespecial(
                 internalNameOf<GuiOpenEvent>(),
                 "<init>",
-                -"(Lnet/minecraft/client/gui/GuiScreen;)V"
+                "(L${getMappedClass("net/minecraft/client/gui/GuiScreen")};)V"
             )
             callEvent()
 

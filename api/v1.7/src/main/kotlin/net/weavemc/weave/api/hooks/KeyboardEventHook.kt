@@ -8,18 +8,32 @@ import net.weavemc.weave.api.bytecode.callEvent
 import net.weavemc.weave.api.bytecode.internalNameOf
 import net.weavemc.weave.api.bytecode.search
 import net.weavemc.weave.api.event.KeyboardEvent
-import net.weavemc.weave.api.not
+import net.weavemc.weave.api.getMappedClass
+import net.weavemc.weave.api.getMappedMethod
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodInsnNode
 
 /**
  * @see net.minecraft.client.Minecraft.runTick
  */
-class KeyboardEventHook : Hook(!"net/minecraft/client/Minecraft") {
+class KeyboardEventHook : Hook(getMappedClass("net/minecraft/client/Minecraft")) {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
-        node.methods.search(!"runTick", "V").let { mn ->
+        val runTick = getMappedMethod(
+            "net/minecraft/client/Minecraft",
+            "runTick",
+            "()V"
+        ) ?: error("Failed to find mapping for Minecraft#runTick")
+
+        val dispatchKeypresses = getMappedMethod(
+            "net/minecraft/client/Minecraft",
+            "dispatchKeypresses",
+            "()V"
+        ) ?: error("Failed to find mapping for Minecraft#dispatchKeypresses")
+
+
+        node.methods.search(runTick.name, runTick.descriptor).let { mn ->
             mn.instructions.insert(
-                mn.instructions.find { it is MethodInsnNode && it.name == !"dispatchKeypresses" },
+                mn.instructions.find { it is MethodInsnNode && it.name == dispatchKeypresses.name && it.desc == dispatchKeypresses.descriptor },
                 asm {
                     new(internalNameOf<KeyboardEvent>())
                     dup
