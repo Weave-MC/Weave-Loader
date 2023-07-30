@@ -28,9 +28,7 @@ repositories {
 }
 
 dependencies {
-    api(libs.asm)
-    api(libs.asmtree)
-    api(libs.asmutil)
+    api(libs.bundles.asm)
 
     compileOnly(libs.lombok)
     annotationProcessor(libs.lombok)
