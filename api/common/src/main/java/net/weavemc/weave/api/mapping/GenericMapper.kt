@@ -2,7 +2,7 @@ package net.weavemc.weave.api.mapping
 
 import net.weavemc.weave.api.GameInfo
 
-class GenericMapper(gameVersion: GameInfo.Version, filePrefix: String) : IMapper {
+class GenericMapper(gameVersion: GameInfo.Version, private val filePrefix: String) : IMapper {
     private val xSrgReader by lazy { XSrgReader("/weave/mappings/$filePrefix-${gameVersion.versionName}.xsrg") }
 
     // First = MCP, Second = ${filePrefix}
@@ -47,4 +47,6 @@ class GenericMapper(gameVersion: GameInfo.Version, filePrefix: String) : IMapper
             field.firstName
         )
     }
+
+    override fun getMapperName(): String = "${super.getMapperName()}\$$filePrefix"
 }
