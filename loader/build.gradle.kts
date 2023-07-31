@@ -11,13 +11,15 @@ repositories {
 }
 
 dependencies {
-    compileOnly(libs.mixin)
-    api(libs.bundles.asm)
+    implementation(libs.mixin)
     implementation(libs.kxSer)
+    api(libs.bundles.asm)
     api(project(":api:common"))
 }
 
 tasks.jar {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
     from({ configurations.runtimeClasspath.get().map { zipTree(it) } }) {
         exclude("**/module-info.class")
     }
@@ -29,6 +31,12 @@ tasks.jar {
 
 tasks.assemble {
     dependsOn("shadowJar")
+}
+
+tasks.shadowJar {
+    mergeServiceFiles()
+    relocate("org.objectweb.asm", "net.weavemc.asm") {
+    }
 }
 
 publishing {
