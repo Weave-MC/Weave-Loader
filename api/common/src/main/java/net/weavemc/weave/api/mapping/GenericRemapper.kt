@@ -1,6 +1,6 @@
 package net.weavemc.weave.api.mapping
 
-class McpMapper : IMapper {
+class GenericRemapper : IMapper {
     override fun mapClass(name: String): String = name
 
     override fun mapMethod(owner: String, name: String, descriptor: String): MappedMethod = MappedMethod(owner, name, descriptor)
