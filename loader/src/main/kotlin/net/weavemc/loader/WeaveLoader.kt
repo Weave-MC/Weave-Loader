@@ -4,8 +4,13 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import net.weavemc.loader.analytics.launchStart
+import net.weavemc.loader.mixins.WeaveMixinService
+import net.weavemc.loader.mixins.WeaveMixinTransformer
 import net.weavemc.weave.api.Hook
 import net.weavemc.weave.api.ModInitializer
+import org.spongepowered.asm.launch.MixinBootstrap
+import org.spongepowered.asm.mixin.Mixins
+import org.spongepowered.asm.service.MixinService
 import java.io.File
 import java.lang.instrument.Instrumentation
 import java.util.jar.JarFile
@@ -38,7 +43,6 @@ public object WeaveLoader {
 
 //        inst.addTransformer(WeaveMixinTransformer)
         inst.addTransformer(HookManager)
-
 
         addApiHooks(apiJar)
         addMods(modJars)

@@ -19,7 +19,6 @@ public fun premain(opt: String?, inst: Instrumentation) {
         println("[Weave] $version not supported, disabling...")
         return
     }
-
     println("[Weave] Detected Minecraft version: $version")
 
     inst.addTransformer(URLClassLoaderTransformer)
@@ -30,8 +29,11 @@ public fun premain(opt: String?, inst: Instrumentation) {
                 inst.removeTransformer(this)
 
                 require(loader is URLClassLoaderAccessor) { "ClassLoader was not transformed to implement URLClassLoaderAccessor interface. Report to Developers." }
-                val (apiJar, modJars, _) = ModCachingManager.getCachedApiAndMods()
 
+//                if (loader is LaunchClassLoaderAccessor)
+//                    loader.excludeFromTransformer("net.weavemc")
+
+                val (apiJar, modJars, _) = ModCachingManager.getCachedApiAndMods()
                 loader.addWeaveURL(WeaveApiManager.getCommonApiJar().toURI().toURL())
                 loader.addWeaveURL(apiJar.toURI().toURL())
                 modJars.forEach { loader.addWeaveURL(it.toURI().toURL()) }

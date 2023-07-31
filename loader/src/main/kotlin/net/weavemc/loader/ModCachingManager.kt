@@ -6,6 +6,7 @@ import net.weavemc.weave.api.mapper
 import net.weavemc.weave.api.mapping.RemapperWrapper
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
+import org.objectweb.asm.Opcodes
 import org.objectweb.asm.commons.ClassRemapper
 import java.io.File
 import java.nio.file.Path
@@ -80,7 +81,6 @@ internal object ModCachingManager {
 
                     val classReader = ClassReader(classBytes)
                     val classWriter = ClassWriter(classReader, 0)
-
                     classReader.accept(ClassRemapper(classWriter, remapper), 0)
 
                     val bytes = classWriter.toByteArray()

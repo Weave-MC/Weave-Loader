@@ -12,8 +12,7 @@ import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodInsnNode
 
 internal class RenderGameOverlayHook : Hook(
-    getMappedClass("net/minecraft/client/gui/GuiIngame"),
-    "net/minecraftforge/client/GuiIngameForge"
+    getMappedClass("net/minecraft/client/gui/GuiIngame")
 ) {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         val mappedMethod = getMappedMethod(
