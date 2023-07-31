@@ -1,5 +1,7 @@
 package net.weavemc.loader.mixins
 
+import net.weavemc.weave.api.GameInfo
+import net.weavemc.weave.api.gameClient
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.tree.ClassNode
 import org.spongepowered.asm.launch.platform.container.ContainerHandleVirtual
@@ -40,12 +42,15 @@ public class WeaveMixinService : IMixinService, IClassProvider, IClassBytecodePr
     }
 
     private val genesisClassCache by lazy {
-        this.javaClass.classLoader.javaClass
-            .declaredFields
-            .find { Map::class.java.isAssignableFrom(it.type) }!!
-            .also { it.isAccessible = true }
-            .get(this.javaClass.classLoader)
-            as Map<String, ByteArray>
+        if (gameClient == GameInfo.Client.LUNAR)
+            this.javaClass.classLoader.javaClass
+                .declaredFields
+                .find { Map::class.java.isAssignableFrom(it.type) }!!
+                .also { it.isAccessible = true }
+                .get(this.javaClass.classLoader)
+                as Map<String, ByteArray>
+        else
+            emptyMap()
     }
 
     /**
