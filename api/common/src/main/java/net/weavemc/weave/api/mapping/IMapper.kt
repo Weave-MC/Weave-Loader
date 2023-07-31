@@ -7,6 +7,7 @@ interface IMapper {
     fun reverseMapClass(name: String): String?
     fun reverseMapMethod(owner: String, name: String, descriptor: String): MappedMethod?
     fun reverseMapField(owner: String, name: String): MappedField?
+    fun getMapperName(): String = this::class.simpleName!!
 }
 
 data class MappedMethod(

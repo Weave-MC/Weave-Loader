@@ -6,12 +6,12 @@ import net.weavemc.weave.api.mapper
 import net.weavemc.weave.api.mapping.RemapperWrapper
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
-import org.objectweb.asm.Opcodes
 import org.objectweb.asm.commons.ClassRemapper
 import java.io.File
 import java.nio.file.Path
 import java.util.jar.JarEntry
 import java.util.jar.JarFile
+import java.util.jar.JarOutputStream
 import java.util.zip.ZipOutputStream
 import kotlin.io.path.*
 
@@ -62,40 +62,37 @@ internal object ModCachingManager {
 
         outFile.deleteIfExists()
 
-        val jarIn = JarFile(modJar.file)
-        val jarOut = ZipOutputStream(outFile.outputStream())
-        val modifiedEntries = mutableListOf<Pair<JarEntry, ByteArray>>()
+        JarFile(modJar.file).use { jarIn ->
+            JarOutputStream(outFile.outputStream()).use { jarOut ->
+                val modifiedEntries = mutableListOf<Pair<JarEntry, ByteArray>>()
 
-        jarIn.entries()
-            .asSequence()
-            .forEach { entry ->
-                val name = entry.name
+                jarIn.entries()
+                    .asSequence()
+                    .forEach { entry ->
+                        val name = entry.name
 
-                if (name == "weave.mod.json") {
-                    // Process "weave.mod.json" entry and store the modified entry in the list
-                    val bytes = jarIn.getInputStream(entry).readBytes()
-                    modifiedEntries.add(JarEntry(entry.name) to bytes)
-                } else if (name.endsWith(".class")) {
-                    // Process class entries and store the modified entry in the list
-                    val classBytes = jarIn.getInputStream(entry).readBytes()
+                        if (name == "weave.mod.json") {
+                            // Process "weave.mod.json" entry and store the modified entry in the list
+                            val bytes = jarIn.getInputStream(entry).readBytes()
+                            modifiedEntries.add(JarEntry(entry.name) to bytes)
+                        } else if (name.endsWith(".class")) {
+                            // Process class entries and store the modified entry in the list
+                            val classBytes = jarIn.getInputStream(entry).readBytes()
+                            val classReader = ClassReader(classBytes)
+                            val classWriter = ClassWriter(classReader, 0)
+                            classReader.accept(ClassRemapper(classWriter, remapper), 0)
+                            val bytes = classWriter.toByteArray()
+                            modifiedEntries.add(JarEntry(entry.name) to bytes)
+                        }
+                    }
 
-                    val classReader = ClassReader(classBytes)
-                    val classWriter = ClassWriter(classReader, 0)
-                    classReader.accept(ClassRemapper(classWriter, remapper), 0)
-
-                    val bytes = classWriter.toByteArray()
-                    modifiedEntries.add(JarEntry(entry.name) to bytes)
+                modifiedEntries.forEach { (entry, bytes) ->
+                    jarOut.putNextEntry(entry)
+                    jarOut.write(bytes)
+                    jarOut.closeEntry()
                 }
             }
-
-        modifiedEntries.forEach { (entry, bytes) ->
-            jarOut.putNextEntry(entry)
-            jarOut.write(bytes)
-            jarOut.closeEntry()
         }
-
-        jarIn.close()
-        jarOut.close()
 
         return ModJar(outFile.toFile(), modJar.sha256)
     }
@@ -146,7 +143,7 @@ internal object ModCachingManager {
      *
      * Example: `1.7.10-McpMapper-8f498d2e11f3e9eb016a5a1c35885b87b561f5fd1941864b2db704878bc0c79d.cache`
      */
-    private fun getCacheFileName(version: GameInfo.Version = gameVersion, file: File): String = "${version.versionName}-${mapper.javaClass.simpleName}-${file.toSha256()}.cache"
+    private fun getCacheFileName(version: GameInfo.Version = gameVersion, file: File): String = "${version.versionName}-${mapper.getMapperName()}-${file.toSha256()}.cache"
 
     /**
      * Represents an original mod jar or a cache file.
