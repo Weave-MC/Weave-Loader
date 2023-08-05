@@ -38,11 +38,16 @@ public object WeaveLoader {
         println("[Weave] Initializing Weave")
         launchStart = System.currentTimeMillis()
 
-//        MixinBootstrap.init()
-//        check(MixinService.getService() is WeaveMixinService) { "Active mixin service is NOT WeaveMixinService" }
+        MixinBootstrap.init()
+        check(MixinService.getService() is WeaveMixinService) { "Active mixin service is NOT WeaveMixinService" }
 
-//        inst.addTransformer(WeaveMixinTransformer)
+        inst.addTransformer(WeaveMixinTransformer)
         inst.addTransformer(HookManager)
+
+        /* Add as a backup search path (mainly used for resources) */
+        modJars.forEach {
+            inst.appendToSystemClassLoaderSearch(JarFile(it))
+        }
 
         addApiHooks(apiJar)
         addMods(modJars)
@@ -108,7 +113,7 @@ public object WeaveLoader {
             val config = json.decodeFromString<ModConfig>(jar.getInputStream(configEntry).readBytes().toString(Charsets.UTF_8))
             val name = config.name ?: jar.name.removeSuffix(".jar")
 
-//            config.mixinConfigs.forEach(Mixins::addConfiguration)
+            config.mixinConfigs.forEach(Mixins::addConfiguration)
             HookManager.hooks += config.hooks.map(::instantiate)
 
             // TODO: Add a name field to the config.

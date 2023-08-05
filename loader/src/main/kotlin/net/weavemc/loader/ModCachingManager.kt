@@ -70,18 +70,15 @@ internal object ModCachingManager {
                     .asSequence()
                     .forEach { entry ->
                         val name = entry.name
+                        val bytes = jarIn.getInputStream(entry).readBytes()
 
-                        if (name == "weave.mod.json") {
-                            // Process "weave.mod.json" entry and store the modified entry in the list
-                            val bytes = jarIn.getInputStream(entry).readBytes()
-                            modifiedEntries.add(JarEntry(entry.name) to bytes)
-                        } else if (name.endsWith(".class")) {
+                        if (name.endsWith(".class")) {
                             // Process class entries and store the modified entry in the list
-                            val classBytes = jarIn.getInputStream(entry).readBytes()
-                            val classReader = ClassReader(classBytes)
+                            val classReader = ClassReader(bytes)
                             val classWriter = ClassWriter(classReader, 0)
                             classReader.accept(ClassRemapper(classWriter, remapper), 0)
-                            val bytes = classWriter.toByteArray()
+                            modifiedEntries.add(JarEntry(entry.name) to classWriter.toByteArray())
+                        } else if (!entry.isDirectory) {
                             modifiedEntries.add(JarEntry(entry.name) to bytes)
                         }
                     }
