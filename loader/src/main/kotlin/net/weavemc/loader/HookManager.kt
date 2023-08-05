@@ -6,7 +6,7 @@ import net.weavemc.weave.api.bytecode.dump
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.tree.ClassNode
-import org.spongepowered.asm.transformers.MixinClassWriter
+import org.spongepowered.asm.mixin.transformer.ClassInfo
 import java.io.File
 import java.nio.file.Paths
 
@@ -40,7 +40,7 @@ internal object HookManager : SafeTransformer {
         val flags = if (computeFrames) ClassWriter.COMPUTE_FRAMES else ClassWriter.COMPUTE_MAXS
 
         // HACK: use MixinClassWriter because it doesn't load classes when computing frames.
-        val writer = MixinClassWriter(reader, flags)
+        val writer = HookClassWriter(reader, flags)
         node.accept(writer)
         if (dumpBytecode) {
             val bytecodeOut = getBytecodeDir().resolve("$className.class")
@@ -60,4 +60,8 @@ internal object HookManager : SafeTransformer {
     internal fun getBytecodeDir(): File {
        return Paths.get(System.getProperty("user.home"), ".weave", ".bytecode.out").toFile().apply { mkdirs() }
     }
+}
+
+class HookClassWriter(classReader: ClassReader, flags: Int) : ClassWriter(classReader, flags) {
+    override fun getCommonSuperClass(type1: String, type2: String): String = ClassInfo.getCommonSuperClass(type1, type2).name
 }
