@@ -1,3 +1,5 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+
 plugins {
     kotlin("jvm")
     kotlin("plugin.serialization")
@@ -17,6 +19,18 @@ dependencies {
     api(project(":api:common"))
 }
 
+val mixins: SourceSet by sourceSets.creating
+
+sourceSets.main {
+    compileClasspath += mixins.output
+}
+
+configurations {
+    mixins.compileClasspathConfigurationName {
+        extendsFrom(compileClasspath.get())
+    }
+}
+
 tasks.jar {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
@@ -33,10 +47,18 @@ tasks.assemble {
     dependsOn("shadowJar")
 }
 
-tasks.shadowJar {
+val relocatedJar by tasks.registering(ShadowJar::class) {
+    archiveClassifier.set("relocated")
+    from({sourceSets.main.get().output})
+    configurations = listOf(project.configurations.runtimeClasspath.get())
     mergeServiceFiles()
-    relocate("org.objectweb.asm", "net.weavemc.asm") {
-    }
+    relocate("org.objectweb.asm", "net.weavemc.asm")
+}
+
+tasks.shadowJar {
+    from(relocatedJar)
+    from(mixins.output)
+    archiveClassifier.set("agent")
 }
 
 publishing {

@@ -35,8 +35,7 @@ public class WeaveMixinService : IMixinService, IClassProvider, IClassBytecodePr
      */
     private val lock = ReEntranceLock(1)
 
-    internal companion object {
-
+    companion object {
         lateinit var transformer: IMixinTransformer
             private set
     }
