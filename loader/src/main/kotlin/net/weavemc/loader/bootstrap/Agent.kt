@@ -3,7 +3,9 @@ package net.weavemc.loader.bootstrap
 import net.weavemc.loader.ModCachingManager
 import net.weavemc.loader.WeaveApiManager
 import net.weavemc.loader.WeaveLoader
+import net.weavemc.weave.api.GameInfo
 import net.weavemc.weave.api.GameInfo.Version.*
+import net.weavemc.weave.api.gameClient
 import net.weavemc.weave.api.gameVersion
 import java.io.File
 import java.lang.instrument.Instrumentation
@@ -25,7 +27,7 @@ public fun premain(opt: String?, inst: Instrumentation) {
     inst.addTransformer(object : SafeTransformer {
         override fun transform(loader: ClassLoader, className: String, originalClass: ByteArray): ByteArray? {
             // net/minecraft/ false flags on launchwrapper which gets loaded earlier
-            if (className.startsWith("net/minecraft/client/")) {
+            if ((gameClient != GameInfo.Client.FORGE && className.startsWith("net/minecraft/client/")) || (gameClient == GameInfo.Client.FORGE && className == "net/minecraftforge/fml/common/Loader")) {
                 inst.removeTransformer(this)
 
                 require(loader is URLClassLoaderAccessor) { "ClassLoader was not transformed to implement URLClassLoaderAccessor interface. Report to Developers." }
