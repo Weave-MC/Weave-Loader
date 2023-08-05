@@ -2,12 +2,12 @@ package net.weavemc.loader
 
 import net.weavemc.loader.bootstrap.SafeTransformer
 import net.weavemc.weave.api.Hook
+import net.weavemc.weave.api.bytecode.dump
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.tree.ClassNode
 import org.spongepowered.asm.transformers.MixinClassWriter
 import java.io.File
-import java.io.FileOutputStream
 import java.nio.file.Paths
 
 internal object HookManager : SafeTransformer {
@@ -57,13 +57,7 @@ internal object HookManager : SafeTransformer {
      *   - Windows: `%user.home%/.weave/.bytecode.out`
      *   - UN*X: `$HOME/.weave/.bytecode.out`
      */
-    private fun getBytecodeDir(): File {
+    internal fun getBytecodeDir(): File {
        return Paths.get(System.getProperty("user.home"), ".weave", ".bytecode.out").toFile().apply { mkdirs() }
-    }
-
-    private fun ClassNode.dump(file: String) {
-        val cw = ClassWriter(0)
-        accept(cw)
-        FileOutputStream(file).use { it.write(cw.toByteArray()) }
     }
 }

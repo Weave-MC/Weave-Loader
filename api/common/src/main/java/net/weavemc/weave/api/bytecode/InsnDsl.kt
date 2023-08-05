@@ -252,6 +252,8 @@ public inline fun <reified T : AbstractInsnNode> AbstractInsnNode.prev(p: (T) ->
     return generateSequence(previous) { it.previous }.filterIsInstance<T>().find(p)
 }
 
+public fun ByteArray.dump(file: String) = FileOutputStream(file).use { it.write(this) }
+
 public fun ClassNode.dump(file: String) {
     val cw = ClassWriter(0)
     accept(cw)
