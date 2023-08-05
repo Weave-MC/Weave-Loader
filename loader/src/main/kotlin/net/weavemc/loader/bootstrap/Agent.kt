@@ -24,16 +24,13 @@ public fun premain(opt: String?, inst: Instrumentation) {
     println("[Weave] Detected Minecraft version: $version")
 
     inst.addTransformer(URLClassLoaderTransformer)
+
     inst.addTransformer(object : SafeTransformer {
         override fun transform(loader: ClassLoader, className: String, originalClass: ByteArray): ByteArray? {
-            // net/minecraft/ false flags on launchwrapper which gets loaded earlier
+            // Initialize Weave once the first Minecraft class is loaded into LaunchClassLoader (or main classloader for Minecraft)
             if ((gameClient != GameInfo.Client.FORGE && className.startsWith("net/minecraft/client/")) || (gameClient == GameInfo.Client.FORGE && className == "net/minecraftforge/fml/common/Loader")) {
                 inst.removeTransformer(this)
-
                 require(loader is URLClassLoaderAccessor) { "ClassLoader was not transformed to implement URLClassLoaderAccessor interface. Report to Developers." }
-
-//                if (loader is LaunchClassLoaderAccessor)
-//                    loader.excludeFromTransformer("net.weavemc")
 
                 val (apiJar, modJars, _) = ModCachingManager.getCachedApiAndMods()
                 loader.addWeaveURL(WeaveApiManager.getCommonApiJar().toURI().toURL())
@@ -41,7 +38,7 @@ public fun premain(opt: String?, inst: Instrumentation) {
                 modJars.forEach { loader.addWeaveURL(it.toURI().toURL()) }
 
                 /*
-                Load the rest of the loader using Genesis class loader.
+                Load the rest of the loader using Minecraft's class loader.
                 This allows us to access Minecraft's classes throughout the project.
                 */
                 loader.loadClass("net.weavemc.loader.WeaveLoader")
