@@ -24,21 +24,13 @@ val gameVersion: GameInfo.Version by lazy {
 }
 
 val gameClient: GameInfo.Client by lazy {
-    val isClassExists = { className: String ->
-        try {
-            Class.forName(className)
-            true
-        } catch (e: ClassNotFoundException) {
-            false
-        }
-    }
+    val isLunar = command.contains("Genesis")
+    val version =  """--version\s+(\S+)""".toRegex().find(System.getProperty("sun.java.command"))?.groupValues?.get(1)?.lowercase() ?: error("Failed to retrieve version from command line")
 
     when {
-//        isClassExists("net.minecraft.client.Minecraft") -> GameInfo.Client.VANILLA
-        isClassExists("net.minecraftforge.common.ForgeVersion") -> FORGE
-        isClassExists("net.labymod.core.loader.vanilla.launchwrapper.LabyModLaunchWrapperTweaker") -> LABYMOD
-        isClassExists ("com.moonsworth.lunar.genesis.Genesis") -> LUNAR
-//        isClassExists("net.badlion.client.Wrapper") -> GameInfo.Client.BADLION
+        isLunar -> LUNAR
+        version.contains("forge") -> FORGE
+        version.contains("labymod") -> LABYMOD
         else -> error("Could not find game client")
     }
 }
