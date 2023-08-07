@@ -17,11 +17,11 @@ while injecting into clients that are somewhat closed-off to developers.
         
 | Client  | Supported |
 | ------- | :-------: |
-| Vanilla | :white_check_mark: |
+| Vanilla | :x: |
 | Forge   | :white_check_mark: |
 | Lunar   | :white_check_mark: |
 | Badlion | :x: |
-| Feather | :white_check_mark: |
+| Feather | :x: |
 | Labymod | :white_check_mark: |
 
 </td><td>
