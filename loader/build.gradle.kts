@@ -1,11 +1,17 @@
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import org.objectweb.asm.ClassReader
+import org.objectweb.asm.ClassWriter
+import org.objectweb.asm.commons.ClassRemapper
+import org.objectweb.asm.commons.Remapper
+import java.io.FileOutputStream
+import java.util.jar.JarEntry
+import java.util.jar.JarFile
+import java.util.jar.JarOutputStream
 
 plugins {
     kotlin("jvm")
     kotlin("plugin.serialization")
     kotlin("plugin.lombok")
     `maven-publish`
-    id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
 repositories {
@@ -15,27 +21,21 @@ repositories {
 dependencies {
     implementation(libs.mixin)
     implementation(libs.kxSer)
+    implementation("com.google.guava:guava:32.1.2-jre")
     api(libs.bundles.asm)
     api(project(":api:common"))
 }
 
-val mixins: SourceSet by sourceSets.creating
-
-sourceSets.main {
-    compileClasspath += mixins.output
-}
-
-configurations {
-    mixins.compileClasspathConfigurationName {
-        extendsFrom(compileClasspath.get())
-    }
-}
-
 tasks.jar {
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from(configurations["runtimeClasspath"].map { if (it.isDirectory) it else zipTree(it) }) {
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
-    from({ configurations.runtimeClasspath.get().map { zipTree(it) } }) {
-        exclude("**/module-info.class")
+        exclude(
+            "**/module-info.class",
+            "META-INF/*.SF",
+            "META-INF/*.DSA",
+            "META-INF/*.RSA",
+        )
     }
 
     manifest.attributes(
@@ -43,22 +43,59 @@ tasks.jar {
     )
 }
 
-tasks.assemble {
-    dependsOn("shadowJar")
+tasks.build {
+    doLast {
+        val path = buildDir.resolve("libs").resolve("loader-bundle.jar")
+
+        val jarOut = JarOutputStream(FileOutputStream(path))
+        val output = JarFile(tasks.jar.get().outputs.files.singleFile)
+        val entries = output.entries()
+
+        while (entries.hasMoreElements()) {
+            val entry = entries.nextElement()
+
+            // only modify classes
+            if (!entry.isDirectory) {
+                when {
+                    entry.name.startsWith("org/objectweb/asm") || (entry.name.startsWith("net/weavemc") && !entry.name.contains("WeaveMixinService")) -> {
+                        var entryName = entry.name
+
+                        if (entry.name.startsWith("org/objectweb/asm"))
+                            entryName = entry.name.replaceFirst("org/objectweb", "net/weavemc")
+
+                        val bytes = output.getInputStream(entry).readBytes()
+
+                        val cr = ClassReader(bytes)
+                        val cw = ClassWriter(cr, 0)
+                        cr.accept(ClassRemapper(cw, object : Remapper() {
+                            override fun map(internalName: String): String {
+                                return internalName.replaceFirst("org/objectweb", "net/weavemc")
+                            }
+                        }), 0)
+
+                        jarOut.putNextEntry(JarEntry(entryName))
+                        jarOut.write(cw.toByteArray())
+                        jarOut.closeEntry()
+                    }
+
+                    else -> writeEntryToFile(output, jarOut, entry, entry.name)
+                }
+            }
+        }
+
+        jarOut.close()
+    }
 }
 
-val relocatedJar by tasks.registering(ShadowJar::class) {
-    archiveClassifier.set("relocated")
-    from({sourceSets.main.get().output})
-    configurations = listOf(project.configurations.runtimeClasspath.get())
-    mergeServiceFiles()
-    relocate("org.objectweb.asm", "net.weavemc.asm")
-}
-
-tasks.shadowJar {
-    from(relocatedJar)
-    from(mixins.output)
-    archiveClassifier.set("agent")
+fun writeEntryToFile(
+    file: JarFile,
+    outStream: JarOutputStream,
+    entry: JarEntry,
+    entryName: String
+) {
+    outStream.putNextEntry(JarEntry(entryName))
+    outStream.write(file.getInputStream(entry).readBytes())
+    outStream.closeEntry()
 }
 
 publishing {
@@ -68,4 +105,3 @@ publishing {
         }
     }
 }
-
