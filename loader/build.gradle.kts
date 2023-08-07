@@ -12,6 +12,7 @@ plugins {
     kotlin("plugin.serialization")
     kotlin("plugin.lombok")
     `maven-publish`
+    id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
 repositories {
@@ -60,17 +61,19 @@ tasks.build {
                     entry.name.startsWith("org/objectweb/asm") || (entry.name.startsWith("net/weavemc") && !entry.name.contains("WeaveMixinService")) -> {
                         var entryName = entry.name
 
-                        if (entry.name.startsWith("org/objectweb/asm"))
+                        if (entry.name.startsWith("org/objectweb/asm")) {
                             entryName = entry.name.replaceFirst("org/objectweb", "net/weavemc")
+                            jarOut.putNextEntry(JarEntry(entry.name))
+                            jarOut.write(output.getInputStream(entry).readBytes())
+                            jarOut.closeEntry()
+                        }
 
                         val bytes = output.getInputStream(entry).readBytes()
 
                         val cr = ClassReader(bytes)
                         val cw = ClassWriter(cr, 0)
                         cr.accept(ClassRemapper(cw, object : Remapper() {
-                            override fun map(internalName: String): String {
-                                return internalName.replaceFirst("org/objectweb", "net/weavemc")
-                            }
+                            override fun map(internalName: String): String = internalName.replaceFirst("org/objectweb", "net/weavemc")
                         }), 0)
 
                         jarOut.putNextEntry(JarEntry(entryName))
