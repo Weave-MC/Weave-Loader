@@ -2,6 +2,9 @@ package net.weavemc.loader.mixins
 
 import net.weavemc.weave.api.GameInfo
 import net.weavemc.weave.api.gameClient
+import net.weavemc.weave.api.gameVersion
+import net.weavemc.weave.api.mapping.IMapper
+import net.weavemc.weave.api.mapping.XSrgRemapper
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.tree.ClassNode
 import org.spongepowered.asm.launch.platform.container.ContainerHandleVirtual
@@ -39,6 +42,8 @@ public class WeaveMixinService : IMixinService, IClassProvider, IClassBytecodePr
         lateinit var transformer: IMixinTransformer
             private set
     }
+
+    private val notchMapper: IMapper by lazy { XSrgRemapper(gameVersion, "notch") }
 
     private val genesisClassCache by lazy {
         if (gameClient == GameInfo.Client.LUNAR)
@@ -238,9 +243,11 @@ public class WeaveMixinService : IMixinService, IClassProvider, IClassBytecodePr
         val canonicalName = name.replace('/', '.')
         val internalName = name.replace('.', '/')
 
+        println("getClassNode for class $name internal name $internalName")
+
         try {
             val bytes = genesisClassCache[canonicalName]
-                ?: this.javaClass.classLoader.getResourceAsStream("$internalName.class")!!.readBytes()
+                ?: getClassBytes(internalName)
 
             val cn = ClassNode()
             ClassReader(bytes).accept(cn, ClassReader.EXPAND_FRAMES)
@@ -248,6 +255,12 @@ public class WeaveMixinService : IMixinService, IClassProvider, IClassBytecodePr
         } catch (ex: IOException) {
             throw ClassNotFoundException(canonicalName, ex)
         }
+    }
+
+    private fun getClassBytes(name: String): ByteArray {
+        val name = (notchMapper.mapClass(name) ?: name).plus(".class")
+        val stream = this.javaClass.classLoader.getResourceAsStream(name) ?: return ByteArray(0)
+        return stream.readBytes()
     }
 
     /**
