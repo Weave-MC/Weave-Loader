@@ -9,6 +9,7 @@ import net.weavemc.loader.mixins.WeaveMixinTransformer
 import net.weavemc.weave.api.Hook
 import net.weavemc.weave.api.ModInitializer
 import org.spongepowered.asm.launch.MixinBootstrap
+import org.spongepowered.asm.launch.MixinInitialisationError
 import org.spongepowered.asm.mixin.Mixins
 import org.spongepowered.asm.service.MixinService
 import java.io.File
@@ -38,10 +39,14 @@ public object WeaveLoader {
         println("[Weave] Initializing Weave")
         launchStart = System.currentTimeMillis()
 
-        MixinBootstrap.init()
-        check(MixinService.getService() is WeaveMixinService) { "Active mixin service is NOT WeaveMixinService" }
+        try {
+            MixinBootstrap.init()
+        } catch (ignored: MixinInitialisationError) {
+        }
 
-        inst.addTransformer(WeaveMixinTransformer)
+        if (MixinService.getService() is WeaveMixinService)
+            inst.addTransformer(WeaveMixinTransformer)
+
         inst.addTransformer(HookManager)
 
         /* Add as a backup search path (mainly used for resources) */
@@ -49,8 +54,8 @@ public object WeaveLoader {
             inst.appendToSystemClassLoaderSearch(JarFile(it))
         }
 
-        addApiHooks(apiJar)
         addMods(modJars)
+        addApiHooks(apiJar)
 
         // Call preInit() once everything is done.
         mods.forEach { weaveMod ->
