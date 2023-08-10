@@ -115,7 +115,7 @@ public object WeaveLoader {
             val config = json.decodeFromString<ModConfig>(jar.getInputStream(configEntry).readBytes().decodeToString())
             val name = config.name ?: jar.name.removeSuffix(".jar")
 
-            config.mixinConfigs.forEach { mixinSandbox.registerMixin(it) }
+            config.mixinConfigs.forEach(mixinSandbox::registerMixin)
             HookManager.hooks += config.hooks.map(::instantiate)
 
             // TODO: Add a name field to the config.

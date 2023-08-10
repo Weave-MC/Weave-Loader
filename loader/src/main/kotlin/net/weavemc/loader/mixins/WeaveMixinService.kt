@@ -29,7 +29,7 @@ import java.net.URL
 import java.util.*
 
 @Suppress("unused")
-class WeaveMixinServiceBootstrap : IMixinServiceBootstrap {
+class DummyServiceBootstrap : IMixinServiceBootstrap {
     override fun getName() = "Weave Mixin Bootstrap"
     override fun getServiceClassName(): String = WeaveMixinService::class.java.name
     override fun bootstrap() {}
@@ -73,7 +73,7 @@ public class WeaveMixinService : IMixinService, IClassProvider, IClassBytecodePr
      * @see [getReEntranceLock]
      */
     private val lock = ReEntranceLock(1)
-    private val notchMapper: IMapper by lazy { XSrgRemapper(gameVersion, "notch") }
+    private val mapper: IMapper by lazy { XSrgRemapper(gameVersion, MixinEnvironment.getCurrentEnvironment().obfuscationContext ?: "notch") }
 
     private val genesisClassCache by lazy {
         if (gameClient == GameInfo.Client.LUNAR)
@@ -272,8 +272,6 @@ public class WeaveMixinService : IMixinService, IClassProvider, IClassBytecodePr
         val canonicalName = name.replace('/', '.')
         val internalName = name.replace('.', '/')
 
-        println("getClassNode for class $name internal name $internalName")
-
         try {
             val bytes = genesisClassCache[canonicalName]
                 ?: getClassBytes(internalName)
@@ -287,8 +285,10 @@ public class WeaveMixinService : IMixinService, IClassProvider, IClassBytecodePr
     }
 
     private fun getClassBytes(name: String): ByteArray {
-        val name = (notchMapper.mapClass(name) ?: name).plus(".class")
-        val stream = this.javaClass.classLoader.getResourceAsStream(name) ?: return ByteArray(0)
+        val name = (mapper.mapClass(name) ?: name).plus(".class")
+        val stream = this.javaClass.classLoader.getResourceAsStream(name)
+            ?: throw ClassNotFoundException("Failed to retrieve class bytes for $name")
+
         return stream.readBytes()
     }
 
