@@ -1,17 +1,12 @@
 package net.weavemc.loader
 
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import net.weavemc.loader.analytics.launchStart
-import net.weavemc.loader.mixins.WeaveMixinService
+import net.weavemc.loader.mixins.SandboxedMixinLoader
 import net.weavemc.loader.mixins.WeaveMixinTransformer
 import net.weavemc.weave.api.Hook
 import net.weavemc.weave.api.ModInitializer
-import org.spongepowered.asm.launch.MixinBootstrap
-import org.spongepowered.asm.launch.MixinInitialisationError
-import org.spongepowered.asm.mixin.Mixins
-import org.spongepowered.asm.service.MixinService
 import java.io.File
 import java.lang.instrument.Instrumentation
 import java.util.jar.JarFile
@@ -20,6 +15,7 @@ import java.util.jar.JarFile
  * The main class of the Weave Loader.
  */
 public object WeaveLoader {
+    internal val mixinSandbox = SandboxedMixinLoader(javaClass.classLoader).state
 
     /**
      * Stored list of [WeaveMod]s.
@@ -34,20 +30,19 @@ public object WeaveLoader {
      * @see net.weavemc.loader.bootstrap.premain
      */
     @JvmStatic
-    @OptIn(ExperimentalSerializationApi::class)
     public fun init(inst: Instrumentation, apiJar: File, modJars: List<File>) {
         println("[Weave] Initializing Weave")
         launchStart = System.currentTimeMillis()
 
-        try {
-            MixinBootstrap.init()
-        } catch (ignored: MixinInitialisationError) {
-        }
-
-        if (MixinService.getService() is WeaveMixinService)
-            inst.addTransformer(WeaveMixinTransformer)
-
         inst.addTransformer(HookManager)
+
+        runCatching {
+            mixinSandbox.initialize()
+            inst.addTransformer(WeaveMixinTransformer)
+        }.onFailure {
+            System.err.println("Failed to load mixins:")
+            it.printStackTrace()
+        }
 
         /* Add as a backup search path (mainly used for resources) */
         modJars.forEach {
@@ -114,11 +109,13 @@ public object WeaveLoader {
             val jar = JarFile(file)
             println("[Weave] Loading ${jar.name}")
 
-            val configEntry = jar.getEntry("weave.mod.json") ?: error("${jar.name} does not contain a weave.mod.json!")
-            val config = json.decodeFromString<ModConfig>(jar.getInputStream(configEntry).readBytes().toString(Charsets.UTF_8))
+            val configEntry = jar.getEntry("weave.mod.json")
+                ?: error("${jar.name} does not contain a weave.mod.json!")
+
+            val config = json.decodeFromString<ModConfig>(jar.getInputStream(configEntry).readBytes().decodeToString())
             val name = config.name ?: jar.name.removeSuffix(".jar")
 
-            config.mixinConfigs.forEach(Mixins::addConfiguration)
+            config.mixinConfigs.forEach { mixinSandbox.registerMixin(it) }
             HookManager.hooks += config.hooks.map(::instantiate)
 
             // TODO: Add a name field to the config.
@@ -126,7 +123,7 @@ public object WeaveLoader {
         }
     }
 
-    private inline fun<reified T> instantiate(className: String): T =
+    private inline fun <reified T> instantiate(className: String): T =
         Class.forName(className)
             .getConstructor()
             .newInstance() as? T

@@ -24,7 +24,6 @@ public fun premain(opt: String?, inst: Instrumentation) {
     println("[Weave] Detected Minecraft version: $version")
 
     inst.addTransformer(URLClassLoaderTransformer)
-
     inst.addTransformer(object : SafeTransformer {
         override fun transform(loader: ClassLoader, className: String, originalClass: ByteArray): ByteArray? {
             // Initialize Weave once the first Minecraft class is loaded into LaunchClassLoader (or main classloader for Minecraft)

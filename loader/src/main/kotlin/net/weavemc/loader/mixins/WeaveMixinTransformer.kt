@@ -1,5 +1,6 @@
 package net.weavemc.loader.mixins
 
+import net.weavemc.loader.WeaveLoader
 import net.weavemc.loader.bootstrap.SafeTransformer
 import org.spongepowered.asm.mixin.MixinEnvironment
 
@@ -15,11 +16,6 @@ internal object WeaveMixinTransformer: SafeTransformer {
      * @param originalClass The original class' bytes.
      * @return The transformed class' bytes from `className`.
      */
-    override fun transform(loader: ClassLoader, className: String, originalClass: ByteArray): ByteArray? {
-        return WeaveMixinService.transformer.transformClass(
-            MixinEnvironment.getDefaultEnvironment(),
-            className.replace('/', '.'),
-            originalClass
-        )
-    }
+    override fun transform(loader: ClassLoader, className: String, originalClass: ByteArray): ByteArray? =
+        WeaveLoader.mixinSandbox.transform(className.replace('/', '.'), originalClass)
 }
