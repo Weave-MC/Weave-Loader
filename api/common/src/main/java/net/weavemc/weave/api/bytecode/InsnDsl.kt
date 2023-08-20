@@ -160,7 +160,7 @@ sealed class InsnBuilder {
     fun ifnonnull(label: LabelNode) = +JumpInsnNode(Opcodes.IFNONNULL, label)
 
     fun invokedynamic(name: String, desc: String, bsm: Handle, vararg bsmArgs: Any) =
-        +InvokeDynamicInsnNode(name, desc, bsm, bsmArgs)
+        +InvokeDynamicInsnNode(name, desc, bsm, *bsmArgs)
 
     fun invokevirtual(owner: String, name: String, desc: String) =
         +MethodInsnNode(Opcodes.INVOKEVIRTUAL, owner, name, desc, false)
