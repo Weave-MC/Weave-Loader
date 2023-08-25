@@ -39,7 +39,7 @@ internal object HookManager : SafeTransformer {
         val cfg = Hook.AssemblerConfig { computeFrames = true }
 
         hooks.forEach { it.transform(node, cfg) }
-        val flags = if (computeFrames) ClassWriter.COMPUTE_FRAMES else ClassWriter.COMPUTE_FRAMES
+        val flags = if (computeFrames) ClassWriter.COMPUTE_FRAMES else ClassWriter.COMPUTE_MAXS
 
         val writer = HookClassWriter(reader, flags)
         node.accept(writer)
