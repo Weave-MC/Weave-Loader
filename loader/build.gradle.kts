@@ -20,9 +20,7 @@ repositories {
 }
 
 dependencies {
-    implementation(libs.mixin)
     implementation(libs.kxSer)
-    implementation("com.google.guava:guava:21.0")
     api(libs.bundles.asm)
     api(project(":api:common"))
 }
@@ -64,9 +62,7 @@ val relocate = tasks.register("relocate") {
             // only modify classes
             if (!entry.isDirectory) {
                 when {
-                    entry.name.startsWith("org/objectweb/asm") || (entry.name.startsWith("net/weavemc") && !entry.name.contains(
-                        "WeaveMixinService"
-                    )) -> {
+                    entry.name.startsWith("org/objectweb/asm") || (entry.name.startsWith("net/weavemc")) -> {
                         var entryName = entry.name
 
                         if (entry.name.startsWith("org/objectweb/asm")) {
@@ -105,35 +101,9 @@ fun writeEntryToFile(
     entry: JarEntry,
     entryName: String
 ) {
-    // Relocate Guava
-    if (entryName.endsWith(".class")) {
-        var entryName = entryName
-        println("relocating $entryName")
-
-        if (entryName.startsWith("com/google"))
-            entryName = entryName.replaceFirst("com/google", "net/weavemc/google")
-
-        val bytes = file.getInputStream(entry).readBytes()
-
-        val cr = ClassReader(bytes)
-        val cw = ClassWriter(cr, 0)
-        cr.accept(ClassRemapper(cw, object : Remapper() {
-            override fun map(internalName: String): String {
-                if (internalName.contains("gson"))
-                    return internalName
-
-                return internalName.replaceFirst("com/google", "net/weavemc/google")
-            }
-        }), 0)
-
-        outStream.putNextEntry(JarEntry(entryName))
-        outStream.write(cw.toByteArray())
-        outStream.closeEntry()
-    } else {
-        outStream.putNextEntry(JarEntry(entryName))
-        outStream.write(file.getInputStream(entry).readBytes())
-        outStream.closeEntry()
-    }
+    outStream.putNextEntry(JarEntry(entryName))
+    outStream.write(file.getInputStream(entry).readBytes())
+    outStream.closeEntry()
 }
 
 publishing {
