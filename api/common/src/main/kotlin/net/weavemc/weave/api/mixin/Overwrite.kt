@@ -1,4 +1,8 @@
 package net.weavemc.weave.api.mixin
 
-public annotation class Overwrite {
-}
+@Target(AnnotationTarget.FUNCTION)
+@Retention(AnnotationRetention.RUNTIME)
+public annotation class Overwrite(
+    val id: String = "",
+    val method: String = "",
+)
