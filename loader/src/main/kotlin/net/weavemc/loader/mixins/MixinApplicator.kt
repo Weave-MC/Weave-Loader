@@ -4,11 +4,13 @@ import net.weavemc.loader.bootstrap.SafeTransformer
 import net.weavemc.weave.api.bytecode.asm
 import net.weavemc.weave.api.mixin.At
 import net.weavemc.weave.api.mixin.Inject
+import net.weavemc.weave.api.mixin.Overwrite
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import org.objectweb.asm.tree.*
+import java.lang.reflect.Method
 
 public class MixinApplicator {
     private val mixins = mutableListOf<MixinClass>()
@@ -55,83 +57,135 @@ public class MixinApplicator {
                     it.name == method.name && it.desc == Type.getMethodDescriptor(method)
                 } ?: error("No matching raw method found for $mixinClass, should never happen")
 
-                val injectAnnotation = method.getAnnotation(Inject::class.java) ?: continue
-                val targetMethod = node.methods.find{ it.name == injectAnnotation.method }
-                    ?: error("Failed to load Mixin ${mixinClass.name}: ${injectAnnotation.method} is not present in class ${node.name}")
-                val at = injectAnnotation.at
-
-                val entryPoint = when (at.value) {
-                    At.Location.INVOKE -> {
-                        val (className, methodString) = at.target.split(";")
-                        val (methodName, methodDesc) = methodString.split("(", limit = 2)
-                        val methodDescFormatted = "($methodDesc"
-                        targetMethod.instructions.find {
-                            it is MethodInsnNode &&
-                                it.owner == className &&
-                                it.name == methodName &&
-                                it.desc == methodDescFormatted
-                        }
-                    }
-
-                    At.Location.PUTFIELD -> {
-                        val (className, fieldName) = at.target.split(";")
-                        targetMethod.instructions.find {
-                            it is FieldInsnNode && it.opcode == Opcodes.PUTFIELD && it.owner == className && it.name == fieldName
-                        }
-                    }
-
-                    At.Location.GETFIELD -> {
-                        val (className, fieldName) = at.target.split(";")
-                        targetMethod.instructions.find {
-                            it is FieldInsnNode && it.opcode == Opcodes.GETFIELD && it.owner == className && it.name == fieldName
-                        }
-                    }
-
-                    At.Location.RETURN -> targetMethod.instructions.findLast { it.opcode == Type.getReturnType(targetMethod.desc).getOpcode(
-                        Opcodes.IRETURN) }
-                    At.Location.HEAD -> targetMethod.instructions.first
+                when {
+                    method.isAnnotationPresent(Inject::class.java) -> applyInjection(
+                        node, mixinNode, rawMethod, method.getAnnotation(Inject::class.java)
+                    )
+                    method.isAnnotationPresent(Overwrite::class.java) -> applyOverwrite(
+                        node, rawMethod, method.getAnnotation(Overwrite::class.java)
+                    )
                 }
-
-                val index = targetMethod.instructions.indexOf(entryPoint)
-                val shiftedIndex = if (at.shift == At.Shift.BEFORE) index - at.by else index + at.by + 1
-                val injectionPoint = targetMethod.instructions[shiftedIndex]
-
-                val insn: InsnList =  asm {
-                    when (rawMethod.desc.substring(rawMethod.desc.lastIndexOf(")") + 1)) {
-                        "Z" -> {
-                            invokestatic(mixinNode.name, rawMethod.name, rawMethod.desc)
-                            val label = LabelNode()
-                            ifeq(label)
-//                            returnCorrect(targetMethod.desc)
-                            +label
-                        }
-                        "V" -> invokestatic(mixinNode.name, rawMethod.name, rawMethod.desc)
-                        else -> {
-                            error("${rawMethod.name}'s return type is required to be either boolean or void. Ignoring mixin")
-                        }
-                    }
-                }
-
-                val mixinArgTypes = Type.getArgumentTypes(rawMethod.desc)
-                if (mixinArgTypes.isNotEmpty()) {
-                    val targetArgTypes = Type.getArgumentTypes(targetMethod.desc)
-
-                    val argIndices = mutableMapOf<Type, Int>()
-                    for (i in targetArgTypes.indices)
-                        argIndices[targetArgTypes[i]] = i + 1
-
-                    val argsInsn = InsnList()
-                    for (argType in mixinArgTypes) {
-                        val argIndex = argIndices[argType]
-                            ?: error("Mismatch Parameters. ${rawMethod.desc} has parameter(s) that do not match ${targetMethod.desc}");
-
-                        argsInsn.add(VarInsnNode(argType.getOpcode(Opcodes.ILOAD), argIndex))
-                    }
-                    insn.insert(argsInsn)
-                }
-
-                targetMethod.instructions.insertBefore(injectionPoint, insn)
             }
+        }
+        private fun applyInjection(
+            targetClass: ClassNode,
+            mixinClass: ClassNode,
+            mixinMethod: MethodNode,
+            annotation: Inject
+        ) {
+            val targetMethod = targetClass.methods.find{ it.name == annotation.method }
+                ?: error("Failed to load Mixin ${mixinClass.name}: ${annotation.method} is not present in class ${targetClass.name}")
+            val at = annotation.at
+
+            val atInstruction: AbstractInsnNode? = when (at.value) {
+                At.Location.HEAD -> targetMethod.instructions.first
+                At.Location.TAIL -> {
+                    targetMethod.instructions.findLast {
+                        it.opcode == Type.getReturnType(targetMethod.desc).getOpcode(Opcodes.IRETURN)
+                    }
+                }
+                At.Location.OPCODE -> {
+                    when (at.opcode) {
+                        Opcodes.GETFIELD, Opcodes.PUTFIELD -> {
+                            val (className, fieldName) = at.target.split(";")
+                            targetMethod.instructions.find {
+                                it is FieldInsnNode &&
+                                    it.opcode == at.opcode &&
+                                    it.owner == className &&
+                                    it.name == fieldName
+                            }
+                        }
+                        Opcodes.INVOKESTATIC, Opcodes.INVOKEVIRTUAL, Opcodes.INVOKEDYNAMIC, Opcodes.INVOKESPECIAL -> {
+                            val (className, methodString) = at.target.split(";")
+                            val (methodName, methodDesc) = methodString.split("(", limit = 2)
+                            val methodDescFormatted = "($methodDesc"
+                            targetMethod.instructions.find {
+                                it is MethodInsnNode &&
+                                    it.opcode == at.opcode &&
+                                    it.owner == className &&
+                                    it.name == methodName &&
+                                    it.desc == methodDescFormatted
+                            }
+                        }
+                        Opcodes.ALOAD, Opcodes.ILOAD, Opcodes.LLOAD, Opcodes.DLOAD, Opcodes.FLOAD,
+                        Opcodes.ASTORE, Opcodes.ISTORE, Opcodes.LSTORE, Opcodes.DSTORE, Opcodes.FSTORE -> {
+                            targetMethod.instructions.find {
+                                it is VarInsnNode &&
+                                    it.opcode == at.opcode &&
+                                    it.`var` == at.target.toInt()
+                            }
+                        }
+                        Opcodes.LDC -> {
+                            targetMethod.instructions.find {
+                                it is LdcInsnNode &&
+                                    it.opcode == at.opcode &&
+                                    it.cst == at.target
+                            }
+                        }
+                        Opcodes.JSR, Opcodes.GOTO, Opcodes.IFEQ, Opcodes.IFNE,
+                        Opcodes.IFLT, Opcodes.IFGE, Opcodes.IFGT, Opcodes.IFLE,
+                        Opcodes.IF_ICMPEQ, Opcodes.IF_ICMPNE, Opcodes.IF_ICMPLT,
+                        Opcodes.IF_ICMPGE, Opcodes.IF_ICMPGT, Opcodes.IF_ICMPLE,
+                        Opcodes.IF_ACMPEQ, Opcodes.IF_ACMPNE, Opcodes.IFNULL,
+                        Opcodes.IFNONNULL -> {
+                            targetMethod.instructions.find {
+                                it is JumpInsnNode &&
+                                    it.label == LabelNode()
+                            }
+                        }
+                        else -> targetMethod.instructions.find { it.opcode == at.opcode }
+                    }
+                }
+                else -> targetMethod.instructions.first
+            }
+
+            val index = targetMethod.instructions.indexOf(atInstruction)
+            val shiftedIndex = if (at.shift == At.Shift.BEFORE) index - at.by else index + at.by + 1
+            val injectionPoint = targetMethod.instructions[shiftedIndex]
+
+            val insn: InsnList =  asm {
+                when (mixinMethod.desc.substring(mixinMethod.desc.lastIndexOf(")") + 1)) {
+                    "Z" -> {
+                        invokestatic(mixinClass.name, mixinMethod.name, mixinMethod.desc)
+                        val label = LabelNode()
+                        ifeq(label)
+//                            returnCorrect(targetMethod.desc)
+                        +label
+                    }
+                    "V" -> invokestatic(mixinClass.name, mixinMethod.name, mixinMethod.desc)
+                    else -> {
+                        error("${mixinMethod.name}'s return type is required to be either boolean or void. Ignoring mixin")
+                    }
+                }
+            }
+
+            val mixinArgTypes = Type.getArgumentTypes(mixinMethod.desc)
+            if (mixinArgTypes.isNotEmpty()) {
+                val targetArgTypes = Type.getArgumentTypes(targetMethod.desc)
+
+                val argIndices = mutableMapOf<Type, Int>()
+                for (i in targetArgTypes.indices)
+                    argIndices[targetArgTypes[i]] = i + 1
+
+                val argsInsn = InsnList()
+                for (argType in mixinArgTypes) {
+                    val argIndex = argIndices[argType]
+                        ?: error("Mismatch Parameters. ${mixinMethod.desc} has parameter(s) that do not match ${targetMethod.desc}");
+
+                    argsInsn.add(VarInsnNode(argType.getOpcode(Opcodes.ILOAD), argIndex))
+                }
+                insn.insert(argsInsn)
+            }
+
+            targetMethod.instructions.insertBefore(injectionPoint, insn)
+        }
+        private fun applyOverwrite(
+            targetClass: ClassNode,
+            mixinMethod: MethodNode,
+            annotation: Overwrite
+        ) {
+            targetClass.methods.find{ it.name == annotation.method }?.instructions = mixinMethod.instructions
+                ?: error("Failed to load Mixin ${mixinClass.name}: ${annotation.method} is not present in class ${targetClass.name}")
         }
     }
 
