@@ -4,7 +4,6 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
-import net.weavemc.loader.analytics.launchStart
 import net.weavemc.loader.api.ModInitializer
 import net.weavemc.loader.mixins.WeaveMixinService
 import net.weavemc.loader.mixins.WeaveMixinTransformer
@@ -38,7 +37,6 @@ public object WeaveLoader {
     @OptIn(ExperimentalSerializationApi::class)
     public fun init(inst: Instrumentation) {
         println("[Weave] Initializing Weave")
-        launchStart = System.currentTimeMillis()
 
         MixinBootstrap.init()
         check(MixinService.getService() is WeaveMixinService) { "Active mixin service is NOT WeaveMixinService" }
