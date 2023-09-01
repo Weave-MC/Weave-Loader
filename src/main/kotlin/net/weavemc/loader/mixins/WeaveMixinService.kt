@@ -1,6 +1,8 @@
 package net.weavemc.loader.mixins
 
+import net.weavemc.loader.mappings.XSrgMapper
 import org.objectweb.asm.ClassReader
+import org.objectweb.asm.commons.ClassRemapper
 import org.objectweb.asm.tree.ClassNode
 import org.spongepowered.asm.launch.platform.container.ContainerHandleVirtual
 import org.spongepowered.asm.launch.platform.container.IContainerHandle
@@ -12,7 +14,6 @@ import org.spongepowered.asm.mixin.transformer.IMixinTransformerFactory
 import org.spongepowered.asm.service.*
 import org.spongepowered.asm.util.Constants
 import org.spongepowered.asm.util.ReEntranceLock
-import java.io.IOException
 import java.io.InputStream
 import java.net.URL
 
@@ -39,15 +40,8 @@ public class WeaveMixinService : IMixinService, IClassProvider, IClassBytecodePr
             private set
     }
 
-    private val genesisClassCache by lazy {
-        @Suppress("UNCHECKED_CAST")
-        this.javaClass.classLoader.javaClass
-            .declaredFields
-            .find { Map::class.java.isAssignableFrom(it.type) }!!
-            .also { it.isAccessible = true }
-            .get(this.javaClass.classLoader)
-            as Map<String, ByteArray>
-    }
+    private val remapper = XSrgMapper("/lunar/lunar_named_b5_1.8.9.xsrg")
+    private val classCache = mutableMapOf<String, ClassNode>()
 
     /**
      * @return the name of the service.
@@ -232,21 +226,16 @@ public class WeaveMixinService : IMixinService, IClassProvider, IClassBytecodePr
      * @param name The full class name.
      * @return The resultant class tree.
      */
-    override fun getClassNode(name: String): ClassNode {
-        val canonicalName = name.replace('/', '.')
-        val internalName = name.replace('.', '/')
-
-        try {
-            val bytes = genesisClassCache[canonicalName]
-                ?: this.javaClass.classLoader.getResourceAsStream("$internalName.class")!!.readBytes()
-
+    override fun getClassNode(name: String): ClassNode =
+        this.classCache.computeIfAbsent(remapper.mapReverse(name.replace('.', '/'))) {
+            val bytes = this.javaClass.classLoader.getResourceAsStream("$it.class")!!
             val cn = ClassNode()
-            ClassReader(bytes).accept(cn, ClassReader.EXPAND_FRAMES)
-            return cn
-        } catch (ex: IOException) {
-            throw ClassNotFoundException(canonicalName, ex)
+            ClassReader(bytes).accept(
+                ClassRemapper(cn, this.remapper),
+                ClassReader.EXPAND_FRAMES
+            )
+            cn
         }
-    }
 
     /**
      * Retrieves a transformed class as an ASM tree.
