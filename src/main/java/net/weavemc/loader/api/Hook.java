@@ -7,8 +7,13 @@ import org.objectweb.asm.tree.ClassNode;
 public abstract class Hook {
     public final String[] targets;
 
-    public Hook(String... targets) {
-        this.targets = targets;
+    public Hook() {
+        this.targets = new String[0];
+    }
+
+    // Two arguments to maintain bytecode compatability with weave 0.2.3
+    public Hook(String target, String... extraTargets) {
+        this.targets = ArrayUtils.add(extraTargets, target);
     }
 
     public abstract void transform(@NotNull ClassNode node, @NotNull AssemblerConfig cfg);
