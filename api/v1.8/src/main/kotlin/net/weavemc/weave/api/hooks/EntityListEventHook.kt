@@ -7,6 +7,7 @@ import net.weavemc.weave.api.bytecode.*
 import net.weavemc.weave.api.event.EntityListEvent
 import net.weavemc.weave.api.getMappedClass
 import net.weavemc.weave.api.getMappedMethod
+import net.weavemc.weave.api.runtimeName
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.ClassNode
 
@@ -16,9 +17,9 @@ internal class EntityListEventAddHook : Hook("net/minecraft/world/World") {
             "net/minecraft/world/World",
             "spawnEntityInWorld",
             "(Lnet/minecraft/entity/Entity;)Z"
-        ) ?: error("Failed to find mapping for spawnEntityInWorld")
+        )
 
-        node.methods.search(mappedMethod.name, mappedMethod.descriptor).instructions.insert(asm {
+        node.methods.search(mappedMethod.runtimeName, mappedMethod.descriptor).instructions.insert(asm {
             new(internalNameOf<EntityListEvent.Add>())
             dup
             aload(1)
@@ -38,9 +39,9 @@ internal class EntityListEventRemoveHook : Hook("net/minecraft/client/multiplaye
             "net/minecraft/client/multiplayer/WorldClient",
             "removeEntityFromWorld",
             "(I)Lnet/minecraft/entity/Entity;"
-        ) ?: error("Failed to find mapping for removeEntityFromWorld")
+        )
 
-        val mn = node.methods.search(mappedMethod.name, mappedMethod.descriptor)
+        val mn = node.methods.search(mappedMethod.runtimeName, mappedMethod.descriptor)
         mn.instructions.insert(mn.instructions.find { it.opcode == Opcodes.IFNULL }, asm {
             new(internalNameOf<EntityListEvent.Remove>())
             dup

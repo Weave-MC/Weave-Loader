@@ -2,15 +2,12 @@
 
 package net.weavemc.weave.api.hooks
 
-import net.weavemc.weave.api.Hook
+import net.weavemc.weave.api.*
 import net.weavemc.weave.api.bytecode.asm
 import net.weavemc.weave.api.bytecode.callEvent
 import net.weavemc.weave.api.bytecode.internalNameOf
 import net.weavemc.weave.api.bytecode.search
 import net.weavemc.weave.api.event.WorldEvent
-import net.weavemc.weave.api.getMappedClass
-import net.weavemc.weave.api.getMappedField
-import net.weavemc.weave.api.getMappedMethod
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
 
@@ -25,25 +22,27 @@ class WorldEventHook: Hook(getMappedClass("net/minecraft/client/Minecraft")) {
      * @see net.minecraft.client.Minecraft.loadWorld
      */
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
+        val minecraftName = getMappedClass("net/minecraft/client/Minecraft")
+
         val mappedMethod = getMappedMethod(
             "net/minecraft/client/Minecraft",
             "loadWorld",
             "(Lnet/minecraft/client/multiplayer/WorldClient;Ljava/lang/String;)V"
-        ) ?: error("Failed to find mapping for Minecraft#loadWorld")
+        )
 
         val theWorld = getMappedField(
             "net/minecraft/client/Minecraft",
             "theWorld"
-        ) ?: error("Failed to find mapping for Minecraft#theWorld")
+        )
 
-        node.methods.search(mappedMethod.name, mappedMethod.descriptor)
+        node.methods.search(mappedMethod.runtimeName, mappedMethod.descriptor)
             .instructions.insert(asm {
                 val lbl = LabelNode()
 
                 aload(0)
                 getfield(
-                    theWorld.owner,
-                    theWorld.name,
+                    minecraftName,
+                    theWorld.runtimeName,
                     "L${getMappedClass("net/minecraft/client/multiplayer/WorldClient")};"
                 )
                 ifnull(lbl)
@@ -52,8 +51,8 @@ class WorldEventHook: Hook(getMappedClass("net/minecraft/client/Minecraft")) {
                 dup
                 aload(0)
                 getfield(
-                    theWorld.owner,
-                    theWorld.name,
+                    minecraftName,
+                    theWorld.runtimeName,
                     "L${getMappedClass("net/minecraft/client/multiplayer/WorldClient")};"
                 )
                 invokespecial(

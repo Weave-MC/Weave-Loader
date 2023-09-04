@@ -6,7 +6,7 @@ package net.weavemc.loader
  * @property name The loaded name of a mod, see [ModConfig's `name`][WeaveLoader.ModConfig.name] for more info.
  * @property config The [ModConfig][WeaveLoader.ModConfig] instance of the mod.
  */
-public data class WeaveMod(
+data class WeaveMod(
     val name: String,
     val config: WeaveLoader.ModConfig
 )

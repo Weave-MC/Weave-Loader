@@ -10,6 +10,7 @@ import net.weavemc.weave.api.bytecode.search
 import net.weavemc.weave.api.event.RenderGameOverlayEvent
 import net.weavemc.weave.api.getMappedClass
 import net.weavemc.weave.api.getMappedMethod
+import net.weavemc.weave.api.runtimeName
 import org.objectweb.asm.Opcodes.RETURN
 import org.objectweb.asm.tree.ClassNode
 
@@ -25,9 +26,9 @@ class RenderGameOverlayHook : Hook(
             "net/minecraft/client/gui/GuiIngame",
             "renderGameOverlay",
             "(FZII)V"
-        ) ?: error("Failed to find mapping for GuiIngame#renderGameOverlay")
+        )
 
-        val mn = node.methods.search(mappedMethod.name, mappedMethod.descriptor)
+        val mn = node.methods.search(mappedMethod.runtimeName, mappedMethod.descriptor)
 
         mn.instructions.insert(asm {
             new(internalNameOf<RenderGameOverlayEvent.Pre>())

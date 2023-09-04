@@ -7,6 +7,7 @@ import net.weavemc.weave.api.bytecode.*
 import net.weavemc.weave.api.event.TickEvent
 import net.weavemc.weave.api.getMappedClass
 import net.weavemc.weave.api.getMappedMethod
+import net.weavemc.weave.api.runtimeName
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.ClassNode
 
@@ -30,9 +31,9 @@ internal class TickEventHook : Hook(getMappedClass("net/minecraft/client/Minecra
             "net/minecraft/client/Minecraft",
             "runTick",
             "()V"
-        ) ?: error("Failed to find mapping for runTick")
+        )
 
-        val runTick = node.methods.search(mappedMethod.name, mappedMethod.descriptor)
+        val runTick = node.methods.search(mappedMethod.runtimeName, mappedMethod.descriptor)
         runTick.instructions.insert(asm {
             getSingleton<TickEvent.Pre>()
             callEvent()

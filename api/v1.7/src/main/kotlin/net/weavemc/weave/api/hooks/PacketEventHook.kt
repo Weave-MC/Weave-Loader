@@ -11,6 +11,7 @@ import net.weavemc.weave.api.event.CancellableEvent
 import net.weavemc.weave.api.event.PacketEvent
 import net.weavemc.weave.api.getMappedClass
 import net.weavemc.weave.api.getMappedMethod
+import net.weavemc.weave.api.runtimeName
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
 
@@ -24,9 +25,9 @@ class PacketEventHook: Hook(getMappedClass("net/minecraft/network/NetworkManager
             "net/minecraft/network/NetworkManager",
             "scheduleOutboundPacket",
             "(Lnet/minecraft/network/Packet;[Lio/netty/util/concurrent/GenericFutureListener;)V"
-        ) ?: error("Failed to find mapping for NetworkManager#scheduleOutboundPacket")
+        )
 
-        node.methods.search(scheduleOutboundPacket.name, scheduleOutboundPacket.descriptor).instructions.insert(asm {
+        node.methods.search(scheduleOutboundPacket.runtimeName, scheduleOutboundPacket.descriptor).instructions.insert(asm {
             new(internalNameOf<PacketEvent.Send>())
             dup; dup
             aload(1)
@@ -54,9 +55,9 @@ class PacketEventHook: Hook(getMappedClass("net/minecraft/network/NetworkManager
             "net/minecraft/network/NetworkManager",
             "channelRead0",
             "(Lio/netty/channel/ChannelHandlerContext;Lnet/minecraft/network/Packet;)V"
-        ) ?: error("Failed to find mapping for NetworkManager#channelRead0")
+        )
 
-        node.methods.search(channelRead0.name, channelRead0.descriptor).instructions.insert(asm {
+        node.methods.search(channelRead0.runtimeName, channelRead0.descriptor).instructions.insert(asm {
             new(internalNameOf<PacketEvent.Receive>())
             dup; dup
             aload(2)

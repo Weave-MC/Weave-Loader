@@ -11,6 +11,7 @@ import net.weavemc.weave.api.event.WorldEvent
 import net.weavemc.weave.api.getMappedClass
 import net.weavemc.weave.api.getMappedField
 import net.weavemc.weave.api.getMappedMethod
+import net.weavemc.weave.api.runtimeName
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
 
@@ -25,24 +26,26 @@ internal class WorldEventHook: Hook(getMappedClass("net/minecraft/client/Minecra
      * @see net.minecraft.client.Minecraft.loadWorld
      */
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
+        val minecraftName = getMappedClass("net/minecraft/client/Minecraft")
+
         val loadWorld = getMappedMethod(
             "net/minecraft/client/Minecraft",
             "loadWorld",
             "(Lnet/minecraft/client/multiplayer/WorldClient;Ljava/lang/String;)V"
-        ) ?: error("Failed to find mapping for loadWorld")
+        )
 
         val theWorld = getMappedField(
             "net/minecraft/client/Minecraft",
             "theWorld"
-        ) ?: error("Failed to find mapping for theWorld")
+        )
 
-        node.methods.search(loadWorld.name, loadWorld.descriptor).instructions.insert(asm {
+        node.methods.search(loadWorld.runtimeName, loadWorld.descriptor).instructions.insert(asm {
             val lbl = LabelNode()
 
             aload(0)
             getfield(
-                theWorld.owner,
-                theWorld.name,
+                minecraftName,
+                theWorld.runtimeName,
                 "L${getMappedClass("net/minecraft/client/multiplayer/WorldClient")};"
             )
             ifnull(lbl)
@@ -51,8 +54,8 @@ internal class WorldEventHook: Hook(getMappedClass("net/minecraft/client/Minecra
             dup
             aload(0)
             getfield(
-                theWorld.owner,
-                theWorld.name,
+                minecraftName,
+                theWorld.runtimeName,
                 "L${getMappedClass("net/minecraft/client/multiplayer/WorldClient")};"
             )
             invokespecial(

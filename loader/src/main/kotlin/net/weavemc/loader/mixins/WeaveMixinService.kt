@@ -1,21 +1,20 @@
 package net.weavemc.loader.mixins
 
-import net.weavemc.weave.api.GameInfo
-import net.weavemc.weave.api.bytecode.asm
-import net.weavemc.weave.api.bytecode.search
-import net.weavemc.weave.api.gameClient
-import net.weavemc.weave.api.gameVersion
-import net.weavemc.weave.api.mapping.IMapper
-import net.weavemc.weave.api.mapping.XSrgRemapper
+import net.weavemc.loader.WeaveLoader
+import net.weavemc.weave.api.demapper
+import net.weavemc.weave.api.mapping.LambdaAwareRemapper
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
-import org.objectweb.asm.tree.ClassNode
-import org.objectweb.asm.tree.MethodInsnNode
+import org.objectweb.asm.Opcodes
+import org.objectweb.asm.commons.Remapper
+import org.objectweb.asm.tree.*
 import org.spongepowered.asm.launch.platform.container.ContainerHandleVirtual
 import org.spongepowered.asm.launch.platform.container.IContainerHandle
 import org.spongepowered.asm.logging.ILogger
 import org.spongepowered.asm.logging.LoggerAdapterConsole
 import org.spongepowered.asm.mixin.MixinEnvironment
+import org.spongepowered.asm.mixin.Mixins
+import org.spongepowered.asm.mixin.transformer.ClassInfo
 import org.spongepowered.asm.mixin.transformer.IMixinTransformer
 import org.spongepowered.asm.mixin.transformer.IMixinTransformerFactory
 import org.spongepowered.asm.service.*
@@ -23,7 +22,6 @@ import org.spongepowered.asm.util.Constants
 import org.spongepowered.asm.util.ReEntranceLock
 import java.io.ByteArrayInputStream
 import java.io.File
-import java.io.IOException
 import java.io.InputStream
 import java.net.URL
 import java.util.*
@@ -63,8 +61,7 @@ class DummyPropertyService : IGlobalPropertyService {
  *
  * @see IMixinService
  */
-public class WeaveMixinService : IMixinService, IClassProvider, IClassBytecodeProvider {
-
+class WeaveMixinService : IMixinService, IClassProvider, IClassBytecodeProvider {
     /**
      * Lock used to track transformer re-entrance
      * when co-operative loads and transformations are
@@ -73,18 +70,8 @@ public class WeaveMixinService : IMixinService, IClassProvider, IClassBytecodePr
      * @see [getReEntranceLock]
      */
     private val lock = ReEntranceLock(1)
-    private val mapper: IMapper by lazy { XSrgRemapper(gameVersion, MixinEnvironment.getCurrentEnvironment().obfuscationContext ?: "notch") }
 
-    private val genesisClassCache by lazy {
-        if (gameClient == GameInfo.Client.LUNAR)
-            this.javaClass.classLoader.javaClass
-                .declaredFields
-                .find { Map::class.java.isAssignableFrom(it.type) }!!
-                .also { it.isAccessible = true }
-                .get(this.javaClass.classLoader)
-                as Map<String, ByteArray>
-        else emptyMap()
-    }
+    private val sandboxLoader get() = javaClass.classLoader as? SandboxedMixinLoader
 
     /**
      * @return the name of the service.
@@ -113,7 +100,8 @@ public class WeaveMixinService : IMixinService, IClassProvider, IClassBytecodePr
      */
     override fun offer(internal: IMixinInternal) {
         if (internal is IMixinTransformerFactory) {
-            (javaClass.classLoader as? SandboxedMixinLoader)?.state?.transformer = internal.createTransformer()
+            MixinEnvironment.getDefaultEnvironment().setOption(MixinEnvironment.Option.DEBUG_VERBOSE, true)
+            sandboxLoader?.state?.transformer = internal.createTransformer()
         }
     }
 
@@ -191,7 +179,7 @@ public class WeaveMixinService : IMixinService, IClassProvider, IClassBytecodePr
      *         class loader to obtain a resource to stream.
      */
     override fun getResourceAsStream(name: String?): InputStream? =
-        ClassLoader.getSystemResourceAsStream(name)
+        javaClass.classLoader.getResourceAsStream(name)
 
     /**
      * @return The detected side for the current environment.
@@ -228,6 +216,7 @@ public class WeaveMixinService : IMixinService, IClassProvider, IClassBytecodePr
     /**
      * @return The class path of the current environment.
      */
+    @Deprecated("Deprecated in Java", ReplaceWith("emptyArray()"))
     override fun getClassPath(): Array<URL> = emptyArray()
 
     /**
@@ -236,7 +225,7 @@ public class WeaveMixinService : IMixinService, IClassProvider, IClassBytecodePr
      * @param name The class name.
      * @return The resultant class.
      */
-    override fun findClass(name: String?): Class<*> = Class.forName(name)
+    override fun findClass(name: String?): Class<*> = findClass(name, false)
 
     /**
      * Marshal a call to [Class.forName] for a regular class.
@@ -268,29 +257,7 @@ public class WeaveMixinService : IMixinService, IClassProvider, IClassBytecodePr
      * @param name The full class name.
      * @return The resultant class tree.
      */
-    override fun getClassNode(name: String): ClassNode {
-        val canonicalName = name.replace('/', '.')
-        val internalName = name.replace('.', '/')
-
-        try {
-            val bytes = genesisClassCache[canonicalName]
-                ?: getClassBytes(internalName)
-
-            val cn = ClassNode()
-            ClassReader(bytes).accept(cn, ClassReader.EXPAND_FRAMES)
-            return cn
-        } catch (ex: IOException) {
-            throw ClassNotFoundException(canonicalName, ex)
-        }
-    }
-
-    private fun getClassBytes(name: String): ByteArray {
-        val name = (mapper.mapClass(name) ?: name).plus(".class")
-        val stream = this.javaClass.classLoader.getResourceAsStream(name)
-            ?: throw ClassNotFoundException("Failed to retrieve class bytes for $name")
-
-        return stream.readBytes()
-    }
+    override fun getClassNode(name: String) = getClassNode(name, false)
 
     /**
      * Retrieves a transformed class as an ASM tree.
@@ -299,17 +266,28 @@ public class WeaveMixinService : IMixinService, IClassProvider, IClassBytecodePr
      * @param runTransformers Whether to run transformers.
      * @return The resultant class tree.
      */
-    override fun getClassNode(name: String, runTransformers: Boolean): ClassNode =
-        getClassNode(name)
+    override fun getClassNode(name: String, runTransformers: Boolean) = runCatching {
+        ClassNode().also {
+            ClassReader(sandboxLoader?.getClassBytes(name.replace('.', '/'), runTransformers))
+                .accept(it, ClassReader.EXPAND_FRAMES)
+        }
+    }.onFailure { throw ClassNotFoundException(name.replace('/', '.'), it) }.getOrNull()
 }
 
 class SandboxedMixinLoader(private val parent: ClassLoader) : ClassLoader(parent) {
-    val state = SandboxedMixinState(this)
-
-    // FIXME: odd design choice for injecting resources
     private val injectedResources = mutableMapOf<String, ByteArray>()
     private val tempFiles = mutableMapOf<String, URL>()
-    private val loaderExclusions = hashSetOf<String>()
+    private val loaderExclusions = hashSetOf(
+        "net.weavemc.loader.mixins.MixinAccess"
+    )
+
+    private val systemClasses = setOf(
+        "java.", "javax.", "org.xml.", "org.w3c.", "sun.", "jdk.",
+        "com.sun.management.", "kotlin.", "kotlinx.", "org.objectweb.",
+        "net.weavemc.loader.mixins.SandboxedMixinState"
+    )
+
+    val state = SandboxedMixinState(this)
 
     override fun findClass(name: String): Class<*> {
         // prevent infinite classloading loops
@@ -327,13 +305,14 @@ class SandboxedMixinLoader(private val parent: ClassLoader) : ClassLoader(parent
     private fun transformJava8Fix(bytes: ByteArray): ByteArray {
         val node = ClassNode().also { ClassReader(bytes).accept(it, 0) }
 
-        val clinit = node.methods.search("<clinit>", "()V")
+        val clinit = node.methods.first { it.name == "<clinit>" }
         val targetInsn = clinit.instructions.filterIsInstance<MethodInsnNode>()
             .first { it.owner == "java/lang/Package" && it.name == "getName" }
 
-        clinit.instructions.insert(targetInsn, asm {
-            pop
-            ldc("org.spongepowered.asm.mixin")
+        // cannot use insn dsl due to relocate... life is sad
+        clinit.instructions.insert(targetInsn, InsnList().apply {
+            add(InsnNode(Opcodes.POP))
+            add(LdcInsnNode("org.spongepowered.asm.mixin"))
         })
 
         clinit.instructions.remove(targetInsn)
@@ -342,13 +321,7 @@ class SandboxedMixinLoader(private val parent: ClassLoader) : ClassLoader(parent
 
     override fun loadClass(name: String) = findClass(name)
 
-    private val systemClasses = setOf(
-        "java.", "javax.", "org.xml.", "org.w3c.", "sun.", "jdk.",
-        "com.sun.management.", "kotlin.", "kotlinx.", "org.objectweb.",
-        "net.weavemc.loader.mixins.SandboxedMixinState"
-    )
-
-    private fun shouldLoadParent(name: String) = name !in loaderExclusions && systemClasses.any { name.startsWith(it) }
+    private fun shouldLoadParent(name: String) = name in loaderExclusions || systemClasses.any { name.startsWith(it) }
 
     fun injectResource(name: String, bytes: ByteArray) {
         injectedResources[name] = bytes
@@ -372,29 +345,26 @@ class SandboxedMixinLoader(private val parent: ClassLoader) : ClassLoader(parent
     fun addLoaderExclusion(name: String) {
         loaderExclusions += name
     }
+
+    fun getClassBytes(name: String, isMixedIn: Boolean): ByteArray {
+        val originalBytes = WeaveLoader.getClassBytes(name)
+        return if (isMixedIn) remapMixedInClass(originalBytes, demapper) else originalBytes
+    }
+
+    fun remapMixedInClass(bytes: ByteArray, mapper: Remapper): ByteArray {
+        val reader = ClassReader(bytes)
+        val writer = ClassWriter(reader, 0)
+        reader.accept(LambdaAwareRemapper(writer, mapper), 0)
+        return writer.toByteArray()
+    }
 }
 
-class SandboxedMixinState(private val loader: SandboxedMixinLoader) {
+class SandboxedMixinState(private val loader: SandboxedMixinLoader) : MixinAccess by
+    (loader.loadClass("net.weavemc.loader.mixins.MixinAccessImpl").getConstructor()
+        .also { it.isAccessible = true }
+        .newInstance() as MixinAccess) {
     // be careful to not load classes in the wrong context
     lateinit var transformer: Any
-
-    // FIXME: hacky reflection: we really don't want to load classes in the wrong loader
-    private val addMixin by lazy {
-        loader.loadClass("org.spongepowered.asm.mixin.Mixins").getMethod("addConfiguration", String::class.java)
-    }
-
-    private val mixinEnvironment by lazy {
-        loader.loadClass("org.spongepowered.asm.mixin.MixinEnvironment").getMethod("getDefaultEnvironment")(null)
-    }
-
-    private val transformMethod by lazy {
-        transformer::class.java.getMethod(
-            "transformClass",
-            loader.loadClass("org.spongepowered.asm.mixin.MixinEnvironment"),
-            String::class.java,
-            ByteArray::class.java
-        ).also { it.isAccessible = true }
-    }
 
     var initialized = false
         private set
@@ -422,14 +392,16 @@ class SandboxedMixinState(private val loader: SandboxedMixinLoader) {
     }
 
     fun registerMixin(resourceName: String) {
-        addMixin(null, resourceName)
+        if (loader.getResourceAsStream(resourceName)?.close() == null)
+            error("Mixin config $resourceName does not exist!")
+
+        addMixin(resourceName)
     }
+
+    fun transform(internalName: String, bytes: ByteArray) = transform(transformer, internalName, bytes)
 
     private var dynamicMixinCounter = 0
         get() = field++
-
-    fun transform(internalName: String, bytes: ByteArray) =
-        transformMethod(transformer, mixinEnvironment, internalName, bytes) as ByteArray
 
     fun registerDynamicMixin(config: ByteArray) {
         val name = "dynamic-mixin$dynamicMixinCounter.json"
@@ -437,8 +409,21 @@ class SandboxedMixinState(private val loader: SandboxedMixinLoader) {
         registerMixin(name)
     }
 
-    private fun injectService(name: String, value: String) {
+    private fun injectService(name: String, value: String) =
         loader.injectResource("META-INF/services/$name", value.encodeToByteArray())
-        loader.addLoaderExclusion(value)
-    }
+}
+
+interface MixinAccess {
+    fun addMixin(name: String)
+    fun transform(transformer: Any, internalName: String, bytes: ByteArray): ByteArray?
+    fun getCommonSuperClass(a: String, b: String): String
+}
+
+@Suppress("unused")
+private class MixinAccessImpl : MixinAccess {
+    override fun addMixin(name: String) = Mixins.addConfiguration(name)
+    override fun transform(transformer: Any, internalName: String, bytes: ByteArray): ByteArray? =
+        (transformer as IMixinTransformer).transformClass(MixinEnvironment.getDefaultEnvironment(), internalName, bytes)
+
+    override fun getCommonSuperClass(a: String, b: String): String = ClassInfo.getCommonSuperClass(a, b).name
 }

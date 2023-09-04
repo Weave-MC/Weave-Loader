@@ -7,6 +7,7 @@ import net.weavemc.weave.api.bytecode.*
 import net.weavemc.weave.api.event.KeyboardEvent
 import net.weavemc.weave.api.getMappedClass
 import net.weavemc.weave.api.getMappedMethod
+import net.weavemc.weave.api.runtimeName
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodInsnNode
 
@@ -16,17 +17,17 @@ internal class KeyboardEventHook : Hook(getMappedClass("net/minecraft/client/Min
             "net/minecraft/client/Minecraft",
             "runTick",
             "()V"
-        ) ?: error("Failed to find mapping for runTick")
+        )
 
-        node.methods.search(mappedMethod.name, mappedMethod.descriptor).let { mn ->
+        node.methods.search(mappedMethod.runtimeName, mappedMethod.descriptor).let { mn ->
             val dispatchKeypresses = getMappedMethod(
                 "net/minecraft/client/Minecraft",
                 "dispatchKeypresses",
                 "()V"
-            ) ?: error("Failed to find mapping for dispatchKeypresses")
+            )
 
             mn.instructions.insert(
-                mn.instructions.find { it is MethodInsnNode && it.name == dispatchKeypresses.name },
+                mn.instructions.find { it is MethodInsnNode && it.name == dispatchKeypresses.runtimeName },
                 asm {
                     new(internalNameOf<KeyboardEvent>())
                     dup

@@ -2,13 +2,13 @@
 
 package net.weavemc.weave.api.hooks
 
-import net.minecraft.client.renderer.entity.RendererLivingEntity
 import net.weavemc.weave.api.Hook
 import net.weavemc.weave.api.bytecode.*
 import net.weavemc.weave.api.event.CancellableEvent
 import net.weavemc.weave.api.event.RenderLivingEvent
 import net.weavemc.weave.api.getMappedClass
 import net.weavemc.weave.api.getMappedMethod
+import net.weavemc.weave.api.runtimeName
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
@@ -28,9 +28,9 @@ internal class RenderLivingEventHook : Hook(getMappedClass("net/minecraft/client
             "net/minecraft/client/renderer/entity/RendererLivingEntity",
             "doRender",
             "(Lnet/minecraft/entity/EntityLivingBase;DDDFF)V"
-        ) ?: error("Failed to find mapping for doRender")
+        )
 
-        val mn = node.methods.search(mappedMethod.name, mappedMethod.descriptor)
+        val mn = node.methods.search(mappedMethod.runtimeName, mappedMethod.descriptor)
         mn.instructions.insert(asm {
             new(internalNameOf<RenderLivingEvent.Pre>())
             dup

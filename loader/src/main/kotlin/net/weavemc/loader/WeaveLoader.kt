@@ -7,6 +7,11 @@ import net.weavemc.loader.mixins.SandboxedMixinLoader
 import net.weavemc.loader.mixins.WeaveMixinTransformer
 import net.weavemc.weave.api.Hook
 import net.weavemc.weave.api.ModInitializer
+import net.weavemc.weave.api.mapping.LambdaAwareRemapper
+import net.weavemc.weave.api.runtimeMapper
+import net.weavemc.weave.api.vanillaMapper
+import org.objectweb.asm.ClassReader
+import org.objectweb.asm.ClassWriter
 import java.io.File
 import java.lang.instrument.Instrumentation
 import java.util.jar.JarFile
@@ -14,15 +19,18 @@ import java.util.jar.JarFile
 /**
  * The main class of the Weave Loader.
  */
-public object WeaveLoader {
-    internal val mixinSandbox = SandboxedMixinLoader(javaClass.classLoader).state
+object WeaveLoader {
+    internal lateinit var instrumentation: Instrumentation
+    private val classCache = mutableMapOf<String, ByteArray>()
+    internal val mixinSandboxLoader = SandboxedMixinLoader(javaClass.classLoader)
+    internal val mixinSandbox = mixinSandboxLoader.state
 
     /**
      * Stored list of [WeaveMod]s.
      *
      * @see ModConfig
      */
-    public val mods: MutableList<WeaveMod> = mutableListOf()
+    private val mods: MutableList<WeaveMod> = mutableListOf()
 
     /**
      * This is where Weave loads mods, and [ModInitializer.preInit] is called.
@@ -30,8 +38,9 @@ public object WeaveLoader {
      * @see net.weavemc.loader.bootstrap.premain
      */
     @JvmStatic
-    public fun init(inst: Instrumentation, apiJar: File, modJars: List<File>) {
+    fun init(inst: Instrumentation, apiJar: File, modJars: List<File>) {
         println("[Weave] Initializing Weave")
+        instrumentation = inst
         launchStart = System.currentTimeMillis()
 
         inst.addTransformer(HookManager)
@@ -45,18 +54,14 @@ public object WeaveLoader {
         }
 
         /* Add as a backup search path (mainly used for resources) */
-        modJars.forEach {
-            inst.appendToSystemClassLoaderSearch(JarFile(it))
-        }
+        modJars.forEach { inst.appendToSystemClassLoaderSearch(JarFile(it)) }
 
         addMods(modJars)
         addApiHooks(apiJar)
 
         // Call preInit() once everything is done.
         mods.forEach { weaveMod ->
-            weaveMod.config.entrypoints.forEach { entrypoint ->
-                instantiate<ModInitializer>(entrypoint).preInit()
-            }
+            weaveMod.config.entrypoints.forEach { instantiate<ModInitializer>(it).preInit() }
         }
 
         println("[Weave] Initialized Weave")
@@ -73,7 +78,7 @@ public object WeaveLoader {
      *           a random placeholder value upon loading. **This value is not persistent between launches!**
      */
     @Serializable
-    public data class ModConfig(
+    data class ModConfig(
         val mixinConfigs: List<String> = listOf(),
         val hooks: List<String> = listOf(),
         val entrypoints: List<String> = listOf(),
@@ -128,4 +133,18 @@ public object WeaveLoader {
             .getConstructor()
             .newInstance() as? T
             ?: error("$className does not implement ${T::class.java.simpleName}!")
+
+    fun getClassBytes(name: String): ByteArray {
+        val actualName = vanillaMapper.map(name)
+        return classCache.getOrPut(actualName) {
+            val unmappedBytes = javaClass.classLoader.getResourceAsStream("$actualName.class")?.readBytes()
+                ?: throw ClassNotFoundException("Could not find class bytes for $name!")
+
+            val reader = ClassReader(unmappedBytes)
+            val writer = ClassWriter(reader, 0)
+            reader.accept(LambdaAwareRemapper(writer, runtimeMapper), 0)
+
+            writer.toByteArray()
+        }
+    }
 }

@@ -1,23 +1,19 @@
 package net.weavemc.loader
 
-import net.weavemc.weave.api.GameInfo
-import net.weavemc.weave.api.gameVersion
-import net.weavemc.weave.api.mapper
-import net.weavemc.weave.api.mapping.RemapperWrapper
+import net.weavemc.weave.api.*
+import net.weavemc.weave.api.mapping.LambdaAwareRemapper
+import net.weavemc.weave.api.mapping.MappingsRemapper
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
-import org.objectweb.asm.commons.ClassRemapper
 import java.io.File
 import java.nio.file.Path
 import java.util.jar.JarEntry
 import java.util.jar.JarFile
 import java.util.jar.JarOutputStream
-import java.util.zip.ZipOutputStream
 import kotlin.io.path.*
 
 internal object ModCachingManager {
     private val modsDirectory = getOrCreateDirectory("mods")
-
     private val cacheDirectory = getOrCreateDirectory(".cache")
 
     /**
@@ -41,10 +37,10 @@ internal object ModCachingManager {
             cacheFile.file.deleteRecursively()
         }
 
-        val remapperWrapper by lazy { RemapperWrapper(mapper) }
-
-        val mappedApi = cacheFiles.find { it sha256Equals cacheApi } ?: createCache(remapperWrapper, cacheApi)
-        val mappedMods = modFiles.map { cacheFiles.find { cacheMod -> it sha256Equals cacheMod } ?: createCache(remapperWrapper, it) }
+        val mappedApi = cacheFiles.find { it sha256Equals cacheApi } ?: createCache(mapper, cacheApi)
+        val mappedMods = modFiles.map {
+            cacheFiles.find { cacheMod -> it sha256Equals cacheMod } ?: createCache(mapper, it)
+        }
 
         return Triple(mappedApi.file, mappedMods.map { it.file }, modFiles.map { it.file })
     }
@@ -57,8 +53,12 @@ internal object ModCachingManager {
      * @param outFile The file to output to.
      * @return The remapped [ModJar].
      */
-    private fun createCache(remapper: RemapperWrapper, modJar: ModJar, outFile: Path = cacheDirectory.resolve(getCacheFileName(file = modJar.file))): ModJar {
-        println("[Weave] Creating cache for ${modJar.file.name} using ${remapper.getMapperName()}")
+    private fun createCache(
+        remapper: MappingsRemapper,
+        modJar: ModJar,
+        outFile: Path = cacheDirectory.resolve(getCacheFileName(file = modJar.file))
+    ): ModJar {
+        println("[Weave] Creating cache for ${modJar.file.name} using ${remapper.mappingsType}")
 
         outFile.deleteIfExists()
 
@@ -76,7 +76,7 @@ internal object ModCachingManager {
                             // Process class entries and store the modified entry in the list
                             val classReader = ClassReader(bytes)
                             val classWriter = ClassWriter(classReader, 0)
-                            classReader.accept(ClassRemapper(classWriter, remapper), 0)
+                            classReader.accept(LambdaAwareRemapper(classWriter, remapper), 0)
                             modifiedEntries.add(JarEntry(entry.name) to classWriter.toByteArray())
                         } else if (!entry.isDirectory) {
                             modifiedEntries.add(JarEntry(entry.name) to bytes)
@@ -101,18 +101,15 @@ internal object ModCachingManager {
     private fun getCacheFiles(): List<ModJar> =
         cacheDirectory.listDirectoryEntries("{${gameVersion.versionName},all}-${mapper.javaClass.simpleName}-*.cache")
             .filter { it.isRegularFile() || it.isSymbolicLink() }
-            .map {
-                val (_, sha256) = runCatching { it.fileName.toString().split("-") }
-                    .getOrNull()
-                    ?: run {
-                        println("[Weave] Deleting invalid cache file ${it.fileName}")
-                        it.deleteExisting()
-                        return@map null
-                    }
-                val file = it.toFile()
-                ModJar(file, sha256)
+            .mapNotNull { f ->
+                val (_, sha256) = runCatching { f.fileName.toString().split("-") }.getOrElse {
+                    println("[Weave] Deleting invalid cache file ${f.fileName}")
+                    f.deleteExisting()
+                    return@mapNotNull null
+                }
+
+                ModJar(f.toFile(), sha256)
             }
-            .filterNotNull()
 
     /**
      * Gets all mods in the `~/.weave/mods` directory.
@@ -140,7 +137,8 @@ internal object ModCachingManager {
      *
      * Example: `1.7.10-McpMapper-8f498d2e11f3e9eb016a5a1c35885b87b561f5fd1941864b2db704878bc0c79d.cache`
      */
-    private fun getCacheFileName(version: GameInfo.Version = gameVersion, file: File): String = "${version.versionName}-${mapper.getMapperName()}-${file.toSha256()}.cache"
+    private fun getCacheFileName(version: GameInfo.Version = gameVersion, file: File): String =
+        "${version.versionName}-${mapper.mappingsType}-${file.toSha256()}.cache"
 
     /**
      * Represents an original mod jar or a cache file.

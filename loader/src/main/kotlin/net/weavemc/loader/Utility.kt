@@ -27,5 +27,5 @@ internal fun File.toSha256(): String {
     val bytes = Files.readAllBytes(toPath())
     val messageDigest = MessageDigest.getInstance("SHA-256")
     val digest = messageDigest.digest(bytes)
-    return digest.fold("") { str, it -> str + "%02x".format(it) }
+    return digest.joinToString("") { it.toString(16).padStart(2, '0') }
 }
