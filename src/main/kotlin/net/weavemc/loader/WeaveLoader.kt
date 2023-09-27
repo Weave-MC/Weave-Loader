@@ -67,7 +67,12 @@ public object WeaveLoader {
         /* Call preInit() once everything is done. */
         mods.forEach { weaveMod ->
             weaveMod.config.entrypoints.forEach { entrypoint ->
-                instantiate<ModInitializer>(entrypoint).preInit()
+                try {
+                    instantiate<ModInitializer>(entrypoint).preInit()
+                } catch (ex: Exception) {
+                    println("Failed to initialize mod ${weaveMod.name}")
+                    ex.printStackTrace()
+                }
             }
         }
 
