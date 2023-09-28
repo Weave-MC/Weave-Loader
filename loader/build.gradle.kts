@@ -110,6 +110,13 @@ publishing {
     publications {
         create<MavenPublication>("mavenJava") {
             from(components["java"])
+            groupId = "net.weavemc"
+            artifactId = "loader"
+            version = "1.0"
         }
+    }
+
+    repositories {
+        mavenLocal()
     }
 }
