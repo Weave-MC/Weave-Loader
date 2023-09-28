@@ -1,8 +1,8 @@
 package net.weavemc.loader
 
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import net.weavemc.loader.analytics.launchStart
+import net.weavemc.loader.mixins.MixinApplicator
 import net.weavemc.weave.api.Hook
 import net.weavemc.weave.api.ModInitializer
 import java.io.File
@@ -20,6 +20,7 @@ public object WeaveLoader {
      * @see ModConfig
      */
     public val mods: MutableList<WeaveMod> = mutableListOf()
+    lateinit var mixins: MixinApplicator
 
     /**
      * This is where Weave loads mods, and [ModInitializer.preInit] is called.
@@ -33,9 +34,8 @@ public object WeaveLoader {
         inst.addTransformer(HookManager)
 
         runCatching {
-//            mixinSandbox = SandboxedMixinLoader(javaClass.classLoader).state
-//            mixinSandbox.initialize()
-//            inst.addTransformer(WeaveMixinTransformer)
+            mixins = MixinApplicator()
+            inst.addTransformer(mixins.Transformer())
         }.onFailure {
             System.err.println("Failed to load mixins:")
             it.printStackTrace()
@@ -52,31 +52,12 @@ public object WeaveLoader {
         // Call preInit() once everything is done.
         mods.forEach { weaveMod ->
             weaveMod.config.entrypoints.forEach { entrypoint ->
-                instantiate<ModInitializer>(entrypoint).preInit()
+                instantiate<ModInitializer>(entrypoint).preInit(inst)
             }
         }
 
         println("[Weave] Initialized Weave")
     }
-
-    /**
-     * The data class that is read from a mod's `weave.mod.json`.
-     *
-     * @property mixinConfigs The loaded mixin configs of the mod.
-     * @property hooks The loaded hooks of the mod.
-     * @property entrypoints The loaded [ModInitializer] entry points of the mod.
-     * @property name The loaded name of the mod, if this field is not found, it will default to the mod's jar file.
-     * @property modId The loaded mod ID of the mod, if this field is not found, it will be assigned
-     *           a random placeholder value upon loading. **This value is not persistent between launches!**
-     */
-    @Serializable
-    public data class ModConfig(
-        val mixinConfigs: List<String> = listOf(),
-        val hooks: List<String> = listOf(),
-        val entrypoints: List<String> = listOf(),
-        val name: String? = null,
-        val modId: String? = null
-    )
 
     /**
      * Adds hooks for Weave events, corresponding to the Minecraft version
@@ -112,12 +93,14 @@ public object WeaveLoader {
             val config = json.decodeFromString<ModConfig>(jar.getInputStream(configEntry).readBytes().decodeToString())
             val name = config.name ?: jar.name.removeSuffix(".jar")
 
-//            config.mixinConfigs.forEach(mixinSandbox::registerMixin)
+            config.mixinConfigs.forEach { mixins.registerMixin(it, jar) }
             HookManager.hooks += config.hooks.map(::instantiate)
 
             // TODO: Add a name field to the config.
             mods += WeaveMod(name, config)
         }
+
+        mixins.freeze()
     }
 
     private inline fun <reified T> instantiate(className: String): T =
