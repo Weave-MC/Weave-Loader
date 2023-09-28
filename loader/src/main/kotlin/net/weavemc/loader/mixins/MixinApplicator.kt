@@ -2,7 +2,9 @@ package net.weavemc.loader.mixins
 
 import net.weavemc.loader.bootstrap.SafeTransformer
 import net.weavemc.weave.api.bytecode.asm
+import net.weavemc.weave.api.bytecode.internalNameOf
 import net.weavemc.weave.api.mixin.At
+import net.weavemc.weave.api.mixin.CallbackInfo
 import net.weavemc.weave.api.mixin.Inject
 import net.weavemc.weave.api.mixin.Overwrite
 import org.objectweb.asm.ClassReader
@@ -49,6 +51,8 @@ public class MixinApplicator {
         private val mixinClass: Class<*>,
         private val mixinNode: ClassNode
     ) {
+        private val callbackInfoType: Type = Type.getType(CallbackInfo::class.java)
+
         fun applyMixin(node: ClassNode) {
             println("Applying mixin for ${node.name} with ${mixinClass.name}")
 
@@ -129,8 +133,7 @@ public class MixinApplicator {
                         Opcodes.IF_ACMPEQ, Opcodes.IF_ACMPNE, Opcodes.IFNULL,
                         Opcodes.IFNONNULL -> {
                             targetMethod.instructions.find {
-                                it is JumpInsnNode &&
-                                    it.label == LabelNode()
+                                it is JumpInsnNode && it.opcode == at.opcode
                             }
                         }
                         else -> targetMethod.instructions.find { it.opcode == at.opcode }
@@ -140,27 +143,44 @@ public class MixinApplicator {
             }
 
             val index = targetMethod.instructions.indexOf(atInstruction)
-            val shiftedIndex = if (at.shift == At.Shift.BEFORE) index - at.by else index + at.by + 1
+            val shiftedIndex = when (at.shift) {
+                At.Shift.BEFORE -> {
+                    index - at.by
+                }
+                At.Shift.AFTER -> {
+                    index + at.by + 1
+                }
+                else -> index
+            }
             val injectionPoint = targetMethod.instructions[shiftedIndex]
 
             val insn: InsnList =  asm {
-                when (mixinMethod.desc.substring(mixinMethod.desc.lastIndexOf(")") + 1)) {
-                    "Z" -> {
+                when (Type.getReturnType(mixinMethod.desc)) {
+                    Type.BOOLEAN_TYPE -> {
+                        // Simplistic way to create a "cancel" a method using a function that returns a boolean
+                        // This isn't required to create a cancellable mixin, just an alternative to using
+                        // CallbackInfo.cancelled = true
+                        // IMPORTANT! This will only work on targets that are of void type
                         invokestatic(mixinClass.name, mixinMethod.name, mixinMethod.desc)
                         val label = LabelNode()
                         ifeq(label)
-//                            returnCorrect(targetMethod.desc)
+                        _return
                         +label
                     }
-                    "V" -> invokestatic(mixinClass.name, mixinMethod.name, mixinMethod.desc)
+                    Type.VOID_TYPE -> invokestatic(mixinClass.name, mixinMethod.name, mixinMethod.desc)
                     else -> {
                         error("${mixinMethod.name}'s return type is required to be either boolean or void. Ignoring mixin")
                     }
                 }
             }
 
+            // Passes parameters from the target method to the mixin method
+            // If a mixin method uses any parameters other than CallbackInfo it must match the exact
+            // parameter types and order of the target method
+            // TODO check if arg has @Local annotation present, if so pass the local variable rather than searching for a matching argument
             val mixinArgTypes = Type.getArgumentTypes(mixinMethod.desc)
             if (mixinArgTypes.isNotEmpty()) {
+                val callbackInfo = targetMethod.maxLocals
                 val targetArgTypes = Type.getArgumentTypes(targetMethod.desc)
 
                 val argIndices = mutableMapOf<Type, Int>()
@@ -169,16 +189,56 @@ public class MixinApplicator {
 
                 val argsInsn = InsnList()
                 for (argType in mixinArgTypes) {
-                    val argIndex = argIndices[argType]
+                    val argIndex = if (argType == callbackInfoType) callbackInfo else argIndices[argType]
                         ?: error("Mismatch Parameters. ${mixinMethod.desc} has parameter(s) that do not match ${targetMethod.desc}");
 
                     argsInsn.add(VarInsnNode(argType.getOpcode(Opcodes.ILOAD), argIndex))
                 }
                 insn.insert(argsInsn)
+
+                // Create CallbackInfo instance to be passed to our mixin method
+                insn.insert(asm {
+                    new(internalNameOf<CallbackInfo>())
+                    dup
+                    invokespecial(
+                        internalNameOf<CallbackInfo>(),
+                        "<init>",
+                        "()V"
+                    )
+                    astore(callbackInfo)
+                })
+
+                insn.add(asm {
+                    if (Type.getReturnType(mixinMethod.desc) == Type.VOID_TYPE) {
+                        val label = LabelNode()
+                        ifeq(label)
+                        _return
+                        +label
+                    } else {
+                        val returnType = Type.getReturnType(targetMethod.desc)
+                        // CallbackInfo.returnValue is assumed to be the correct type to be returned.
+                        aload(callbackInfo)
+                        invokevirtual(
+                            internalNameOf<CallbackInfo>(),
+                            "getCancelled",
+                            "()Z"
+                        )
+                        val label = LabelNode()
+                        ifeq(label)
+                        invokevirtual(
+                            internalNameOf<CallbackInfo>(),
+                            "getReturnValue",
+                            "()${returnType.descriptor};"
+                        )
+                        +InsnNode(returnType.getOpcode(Opcodes.IRETURN))
+                        +label
+                    }
+                })
             }
 
             targetMethod.instructions.insertBefore(injectionPoint, insn)
         }
+
         private fun applyOverwrite(
             targetClass: ClassNode,
             mixinMethod: MethodNode,
