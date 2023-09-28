@@ -1,61 +1,72 @@
 package net.weavemc.loader.mixins
 
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.decodeFromStream
+import net.weavemc.loader.MixinConfig
 import net.weavemc.loader.bootstrap.SafeTransformer
 import net.weavemc.weave.api.bytecode.asm
 import net.weavemc.weave.api.bytecode.internalNameOf
-import net.weavemc.weave.api.mixin.At
-import net.weavemc.weave.api.mixin.CallbackInfo
-import net.weavemc.weave.api.mixin.Inject
-import net.weavemc.weave.api.mixin.Overwrite
+import net.weavemc.weave.api.mixin.*
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import org.objectweb.asm.tree.*
-import java.lang.reflect.Method
+import java.util.jar.JarFile
 
-public class MixinApplicator {
+class MixinApplicator {
     private val mixins = mutableListOf<MixinClass>()
     private var frozen = false
         private set(value) {
             if (!value) error("Cannot unfreeze mixin applicator!")
             field = true
         }
+    private val json = Json { ignoreUnknownKeys = true }
 
-    private val frozenLookup by lazy { mixins.groupBy { it.targetClasspath } }
-
-    public fun registerMixins(classBytes: ByteArray) {
+    private fun registerMixin(classBytes: ByteArray) {
         if (frozen) error("Mixin registration is already frozen!")
 
         val classNode = ClassNode()
         ClassReader(classBytes).accept(classNode, 0)
 
         val mixinClass = Class.forName(classNode.name.replace("/", "."), false, MixinApplicator::class.java.classLoader)
-        val mixinAnnotation = classNode.visibleAnnotations?.find { it.desc == "Lclub/maxstats/weave/loader/api/mixin/Mixin;" }
-        val targetClasspath = (mixinAnnotation?.values?.get(1) as? Type)?.className?.replace(".", "/")
+        val mixinAnnotation = classNode.visibleAnnotations?.find { it.desc == "L${internalNameOf<Mixin>()};" }
+            ?: error("Mixin class ${mixinClass.name} missing @Mixin annotation")
+        val targetClasspath = (mixinAnnotation.values?.get(1) as? Type)?.className?.replace(".", "/")
             ?: error("Failed to parse @Mixin annotation. This should never happen!")
 
+        println("Registered Mixin for $targetClasspath using ${mixinClass.name}")
         mixins += MixinClass(targetClasspath, mixinClass, classNode)
     }
 
-    public fun freeze() {
+    fun registerMixin(configPath: String, modJar: JarFile) {
+        if (frozen) error("Mixin registration is already frozen!")
+
+        val mixinConfig = json.decodeFromStream<MixinConfig>(modJar.getInputStream(modJar.getEntry(configPath)))
+
+        mixinConfig.mixins.forEach { mixinClasspath ->
+            val mixinClassBytes = modJar.getInputStream(
+                modJar.getEntry("${mixinConfig.packagePath.replace(".", "/")}/$mixinClasspath.class")
+            ).readBytes()
+
+            registerMixin(mixinClassBytes)
+        }
+    }
+
+    fun freeze() {
         if (!frozen) {
-            // Reference frozenLookup once to "freeze" it
-            frozenLookup
             frozen = true
         }
     }
 
     internal data class MixinClass(
         val targetClasspath: String,
-        private val mixinClass: Class<*>,
+        val mixinClass: Class<*>,
         private val mixinNode: ClassNode
     ) {
         private val callbackInfoType: Type = Type.getType(CallbackInfo::class.java)
 
         fun applyMixin(node: ClassNode) {
-            println("Applying mixin for ${node.name} with ${mixinClass.name}")
-
             for (method in mixinClass.declaredMethods) {
                 val rawMethod = mixinNode.methods.find {
                     it.name == method.name && it.desc == Type.getMethodDescriptor(method)
@@ -247,6 +258,14 @@ public class MixinApplicator {
             targetClass.methods.find{ it.name == annotation.method }?.instructions = mixinMethod.instructions
                 ?: error("Failed to load Mixin ${mixinClass.name}: ${annotation.method} is not present in class ${targetClass.name}")
         }
+
+        private fun applyModifyArgs(
+            targetClass: ClassNode,
+            mixinMethod: MethodNode,
+            annotation: ModifyArgs
+        ) {
+
+        }
     }
 
     internal inner class Transformer : SafeTransformer {
@@ -255,14 +274,18 @@ public class MixinApplicator {
             className: String,
             originalClass: ByteArray
         ): ByteArray? {
-            val applicableMixins = frozenLookup[className] ?: return null
+            val applicableMixins = mixins.filter { it.targetClasspath == className }
             if (applicableMixins.isEmpty()) return null
 
+            println("[Weave Mixin] Applying Mixins to $className")
             val node = ClassNode()
             val reader = ClassReader(originalClass)
             reader.accept(node, 0)
 
-            applicableMixins.forEach { it.applyMixin(node) }
+            applicableMixins.forEach {
+                it.applyMixin(node)
+                println("  - ${it.mixinClass.name}")
+            }
 
             val writer = object : ClassWriter(reader, COMPUTE_MAXS) {
                 override fun getClassLoader() = loader
