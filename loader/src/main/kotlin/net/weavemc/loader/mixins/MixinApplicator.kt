@@ -2,6 +2,7 @@ package net.weavemc.loader.mixins
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
+import net.weavemc.loader.HookClassWriter
 import net.weavemc.loader.MixinConfig
 import net.weavemc.loader.bootstrap.SafeTransformer
 import net.weavemc.weave.api.bytecode.asm
@@ -88,11 +89,13 @@ class MixinApplicator {
             mixinMethod: MethodNode,
             annotation: Inject
         ) {
-            val targetMethod = targetClass.methods.find{ it.name == annotation.method }
+            val copiedMixinMethod = copyMixinToTarget(targetClass, mixinMethod)
+
+            val targetMethod = targetClass.methods.find{ "${it.name}${it.desc}" == annotation.method }
                 ?: error("Failed to load Mixin ${mixinClass.name}: ${annotation.method} is not present in class ${targetClass.name}")
             val at = annotation.at
 
-            val atInstruction: AbstractInsnNode? = when (at.value) {
+            val atInstruction: AbstractInsnNode = when (at.value) {
                 At.Location.HEAD -> targetMethod.instructions.first
                 At.Location.TAIL -> {
                     targetMethod.instructions.findLast {
@@ -151,7 +154,7 @@ class MixinApplicator {
                     }
                 }
                 else -> targetMethod.instructions.first
-            }
+            } ?: error("Failed to find injection point $at")
 
             val index = targetMethod.instructions.indexOf(atInstruction)
             val shiftedIndex = when (at.shift) {
@@ -166,21 +169,26 @@ class MixinApplicator {
             val injectionPoint = targetMethod.instructions[shiftedIndex]
 
             val insn: InsnList =  asm {
-                when (Type.getReturnType(mixinMethod.desc)) {
+                when (Type.getReturnType(copiedMixinMethod.desc)) {
                     Type.BOOLEAN_TYPE -> {
-                        // Simplistic way to create a "cancel" a method using a function that returns a boolean
+                        // Simplistic way to "cancel" a method using a function that returns a boolean
                         // This isn't required to create a cancellable mixin, just an alternative to using
                         // CallbackInfo.cancelled = true
                         // IMPORTANT! This will only work on targets that are of void type
-                        invokestatic(mixinClass.name, mixinMethod.name, mixinMethod.desc)
+                        aload(0)
+                        invokevirtual(targetClass.name, copiedMixinMethod.name, copiedMixinMethod.desc)
                         val label = LabelNode()
                         ifeq(label)
                         _return
                         +label
+                        f_same()
                     }
-                    Type.VOID_TYPE -> invokestatic(mixinClass.name, mixinMethod.name, mixinMethod.desc)
+                    Type.VOID_TYPE -> {
+                        aload(0)
+                        invokevirtual(targetClass.name, copiedMixinMethod.name, copiedMixinMethod.desc)
+                    }
                     else -> {
-                        error("${mixinMethod.name}'s return type is required to be either boolean or void. Ignoring mixin")
+                        error("${copiedMixinMethod.name}'s return type is required to be either boolean or void. Ignoring mixin")
                     }
                 }
             }
@@ -189,23 +197,38 @@ class MixinApplicator {
             // If a mixin method uses any parameters other than CallbackInfo it must match the exact
             // parameter types and order of the target method
             // TODO check if arg has @Local annotation present, if so pass the local variable rather than searching for a matching argument
-            val mixinArgTypes = Type.getArgumentTypes(mixinMethod.desc)
+            val mixinArgTypes = Type.getArgumentTypes(copiedMixinMethod.desc)
             if (mixinArgTypes.isNotEmpty()) {
                 val callbackInfo = targetMethod.maxLocals
                 val targetArgTypes = Type.getArgumentTypes(targetMethod.desc)
 
-                val argIndices = mutableMapOf<Type, Int>()
-                for (i in targetArgTypes.indices)
-                    argIndices[targetArgTypes[i]] = i + 1
+                val targetArgs = arrayOfNulls<LocalVariable>(targetArgTypes.size)
+                var stackLocation = 1
+                for (i in targetArgTypes.indices) {
+                    val targetArg = targetArgTypes[i]
+                    val stackSize = targetArg.size
+
+                    targetArgs[i] = LocalVariable(stackLocation, targetArg)
+                    stackLocation += stackSize
+                }
 
                 val argsInsn = InsnList()
-                for (argType in mixinArgTypes) {
-                    val argIndex = if (argType == callbackInfoType) callbackInfo else argIndices[argType]
-                        ?: error("Mismatch Parameters. ${mixinMethod.desc} has parameter(s) that do not match ${targetMethod.desc}");
+                for (i in mixinArgTypes.indices) {
+                    val argType = mixinArgTypes[i]
+
+                    val argIndex =
+                        if (argType == callbackInfoType)
+                            callbackInfo
+                        else if (targetArgs[i]?.type == argType)
+                            targetArgs[i]?.stackLocation
+                        else {
+                            null
+                        } ?: error("Mismatch Parameters. ${copiedMixinMethod.desc} has parameter(s) that do not match ${targetMethod.desc}")
 
                     argsInsn.add(VarInsnNode(argType.getOpcode(Opcodes.ILOAD), argIndex))
                 }
-                insn.insert(argsInsn)
+                // Insert after aload(0)
+                insn.insert(insn.first, argsInsn)
 
                 // Create CallbackInfo instance to be passed to our mixin method
                 insn.insert(asm {
@@ -220,30 +243,31 @@ class MixinApplicator {
                 })
 
                 insn.add(asm {
-                    if (Type.getReturnType(mixinMethod.desc) == Type.VOID_TYPE) {
-                        val label = LabelNode()
-                        ifeq(label)
+                    aload(callbackInfo)
+                    invokevirtual(
+                        internalNameOf<CallbackInfo>(),
+                        "getCancelled",
+                        "()Z"
+                    )
+
+                    val label = LabelNode()
+                    ifeq(label)
+
+                    if (Type.getReturnType(copiedMixinMethod.desc) == Type.VOID_TYPE)
                         _return
-                        +label
-                    } else {
+                    else {
                         val returnType = Type.getReturnType(targetMethod.desc)
                         // CallbackInfo.returnValue is assumed to be the correct type to be returned.
-                        aload(callbackInfo)
-                        invokevirtual(
-                            internalNameOf<CallbackInfo>(),
-                            "getCancelled",
-                            "()Z"
-                        )
-                        val label = LabelNode()
-                        ifeq(label)
                         invokevirtual(
                             internalNameOf<CallbackInfo>(),
                             "getReturnValue",
                             "()${returnType.descriptor};"
                         )
                         +InsnNode(returnType.getOpcode(Opcodes.IRETURN))
-                        +label
                     }
+
+                    +label
+                    f_same()
                 })
             }
 
@@ -266,7 +290,32 @@ class MixinApplicator {
         ) {
 
         }
+
+        /**
+         * Creates a method in the target class identical to the mixin method
+         * The mixed in class will invoke this mixin method
+         *
+         * @param classNode Target class
+         * @param method Mixin method
+         */
+        private fun copyMixinToTarget(classNode: ClassNode, method: MethodNode): MethodNode {
+            return MethodNode(
+                Opcodes.ACC_PUBLIC,
+                "${method.name}_weaveMixin",
+                method.desc,
+                method.signature,
+                method.exceptions.toTypedArray()
+            ).also {
+                it.instructions = method.instructions
+                classNode.methods.add(it)
+            }
+        }
     }
+
+    internal data class LocalVariable(
+        val stackLocation: Int,
+        val type: Type
+    )
 
     internal inner class Transformer : SafeTransformer {
         override fun transform(
@@ -287,9 +336,7 @@ class MixinApplicator {
                 println("  - ${it.mixinClass.name}")
             }
 
-            val writer = object : ClassWriter(reader, COMPUTE_MAXS) {
-                override fun getClassLoader() = loader
-            }
+            val writer = HookClassWriter(reader, ClassWriter.COMPUTE_FRAMES)
 
             node.accept(writer)
             return writer.toByteArray()
