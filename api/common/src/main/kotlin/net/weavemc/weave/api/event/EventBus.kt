@@ -22,6 +22,7 @@ object EventBus {
      * @param obj The object to subscribe.
      * @see SubscribeEvent
      */
+    @JvmStatic
     fun subscribe(obj: Any) = obj.javaClass.declaredMethods
         .filter { it.isAnnotationPresent(SubscribeEvent::class.java) && it.parameterCount == 1 }
         .forEach { getListeners(it.parameterTypes.first()) += ReflectEventConsumer(obj, it) }
@@ -32,6 +33,7 @@ object EventBus {
      * @param event   The class of the event to subscribe to.
      * @param handler The Consumer to handle that event.
      */
+    @JvmStatic
     fun <T : Event?> subscribe(event: Class<T>, handler: Consumer<T>) {
         getListeners(event) += handler
     }
@@ -41,6 +43,7 @@ object EventBus {
      *
      * @param event The event to call.
      */
+    @JvmStatic
     fun <T : Event> callEvent(event: T) {
         var curr: Class<*> = event.javaClass
 
@@ -55,6 +58,7 @@ object EventBus {
      *
      * @param consumer The Consumer to unsubscribe.
      */
+    @JvmStatic
     fun unsubscribe(consumer: Consumer<Event>) = map.values.forEach { it.removeIf { c -> c === consumer } }
 
     /**
@@ -62,6 +66,7 @@ object EventBus {
      *
      * @param obj The object to unsubscribe.
      */
+    @JvmStatic
     fun unsubscribe(obj: Any) =
         map.values.forEach { it.removeIf { c -> c is ReflectEventConsumer && c.obj === obj } }
 

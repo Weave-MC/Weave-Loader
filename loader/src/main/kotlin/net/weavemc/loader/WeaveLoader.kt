@@ -8,7 +8,7 @@ import net.weavemc.loader.mixins.WeaveMixinTransformer
 import net.weavemc.weave.api.Hook
 import net.weavemc.weave.api.ModInitializer
 import net.weavemc.weave.api.mapping.LambdaAwareRemapper
-import net.weavemc.weave.api.runtimeMapper
+import net.weavemc.weave.api.namedMapper
 import net.weavemc.weave.api.vanillaMapper
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
@@ -136,13 +136,14 @@ object WeaveLoader {
 
     fun getClassBytes(name: String): ByteArray {
         val actualName = vanillaMapper.map(name)
+        val resourceName = "$actualName.class"
         return classCache.getOrPut(actualName) {
-            val unmappedBytes = javaClass.classLoader.getResourceAsStream("$actualName.class")?.readBytes()
-                ?: throw ClassNotFoundException("Could not find class bytes for $name!")
+            val unmappedBytes = javaClass.classLoader.getResourceAsStream(resourceName)?.readBytes()
+                ?: throw ClassNotFoundException("Could not find class bytes for $name in $resourceName!")
 
             val reader = ClassReader(unmappedBytes)
             val writer = ClassWriter(reader, 0)
-            reader.accept(LambdaAwareRemapper(writer, runtimeMapper), 0)
+            reader.accept(LambdaAwareRemapper(writer, namedMapper), 0)
 
             writer.toByteArray()
         }

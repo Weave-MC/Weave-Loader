@@ -7,7 +7,7 @@ class MappingsRemapper(
     private val mappings: Mappings,
     private val from: String,
     private val to: String,
-    private val shouldRemapDesc: Boolean = mappings.namespaces.indexOf(from) != 0,
+    private val shouldRemapDesc: Boolean = mappings.namespaces.indexOf(from) > 0,
     private val loader: (name: String) -> ByteArray?
 ) : Remapper() {
     val mappingsType: String = mappings.javaClass.simpleName

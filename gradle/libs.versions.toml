@@ -1,5 +1,5 @@
 [versions]
-asm = "9.4"      # https://asm.ow2.io/versions.html
+asm = "9.5"      # https://asm.ow2.io/versions.html
 mixin = "0.8.5"
 kxSer = "1.5.1"
 

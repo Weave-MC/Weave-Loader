@@ -79,12 +79,9 @@ val mapper: MappingsRemapper by lazy {
 
 val demapper by lazy { mapper.reverse(bytesProvider(toNamespace)) }
 
-val vanillaMapper by lazy {
-    val from = toNamespace.takeIf { it != "none" } ?: "named"
-    MappingsRemapper(fullMappings, from, "official", loader = bytesProvider(from))
-}
-
-val runtimeMapper by lazy { vanillaMapper.reverse(bytesProvider("official")) }
+val vanillaMapper by lazy { MappingsRemapper(fullMappings, "named", "official", loader = bytesProvider("named")) }
+val namedMapper by lazy { vanillaMapper.reverse(bytesProvider("official")) }
+val runtimeMapper by lazy { MappingsRemapper(fullMappings, "named", toNamespace, loader = bytesProvider("named")) }
 
 val isEmptyMappings get() = mappings == EmptyMappings
 

@@ -8,7 +8,13 @@ import net.weavemc.weave.api.GameInfo.Version.*
 import net.weavemc.weave.api.gameClient
 import net.weavemc.weave.api.gameVersion
 import java.io.File
+import java.lang.instrument.ClassFileTransformer
 import java.lang.instrument.Instrumentation
+import java.nio.file.Paths
+import java.security.ProtectionDomain
+import kotlin.io.path.createDirectories
+import kotlin.io.path.isDirectory
+import kotlin.io.path.writeBytes
 
 /**
  * The JavaAgent's `premain()` method, this is where initialization of Weave Loader begins.

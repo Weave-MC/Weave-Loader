@@ -1,9 +1,10 @@
 package net.weavemc.loader.mixins
 
 import net.weavemc.loader.WeaveLoader
-import net.weavemc.weave.api.demapper
 import net.weavemc.weave.api.mapping.LambdaAwareRemapper
+import net.weavemc.weave.api.namedMapper
 import org.objectweb.asm.ClassReader
+import org.objectweb.asm.ClassVisitor
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.commons.Remapper
@@ -348,13 +349,18 @@ class SandboxedMixinLoader(private val parent: ClassLoader) : ClassLoader(parent
 
     fun getClassBytes(name: String, isMixedIn: Boolean): ByteArray {
         val originalBytes = WeaveLoader.getClassBytes(name)
-        return if (isMixedIn) remapMixedInClass(originalBytes, demapper) else originalBytes
+        return if (isMixedIn) remapMixedInClass(originalBytes, namedMapper) else originalBytes
     }
 
-    fun remapMixedInClass(bytes: ByteArray, mapper: Remapper): ByteArray {
+    fun remapMixedInClass(
+        bytes: ByteArray,
+        mapper: Remapper,
+        visitor: (parent: ClassVisitor) -> ClassVisitor = { it }
+    ): ByteArray {
         val reader = ClassReader(bytes)
         val writer = ClassWriter(reader, 0)
-        reader.accept(LambdaAwareRemapper(writer, mapper), 0)
+        reader.accept(LambdaAwareRemapper(visitor(writer), mapper), 0)
+
         return writer.toByteArray()
     }
 }

@@ -5,7 +5,10 @@ import org.objectweb.asm.commons.ClassRemapper
 import org.objectweb.asm.commons.MethodRemapper
 import org.objectweb.asm.commons.Remapper
 
-class LambdaAwareRemapper(parent: ClassVisitor, remapper: Remapper) : ClassRemapper(Opcodes.ASM9, parent, remapper) {
+class LambdaAwareRemapper(
+    parent: ClassVisitor,
+    remapper: Remapper
+) : ClassRemapper(Opcodes.ASM9, parent, remapper) {
     override fun createMethodRemapper(parent: MethodVisitor) = object : MethodRemapper(Opcodes.ASM9, parent, remapper) {
         override fun visitInvokeDynamicInsn(name: String, descriptor: String, handle: Handle, vararg args: Any) {
             val remappedName = if (
