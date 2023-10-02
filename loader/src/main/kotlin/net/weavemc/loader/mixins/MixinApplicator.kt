@@ -107,7 +107,7 @@ class MixinApplicator {
                     }
                     method.isAnnotationPresent(Invoker::class.java) -> {
                         if (!mixinClass.isInterface)
-                            error("Accessor annotation found in non-interface Mixin class ${mixinClass.name}")
+                            error("Invoker annotation found in non-interface Mixin class ${mixinClass.name}")
 
                         applyInvoker(
                             node, mixinClass, rawMethod
