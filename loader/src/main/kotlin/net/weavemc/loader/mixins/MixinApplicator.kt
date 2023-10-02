@@ -409,6 +409,10 @@ class MixinApplicator {
                     targetClass.methods.add(it)
                 }
             } else {
+                val returnType = Type.getReturnType(mixinMethod.desc)
+                if (returnType == Type.VOID_TYPE)
+                    error("Cannot create Accessor getter with a void method: ${mixinMethod.name} for $target in ${targetClass.name}")
+
                 // getter
                 return MethodNode(
                     Opcodes.ACC_PUBLIC,
@@ -424,7 +428,7 @@ class MixinApplicator {
                             accessedField.name,
                             accessedField.desc
                         )
-                        +InsnNode(Type.getReturnType(accessedField.desc).getOpcode(Opcodes.IRETURN))
+                        +InsnNode(returnType.getOpcode(Opcodes.IRETURN))
                     }
                     targetClass.methods.add(it)
                 }
