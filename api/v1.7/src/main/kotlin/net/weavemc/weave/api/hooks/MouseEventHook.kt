@@ -11,6 +11,7 @@ import net.weavemc.weave.api.event.CancellableEvent
 import net.weavemc.weave.api.event.MouseEvent
 import net.weavemc.weave.api.getMappedClass
 import net.weavemc.weave.api.getMappedMethod
+import net.weavemc.weave.api.runtimeName
 import org.lwjgl.input.Mouse
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
@@ -25,9 +26,9 @@ class MouseEventHook : Hook(getMappedClass("net/minecraft/client/Minecraft")) {
             "net/minecraft/client/Minecraft",
             "runTick",
             "()V"
-        ) ?: error("Failed to find mapping for Minecraft#runTick")
+        )
 
-        val mn = node.methods.search(runTick.name, runTick.descriptor)
+        val mn = node.methods.search(runTick.runtimeName, runTick.descriptor)
 
         val mouseNext = mn.instructions.find {
             it is MethodInsnNode && it.owner == internalNameOf<Mouse>() && it.name == "next"

@@ -42,9 +42,7 @@ public object WeaveLoader {
         }
 
         /* Add as a backup search path (mainly used for resources) */
-        modJars.forEach {
-            inst.appendToSystemClassLoaderSearch(JarFile(it))
-        }
+        modJars.forEach { inst.appendToSystemClassLoaderSearch(JarFile(it)) }
 
         addMods(modJars)
         addApiHooks(apiJar)

@@ -10,6 +10,7 @@ import net.weavemc.weave.api.bytecode.search
 import net.weavemc.weave.api.event.StartGameEvent
 import net.weavemc.weave.api.getMappedClass
 import net.weavemc.weave.api.getMappedMethod
+import net.weavemc.weave.api.runtimeName
 import org.objectweb.asm.Opcodes.RETURN
 import org.objectweb.asm.tree.ClassNode
 
@@ -28,9 +29,9 @@ class StartGameEventHook : Hook(getMappedClass("net/minecraft/client/Minecraft")
             "net/minecraft/client/Minecraft",
             "startGame",
             "()V"
-        ) ?: error("Failed to find mapping for Minecraft#startGame")
+        )
 
-        val startGame = node.methods.search(mappedMethod.name, mappedMethod.descriptor)
+        val startGame = node.methods.search(mappedMethod.runtimeName, mappedMethod.descriptor)
 
         startGame.instructions.insert(asm {
             getSingleton<StartGameEvent.Pre>()

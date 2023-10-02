@@ -7,6 +7,7 @@ import net.weavemc.weave.api.bytecode.*
 import net.weavemc.weave.api.event.PlayerListEvent
 import net.weavemc.weave.api.getMappedClass
 import net.weavemc.weave.api.getMappedMethod
+import net.weavemc.weave.api.runtimeName
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodInsnNode
 
@@ -40,9 +41,9 @@ internal class PlayerListEventHook : Hook(getMappedClass("net/minecraft/client/n
             "net/minecraft/client/network/NetHandlerPlayClient",
             "handlePlayerListItem",
             "(Lnet/minecraft/network/play/server/S38PacketPlayerListItem;)V"
-        ) ?: error("Failed to find mapping for handlePlayerListItem")
+        )
 
-        val mn = node.methods.search(mappedMethod.name, mappedMethod.descriptor)
+        val mn = node.methods.search(mappedMethod.runtimeName, mappedMethod.descriptor)
         mn.instructions.insertBefore(mn.instructions.find { it is MethodInsnNode && it.name == "put" }, addInsn)
         mn.instructions.insertBefore(mn.instructions.find { it is MethodInsnNode && it.name == "remove" }, removeInsn)
     }

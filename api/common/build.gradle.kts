@@ -1,4 +1,5 @@
 plugins {
+    id("kotlin")
     `maven-publish`
 }
 
@@ -7,8 +8,6 @@ repositories {
 }
 
 dependencies {
-    compileOnly(libs.lombok)
-    annotationProcessor(libs.lombok)
     implementation(libs.bundles.asm)
 }
 

@@ -7,6 +7,7 @@ import net.weavemc.weave.api.bytecode.*
 import net.weavemc.weave.api.event.ServerConnectEvent
 import net.weavemc.weave.api.getMappedClass
 import net.weavemc.weave.api.getMappedMethod
+import net.weavemc.weave.api.runtimeName
 import org.objectweb.asm.tree.ClassNode
 
 /**
@@ -25,9 +26,9 @@ internal class ServerConnectEventHook : Hook(getMappedClass("net/minecraft/clien
             "net/minecraft/client/multiplayer/GuiConnecting",
             "connect",
             "(Ljava/lang/String;I)V"
-        ) ?: error("Failed to find mapping for connect")
+        )
 
-        node.methods.search(mappedMethod.name, mappedMethod.descriptor).instructions.insert(asm {
+        node.methods.search(mappedMethod.runtimeName, mappedMethod.descriptor).instructions.insert(asm {
             new(internalNameOf<ServerConnectEvent>())
             dup
             aload(1)

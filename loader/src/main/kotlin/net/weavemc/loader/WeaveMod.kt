@@ -10,7 +10,7 @@ import net.weavemc.weave.api.ModInitializer
  * @property name The loaded name of a mod, see [ModConfig's `name`][ModConfig.name] for more info.
  * @property config The [ModConfig][ModConfig] instance of the mod.
  */
-public data class WeaveMod(
+data class WeaveMod(
     val name: String,
     val config: ModConfig
 )

@@ -10,6 +10,7 @@ import net.weavemc.weave.api.bytecode.search
 import net.weavemc.weave.api.event.ShutdownEvent
 import net.weavemc.weave.api.getMappedClass
 import net.weavemc.weave.api.getMappedMethod
+import net.weavemc.weave.api.runtimeName
 import org.objectweb.asm.tree.ClassNode
 
 /**
@@ -28,9 +29,9 @@ class ShutdownEventHook : Hook(getMappedClass("net/minecraft/client/Minecraft"))
             "net/minecraft/client/Minecraft",
             "shutdownMinecraftApplet",
             "()V"
-        ) ?: error("Failed to find mapping for Minecraft#shutdownMinecraftApplet")
+        )
 
-        node.methods.search(mappedMethod.name, mappedMethod.descriptor).instructions.insert(asm {
+        node.methods.search(mappedMethod.runtimeName, mappedMethod.descriptor).instructions.insert(asm {
             getSingleton<ShutdownEvent>()
             callEvent()
         })

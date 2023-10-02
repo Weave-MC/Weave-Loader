@@ -1,5 +1,6 @@
 package net.weavemc.loader.mixins
 
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
 import net.weavemc.loader.HookClassWriter
@@ -41,11 +42,11 @@ class MixinApplicator {
         mixins += MixinClass(targetClasspath, mixinClass, classNode)
     }
 
+    @OptIn(ExperimentalSerializationApi::class)
     fun registerMixin(configPath: String, modJar: JarFile) {
         if (frozen) error("Mixin registration is already frozen!")
 
         val mixinConfig = json.decodeFromStream<MixinConfig>(modJar.getInputStream(modJar.getEntry(configPath)))
-
         mixinConfig.mixins.forEach { mixinClasspath ->
             val mixinClassBytes = modJar.getInputStream(
                 modJar.getEntry("${mixinConfig.packagePath.replace(".", "/")}/$mixinClasspath.class")

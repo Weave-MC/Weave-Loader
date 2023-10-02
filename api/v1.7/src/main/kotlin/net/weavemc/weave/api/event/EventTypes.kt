@@ -18,42 +18,38 @@ import org.lwjgl.input.Mouse
  * receive a base Tick Event. These are each called every game tick, or every `50/timer` milliseconds (every 1/20th of a second at timer `1`).
  * The game's timer speed will never change (unless modified by cheats), so it is safe to assume that it is `1`.
  */
-public sealed class TickEvent : Event() {
+sealed class TickEvent : Event() {
 
     /**
      * Pre Tick Events are called at the start of a tick.
      */
-    public object Pre : TickEvent()
+    data object Pre : TickEvent()
 
     /**
      * Post Tick Events are called at the end of a tick.
      */
-    public object Post: TickEvent()
-}
-
-class TestClass {
-
+    data object Post: TickEvent()
 }
 
 /**
  * Keyboard Events are called when a key is pressed or released while [currentScreen][Minecraft.currentScreen]
  * is `null`.
  */
-public class KeyboardEvent : Event() {
+class KeyboardEvent : Event() {
 
     /**
      * The key code is the LWJGL2 key code for the key being pressed.
      *
      * @see Keyboard
      */
-    public val keyCode: Int =
+    val keyCode: Int =
         if (Keyboard.getEventKey() == 0) Keyboard.getEventCharacter().code + 256
         else Keyboard.getEventKey()
 
     /**
      * The key state indicates whether the key is being **pressed (`true`)** or **released (`false`)**.
      */
-    public val keyState: Boolean = Keyboard.getEventKeyState()
+    val keyState: Boolean = Keyboard.getEventKeyState()
 
 }
 
@@ -62,35 +58,35 @@ public class KeyboardEvent : Event() {
  *
  * If cancelled, the event's actions will not affect the game.
  */
-public class MouseEvent : CancellableEvent() {
+class MouseEvent : CancellableEvent() {
 
     /**
      * The mouse's X position on the screen.
      */
-    public val x: Int  = Mouse.getEventX()
+    val x: Int  = Mouse.getEventX()
 
     /**
      * The mouse's Y position on the screen.
      */
-    public val y: Int  = Mouse.getEventY()
+    val y: Int  = Mouse.getEventY()
 
     /**
      * The X distance the mouse has travelled.
      */
     @get:JvmName("getDX")
-    public val dx: Int = Mouse.getEventDX()
+    val dx: Int = Mouse.getEventDX()
 
     /**
      * The Y distance the mouse has travelled.
      */
     @get:JvmName("getDY")
-    public val dy: Int = Mouse.getEventDY()
+    val dy: Int = Mouse.getEventDY()
 
     /**
      * The amount the mouse's scroll wheel has scrolled, negative if scrolling backwards.
      */
     @get:JvmName("getDWheel")
-    public val dwheel: Int          = Mouse.getEventDWheel()
+    val dwheel: Int          = Mouse.getEventDWheel()
 
     /**
      * The mouse button the event is about.
@@ -98,19 +94,19 @@ public class MouseEvent : CancellableEvent() {
      * 1. Right
      * 2. Middle
      */
-    public val button: Int          = Mouse.getEventButton()
+    val button: Int          = Mouse.getEventButton()
 
     /**
      * Whether the mouse button is being **pressed (`true`)** or **released (`false`)**.
      */
-    public val buttonState: Boolean = Mouse.getEventButtonState()
+    val buttonState: Boolean = Mouse.getEventButtonState()
 
     /**
      * The nanosecond that this mouse event was created. Obtained from the mouse event's
      * [Mouse.getEventNanoseconds()][Mouse.getEventNanoseconds], refer to the LWJGL2 Javadoc
      * for more information about it.
      */
-    public val nanoseconds: Long    = Mouse.getEventNanoseconds()
+    val nanoseconds: Long    = Mouse.getEventNanoseconds()
 
 }
 
@@ -119,7 +115,7 @@ public class MouseEvent : CancellableEvent() {
  *
  * @property message The message being received, in the form of a [Chat Component][IChatComponent].
  */
-public class ChatReceivedEvent(public val message: IChatComponent) : CancellableEvent()
+class ChatReceivedEvent(val message: IChatComponent) : CancellableEvent()
 
 /**
  * This cancellable event is called when your client sends a chat message to the server.
@@ -129,7 +125,7 @@ public class ChatReceivedEvent(public val message: IChatComponent) : Cancellable
  *
  * @property message The message that is going to be sent.
  */
-public class ChatSentEvent(public val message: String) : CancellableEvent()
+class ChatSentEvent(val message: String) : CancellableEvent()
 
 /**
  * This cancellable event is called when a [Gui Screen][GuiScreen] is opened.
@@ -138,26 +134,26 @@ public class ChatSentEvent(public val message: String) : CancellableEvent()
  *
  * @property screen The screen being opened.
  */
-public class GuiOpenEvent(public val screen: GuiScreen?) : CancellableEvent()
+class GuiOpenEvent(val screen: GuiScreen?) : CancellableEvent()
 
 /**
  * This event is called when the HUD (game overlay) is being rendered.
  *
  * It is split into [Pre] and [Post].
  */
-public sealed class RenderGameOverlayEvent(public val partialTicks: Float) : Event() {
+sealed class RenderGameOverlayEvent(val partialTicks: Float) : Event() {
 
     /**
      * This is called **before** the game overlay renders, and should be used if you want to
      * draw to the screen without drawing over the HUD.
      */
-    public class Pre(partialTicks: Float) : RenderGameOverlayEvent(partialTicks)
+    class Pre(partialTicks: Float) : RenderGameOverlayEvent(partialTicks)
 
     /**
      * This is called **after** the game overlay renders, and should be used to draw whatever
      * HUD components your mod needs.
      */
-    public class Post(partialTicks: Float) : RenderGameOverlayEvent(partialTicks)
+    class Post(partialTicks: Float) : RenderGameOverlayEvent(partialTicks)
 
 }
 
@@ -168,17 +164,17 @@ public sealed class RenderGameOverlayEvent(public val partialTicks: Float) : Eve
  *
  * @property entity The entity being added/removed.
  */
-public sealed class EntityListEvent(public val entity: Entity) : Event() {
+sealed class EntityListEvent(val entity: Entity) : Event() {
 
     /**
      * This is called when an entity is added to the world.
      */
-    public class Add(entity: Entity) : EntityListEvent(entity)
+    class Add(entity: Entity) : EntityListEvent(entity)
 
     /**
      * This is called when an entity is removed from the world.
      */
-    public class Remove(entity: Entity) : EntityListEvent(entity)
+    class Remove(entity: Entity) : EntityListEvent(entity)
 
 }
 
@@ -189,16 +185,16 @@ public sealed class EntityListEvent(public val entity: Entity) : Event() {
  *
  * @property playerData The Player Data of the player being added/removed.
  */
-public sealed class PlayerListEvent(val playerData: GuiPlayerInfo) : Event() {
+sealed class PlayerListEvent(val playerData: GuiPlayerInfo) : Event() {
     /**
      * This is called when a player is added to the player list.
      */
-    public class Add(playerData: GuiPlayerInfo) : PlayerListEvent(playerData)
+    class Add(playerData: GuiPlayerInfo) : PlayerListEvent(playerData)
 
     /**
      * This is called when a player is removed from the player list.
      */
-    public class Remove(playerData: GuiPlayerInfo) : PlayerListEvent(playerData)
+    class Remove(playerData: GuiPlayerInfo) : PlayerListEvent(playerData)
 
 }
 
@@ -212,13 +208,13 @@ public sealed class PlayerListEvent(val playerData: GuiPlayerInfo) : Event() {
  * @property y The `y` coordinate where the entity is being rendered this frame.
  * @property z The `z` coordinate where the entity is being rendered this frame.
  */
-public sealed class RenderLivingEvent(
-    public val renderer: RendererLivingEntity,
-    public val entity: EntityLivingBase,
-    public val x: Double,
-    public val y: Double,
-    public val z: Double,
-    public val partialTicks: Float
+sealed class RenderLivingEvent(
+    val renderer: RendererLivingEntity,
+    val entity: EntityLivingBase,
+    val x: Double,
+    val y: Double,
+    val z: Double,
+    val partialTicks: Float
 ) : CancellableEvent() {
 
     /**
@@ -226,7 +222,7 @@ public sealed class RenderLivingEvent(
      *
      * If cancelled, the entity is not rendered.
      */
-    public class Pre(
+    class Pre(
         renderer: RendererLivingEntity,
         entity: EntityLivingBase,
         x: Double,
@@ -238,7 +234,7 @@ public sealed class RenderLivingEvent(
     /**
      * This is called after an entity is rendered.
      */
-    public class Post(
+    class Post(
         renderer: RendererLivingEntity,
         entity: EntityLivingBase,
         x: Double,
@@ -252,14 +248,14 @@ public sealed class RenderLivingEvent(
 /**
  * This event is called when the world is being rendered.
  */
-public class RenderWorldEvent(public val partialTicks: Float) : Event()
+class RenderWorldEvent(val partialTicks: Float) : Event()
 
 /**
  * This cancellable event is called when your player's hand is being rendered in 1st person.
  *
  * If cancelled, the hand will not be rendered.
  */
-public class RenderHandEvent(public val partialTicks: Float) : CancellableEvent()
+class RenderHandEvent(val partialTicks: Float) : CancellableEvent()
 
 /**
  * This event is called when you connect to a server.
@@ -267,15 +263,15 @@ public class RenderHandEvent(public val partialTicks: Float) : CancellableEvent(
  * @property ip The IP address of the server.
  * @property port The port of the server.
  */
-public class ServerConnectEvent(
-    public val ip: String,
-    public val port: Int,
+class ServerConnectEvent(
+    val ip: String,
+    val port: Int,
 ) : Event() {
 
     /**
      * The [Server Data][ServerData] object of the server being connected to.
      */
-    public val serverData: ServerData = Minecraft.getMinecraft().currentServerData
+    val serverData: ServerData = Minecraft.getMinecraft().currentServerData
 }
 
 /**
@@ -283,17 +279,17 @@ public class ServerConnectEvent(
  *
  * This event is split into [Pre] and [Post].
  */
-public sealed class StartGameEvent : Event() {
+sealed class StartGameEvent : Event() {
 
     /**
      * This is called before the game starts, at the beginning of [startGame][Minecraft.startGame].
      */
-    public object Pre : StartGameEvent()
+    data object Pre : StartGameEvent()
 
     /**
      * This is called after the game starts, at the end of [startGame][Minecraft.startGame].
      */
-    public object Post : StartGameEvent()
+    data object Post : StartGameEvent()
 
 }
 
@@ -301,24 +297,24 @@ public sealed class StartGameEvent : Event() {
  * This event is called when the game shuts down. You might want to avoid saving
  * settings/data **only** on this event, as it might lead to possible data loss.
  */
-public object ShutdownEvent : Event()
+object ShutdownEvent : Event()
 
 /**
  * Event call in the event of loading, or unloading a world.
  *
  * Split into [Load] and [Unload].
  */
-public sealed class WorldEvent(public val world: World) : Event() {
+sealed class WorldEvent(val world: World) : Event() {
 
     /**
      * Called on the event of a world loading, i.e. a server connection, or a singleplayer world.
      */
-    public class Load(world: World) : WorldEvent(world)
+    class Load(world: World) : WorldEvent(world)
 
     /**
      * Called on the event of a world unloading, i.e. a server disconnect, or leaving a singleplayer world.
      */
-    public class Unload(world: World) : WorldEvent(world)
+    class Unload(world: World) : WorldEvent(world)
 }
 
 /**
@@ -329,19 +325,19 @@ public sealed class WorldEvent(public val world: World) : Event() {
  *
  * @property packet The packet being processed.
  */
-public sealed class PacketEvent(public val packet: Packet) : CancellableEvent() {
+sealed class PacketEvent(val packet: Packet) : CancellableEvent() {
 
     /**
      * This is called when a packet is being sent by the client, to the server.
      *
      * If cancelled, the packet is not sent.
      */
-    public class Send(packet: Packet) : PacketEvent(packet)
+    class Send(packet: Packet) : PacketEvent(packet)
 
     /**
      * This is called when a packet is being received by the client, from the server.
      *
      * If cancelled, the packet will not be processed, but instead ignored.
      */
-    public class Receive(packet: Packet) : PacketEvent(packet)
+    class Receive(packet: Packet) : PacketEvent(packet)
 }

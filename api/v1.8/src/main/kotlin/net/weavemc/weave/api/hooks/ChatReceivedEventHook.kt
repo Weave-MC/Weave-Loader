@@ -8,6 +8,7 @@ import net.weavemc.weave.api.event.CancellableEvent
 import net.weavemc.weave.api.event.ChatReceivedEvent
 import net.weavemc.weave.api.getMappedClass
 import net.weavemc.weave.api.getMappedMethod
+import net.weavemc.weave.api.runtimeName
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
 
@@ -17,9 +18,9 @@ internal class ChatReceivedEventHook : Hook(getMappedClass("net/minecraft/client
             "net/minecraft/client/gui/GuiNewChat",
             "printChatMessageWithOptionalDeletion",
             "(Lnet/minecraft/util/IChatComponent;I)V"
-        ) ?: error("Failed to find mapping for printChatMessageWithOptionalDeletion")
+        )
 
-        node.methods.search(mappedMethod.name, mappedMethod.descriptor).instructions.insert(asm {
+        node.methods.search(mappedMethod.runtimeName, mappedMethod.descriptor).instructions.insert(asm {
             new(internalNameOf<ChatReceivedEvent>())
             dup
             dup

@@ -10,6 +10,7 @@ import net.weavemc.weave.api.bytecode.search
 import net.weavemc.weave.api.event.RenderWorldEvent
 import net.weavemc.weave.api.getMappedClass
 import net.weavemc.weave.api.getMappedMethod
+import net.weavemc.weave.api.runtimeName
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LdcInsnNode
 
@@ -28,9 +29,9 @@ class RenderWorldEventHook : Hook(getMappedClass("net/minecraft/client/renderer/
             "net/minecraft/client/renderer/EntityRenderer",
             "renderWorld",
             "(FJ)V"
-        ) ?: error("Failed to find mapping for EntityRenderer#renderWorld")
+        )
 
-        val renderWorld = node.methods.search(mappedMethod.name, mappedMethod.descriptor)
+        val renderWorld = node.methods.search(mappedMethod.runtimeName, mappedMethod.descriptor)
 
         renderWorld.instructions.insertBefore(
             renderWorld.instructions.find { it is LdcInsnNode && it.cst == "hand" },
