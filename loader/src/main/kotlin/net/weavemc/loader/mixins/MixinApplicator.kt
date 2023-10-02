@@ -13,6 +13,7 @@ import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import org.objectweb.asm.tree.*
+import java.lang.reflect.Parameter
 import java.util.jar.JarFile
 
 class MixinApplicator {
@@ -68,31 +69,81 @@ class MixinApplicator {
         private val callbackInfoType: Type = Type.getType(CallbackInfo::class.java)
 
         fun applyMixin(node: ClassNode) {
+            node.remapToMCP()
+
+            val mixedMethods: ArrayList<MethodNode> = arrayListOf()
+            val shadowed: ArrayList<Pair<String, String>> = arrayListOf()
+
+            mixinClass.declaredFields
+                .filter { it.isAnnotationPresent(Shadow::class.java) }
+                .forEach { shadowed += it.name to it.type.name }
+
             for (method in mixinClass.declaredMethods) {
                 val rawMethod = mixinNode.methods.find {
                     it.name == method.name && it.desc == Type.getMethodDescriptor(method)
                 } ?: error("No matching raw method found for $mixinClass, should never happen")
 
-                when {
+                mixedMethods += when {
                     method.isAnnotationPresent(Inject::class.java) -> applyInjection(
-                        node, mixinNode, rawMethod, method.getAnnotation(Inject::class.java)
+                        node, mixinNode, rawMethod, method.parameters, method.getAnnotation(Inject::class.java)
                     )
                     method.isAnnotationPresent(Overwrite::class.java) -> applyOverwrite(
                         node, rawMethod, method.getAnnotation(Overwrite::class.java)
                     )
+                    method.isAnnotationPresent(ModifyArgs::class.java) -> applyModifyArgs(
+                        node, rawMethod, method.getAnnotation(ModifyArgs::class.java)
+                    )
+                    method.isAnnotationPresent(ModifyConstant::class.java) -> applyModifyConstant(
+                        node, rawMethod, method.getAnnotation(ModifyConstant::class.java)
+                    )
+                    method.isAnnotationPresent(Accessor::class.java) -> applyAccessor(
+                        node, rawMethod, method.getAnnotation(Accessor::class.java)
+                    )
+                    method.isAnnotationPresent(Redirect::class.java) -> applyRedirect(
+                        node, rawMethod, method.getAnnotation(Redirect::class.java)
+                    )
+                    method.isAnnotationPresent(Shadow::class.java) -> {
+                        shadowed += rawMethod.name to rawMethod.desc
+                        continue
+                    }
+                    else -> continue
                 }
             }
+
+            mixedMethods.forEach { it.remapShadowed() }
+            node.remapToNormal()
         }
+
+        /**
+         * Remaps the ClassNode to MCP mappings to match with the mod's mixin
+         */
+        fun ClassNode.remapToMCP() {
+
+        }
+
+        /**
+         * Remaps the ClassNode to its normal mappings
+         * Should be called after the mixin is applied so that the mixin is mapped as well
+         */
+        fun ClassNode.remapToNormal() {
+
+        }
+
+        fun MethodNode.remapShadowed() {
+
+        }
+
         private fun applyInjection(
             targetClass: ClassNode,
             mixinClass: ClassNode,
             mixinMethod: MethodNode,
-            annotation: Inject
-        ) {
-            val copiedMixinMethod = copyMixinToTarget(targetClass, mixinMethod)
-
+            mixinMethodParams: Array<Parameter>,
+            annotation: Inject,
+        ): MethodNode {
             val targetMethod = targetClass.methods.find{ "${it.name}${it.desc}" == annotation.method }
                 ?: error("Failed to load Mixin ${mixinClass.name}: ${annotation.method} is not present in class ${targetClass.name}")
+
+            val copiedMixinMethod = copyMixinToTarget(targetClass, mixinMethod)
             val at = annotation.at
 
             val atInstruction: AbstractInsnNode = when (at.value) {
@@ -188,7 +239,7 @@ class MixinApplicator {
                         invokevirtual(targetClass.name, copiedMixinMethod.name, copiedMixinMethod.desc)
                     }
                     else -> {
-                        error("${copiedMixinMethod.name}'s return type is required to be either boolean or void. Ignoring mixin")
+                        error("${copiedMixinMethod.name}'s return type is required to be either boolean or void")
                     }
                 }
             }
@@ -216,18 +267,19 @@ class MixinApplicator {
                 for (i in mixinArgTypes.indices) {
                     val argType = mixinArgTypes[i]
 
-                    val argIndex =
-                        if (argType == callbackInfoType)
-                            callbackInfo
-                        else if (targetArgs[i]?.type == argType)
+                    val argIndex = when {
+                        argType == callbackInfoType -> callbackInfo
+                        targetArgs[i]?.type == argType ->
                             targetArgs[i]?.stackLocation
-                        else {
+                        i < mixinMethodParams.size && mixinMethodParams[i].isAnnotationPresent(Local::class.java) ->
+                            mixinMethodParams[i].getAnnotation(Local::class.java).ordinal
+                        else ->
                             null
-                        } ?: error("Mismatch Parameters. ${copiedMixinMethod.desc} has parameter(s) that do not match ${targetMethod.desc}")
+                    } ?: error("Mismatch Parameters. ${copiedMixinMethod.desc} has parameter(s) that do not match ${targetMethod.desc}")
 
                     argsInsn.add(VarInsnNode(argType.getOpcode(Opcodes.ILOAD), argIndex))
                 }
-                // Insert after aload(0)
+                // Insert after aload(0) (which in this case is insn.first)
                 insn.insert(insn.first, argsInsn)
 
                 // Create CallbackInfo instance to be passed to our mixin method
@@ -242,6 +294,7 @@ class MixinApplicator {
                     astore(callbackInfo)
                 })
 
+                // Add cancelled if block
                 insn.add(asm {
                     aload(callbackInfo)
                     invokevirtual(
@@ -272,14 +325,15 @@ class MixinApplicator {
             }
 
             targetMethod.instructions.insertBefore(injectionPoint, insn)
+            return copiedMixinMethod
         }
 
         private fun applyOverwrite(
             targetClass: ClassNode,
             mixinMethod: MethodNode,
             annotation: Overwrite
-        ) {
-            targetClass.methods.find{ it.name == annotation.method }?.instructions = mixinMethod.instructions
+        ): MethodNode {
+            return targetClass.methods.find{ it.name == annotation.method }?.also { it.instructions = mixinMethod.instructions }
                 ?: error("Failed to load Mixin ${mixinClass.name}: ${annotation.method} is not present in class ${targetClass.name}")
         }
 
@@ -287,8 +341,32 @@ class MixinApplicator {
             targetClass: ClassNode,
             mixinMethod: MethodNode,
             annotation: ModifyArgs
-        ) {
+        ): MethodNode {
+            return mixinMethod
+        }
 
+        private fun applyModifyConstant(
+            targetClass: ClassNode,
+            mixinMethod: MethodNode,
+            annotation: ModifyConstant
+        ): MethodNode {
+            return mixinMethod
+        }
+
+        private fun applyAccessor(
+            targetClass: ClassNode,
+            mixinMethod: MethodNode,
+            annotation: Accessor
+        ): MethodNode {
+            return mixinMethod
+        }
+
+        private fun applyRedirect(
+            targetClass: ClassNode,
+            mixinMethod: MethodNode,
+            annotation: Redirect
+        ): MethodNode {
+            return mixinMethod
         }
 
         /**
@@ -303,7 +381,7 @@ class MixinApplicator {
                 Opcodes.ACC_PUBLIC,
                 "${method.name}_weaveMixin",
                 method.desc,
-                method.signature,
+                "",
                 method.exceptions.toTypedArray()
             ).also {
                 it.instructions = method.instructions
