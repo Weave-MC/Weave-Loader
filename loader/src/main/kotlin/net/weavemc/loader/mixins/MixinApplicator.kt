@@ -83,6 +83,7 @@ class MixinApplicator {
                     it.name == method.name && it.desc == Type.getMethodDescriptor(method)
                 } ?: error("No matching raw method found for $mixinClass, should never happen")
 
+                //TODO find a way to clean this up
                 mixedMethods += when {
                     method.isAnnotationPresent(Inject::class.java) -> applyInjection(
                         node, mixinNode, rawMethod, method.parameters, method.getAnnotation(Inject::class.java)
@@ -96,9 +97,22 @@ class MixinApplicator {
                     method.isAnnotationPresent(ModifyConstant::class.java) -> applyModifyConstant(
                         node, rawMethod, method.getAnnotation(ModifyConstant::class.java)
                     )
-                    method.isAnnotationPresent(Accessor::class.java) -> applyAccessor(
-                        node, rawMethod, method.getAnnotation(Accessor::class.java)
-                    )
+                    method.isAnnotationPresent(Accessor::class.java) -> {
+                        if (!mixinClass.isInterface)
+                            error("Accessor annotation found in non-interface Mixin class ${mixinClass.name}")
+
+                        applyAccessor(
+                            node, mixinClass, rawMethod, method.getAnnotation(Accessor::class.java)
+                        )
+                    }
+                    method.isAnnotationPresent(Invoker::class.java) -> {
+                        if (!mixinClass.isInterface)
+                            error("Accessor annotation found in non-interface Mixin class ${mixinClass.name}")
+
+                        applyInvoker(
+                            node, mixinClass, rawMethod
+                        )
+                    }
                     method.isAnnotationPresent(Redirect::class.java) -> applyRedirect(
                         node, rawMethod, method.getAnnotation(Redirect::class.java)
                     )
@@ -113,6 +127,8 @@ class MixinApplicator {
             mixedMethods.forEach { it.remapShadowed() }
             node.remapToNormal()
         }
+
+        // TODO probably move this to a utility class to reduce size of this file
 
         /**
          * Remaps the ClassNode to MCP mappings to match with the mod's mixin
@@ -355,10 +371,75 @@ class MixinApplicator {
 
         private fun applyAccessor(
             targetClass: ClassNode,
+            mixinClass: Class<*>,
             mixinMethod: MethodNode,
             annotation: Accessor
         ): MethodNode {
-            return mixinMethod
+            targetClass.interfaces.add(Type.getInternalName(mixinClass))
+
+            val target = annotation.target
+            val accessedField = targetClass.fields.find { it.name == target }
+                ?: error("Failed to find $target field in ${targetClass.name}")
+
+            val argTypes = Type.getArgumentTypes(mixinMethod.desc)
+            if (argTypes.isNotEmpty()) {
+                // setter
+                if ((accessedField.access and Opcodes.ACC_FINAL) != 0)
+                    error("Cannot create Accessor setter for a final field: $target in ${targetClass.name}")
+
+                if (argTypes.size > 1)
+                    error("Accessor setters should only have a single parameter")
+
+                return MethodNode(
+                    Opcodes.ACC_PUBLIC,
+                    mixinMethod.name,
+                    mixinMethod.desc,
+                    "",
+                    mixinMethod.exceptions.toTypedArray()
+                ).also {
+                    it.instructions = asm {
+                        aload(0)
+                        aload(1)
+                        putfield(
+                            targetClass.name,
+                            accessedField.name,
+                            accessedField.desc
+                        )
+                    }
+                    targetClass.methods.add(it)
+                }
+            } else {
+                // getter
+                return MethodNode(
+                    Opcodes.ACC_PUBLIC,
+                    mixinMethod.name,
+                    mixinMethod.desc,
+                    "",
+                    mixinMethod.exceptions.toTypedArray()
+                ).also {
+                    it.instructions = asm {
+                        aload(0)
+                        getfield(
+                            targetClass.name,
+                            accessedField.name,
+                            accessedField.desc
+                        )
+                        +InsnNode(Type.getReturnType(accessedField.desc).getOpcode(Opcodes.IRETURN))
+                    }
+                    targetClass.methods.add(it)
+                }
+            }
+        }
+
+        private fun applyInvoker(
+            targetClass: ClassNode,
+            mixinClass: Class<*>,
+            mixinMethod: MethodNode
+        ): MethodNode {
+            return targetClass.methods
+                .find { it.desc == mixinMethod.desc }
+                .also { targetClass.interfaces.add(Type.getInternalName(mixinClass)) }
+                ?: error("Failed to find method with matching descriptor: ${mixinMethod.desc} in ${targetClass.name}")
         }
 
         private fun applyRedirect(
