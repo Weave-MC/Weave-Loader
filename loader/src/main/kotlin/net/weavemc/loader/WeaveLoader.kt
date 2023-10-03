@@ -28,7 +28,7 @@ public object WeaveLoader {
      * @see net.weavemc.loader.bootstrap.premain
      */
     @JvmStatic
-    public fun init(inst: Instrumentation, apiJar: File, modJars: List<File>) {
+    public fun init(inst: Instrumentation, apiJar: File, modJars: List<Pair<JarFile, ModConfig>>) {
         println("[Weave] Initializing Weave")
         launchStart = System.currentTimeMillis()
         inst.addTransformer(HookManager)
@@ -39,11 +39,6 @@ public object WeaveLoader {
         }.onFailure {
             System.err.println("Failed to load mixins:")
             it.printStackTrace()
-        }
-
-        /* Add as a backup search path (mainly used for resources) */
-        modJars.forEach {
-            inst.appendToSystemClassLoaderSearch(JarFile(it))
         }
 
         addMods(modJars)
@@ -80,24 +75,17 @@ public object WeaveLoader {
     /**
      * Adds Weave Mod's Hooks to HookManager and adds to mods list for later instantiation
      */
-    private fun addMods(modJars: List<File>) {
-        val json = Json { ignoreUnknownKeys = true }
+    private fun addMods(modJars: List<Pair<JarFile, ModConfig>>) {
+        modJars.forEach { (file, cfg) ->
+            println("[Weave] Loading ${file.name}")
 
-        modJars.forEach { file ->
-            val jar = JarFile(file)
-            println("[Weave] Loading ${jar.name}")
+            val name = cfg.name ?: file.name.removeSuffix(".jar")
 
-            val configEntry = jar.getEntry("weave.mod.json")
-                ?: error("${jar.name} does not contain a weave.mod.json!")
-
-            val config = json.decodeFromString<ModConfig>(jar.getInputStream(configEntry).readBytes().decodeToString())
-            val name = config.name ?: jar.name.removeSuffix(".jar")
-
-            config.mixinConfigs.forEach { mixins.registerMixin(it, jar) }
-            HookManager.hooks += config.hooks.map(::instantiate)
+            cfg.mixinConfigs.forEach { mixins.registerMixin(it, file) }
+            HookManager.hooks += cfg.hooks.map(::instantiate)
 
             // TODO: Add a name field to the config.
-            mods += WeaveMod(name, config)
+            mods += WeaveMod(name, cfg)
         }
 
         mixins.freeze()

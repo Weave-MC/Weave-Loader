@@ -31,7 +31,8 @@ public data class ModConfig(
     val hooks: List<String> = listOf(),
     val entrypoints: List<String> = listOf(),
     val name: String? = null,
-    val modId: String? = null
+    val modId: String? = null,
+    val tweaker: String? = null
 )
 
 @Serializable
