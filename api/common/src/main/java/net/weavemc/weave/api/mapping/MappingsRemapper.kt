@@ -3,6 +3,10 @@ package net.weavemc.weave.api.mapping
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.commons.Remapper
 
+/**
+ * [Remapper] used for applying [Mappings], converting between [from] and [to] namespaces,
+ * while respecting the inheritance structure of the bytecode and respecting descriptors
+ */
 class MappingsRemapper(
     private val mappings: Mappings,
     private val from: String,
@@ -30,8 +34,7 @@ class MappingsRemapper(
     }
 
     override fun mapFieldName(owner: String, name: String, desc: String?) = walk(owner, name) { map["$it.$name"] }
-    override fun mapRecordComponentName(owner: String, name: String, desc: String) =
-        mapFieldName(owner, name, desc)
+    override fun mapRecordComponentName(owner: String, name: String, desc: String) = mapFieldName(owner, name, desc)
 
     private inline fun walk(
         owner: String,

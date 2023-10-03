@@ -1,10 +1,23 @@
 package net.weavemc.weave.api.mapping
 
+/**
+ * Defines the Tiny v1 format in terms of an abstract Tiny mappings implementation
+ */
 data object TinyMappingsV1Format : MappingsFormat<TinyMappings> by TinyMappingsFormat(false)
+
+/**
+ * Defines the Tiny v2 format in terms of an abstract Tiny mappings implementation
+ */
 data object TinyMappingsV2Format : MappingsFormat<TinyMappings> by TinyMappingsFormat(true)
 
+/**
+ * Writes [TinyMappings] to a [List<String>] representing the tiny mappings file format
+ */
 fun TinyMappings.write() = (if (isV2) TinyMappingsV2Format else TinyMappingsV1Format).write(this)
 
+/**
+ * Abstract implementation of Tiny mappings (v1 and v2)
+ */
 class TinyMappingsFormat(private val isV2: Boolean) : MappingsFormat<TinyMappings> {
 
     // If v1: check if line starts with v1 and all other lines are prefixed correctly

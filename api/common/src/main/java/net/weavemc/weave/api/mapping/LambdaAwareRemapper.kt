@@ -5,6 +5,9 @@ import org.objectweb.asm.commons.ClassRemapper
 import org.objectweb.asm.commons.MethodRemapper
 import org.objectweb.asm.commons.Remapper
 
+/**
+ * [ClassRemapper] set up to correctly remap lambda reference names
+ */
 class LambdaAwareRemapper(
     parent: ClassVisitor,
     remapper: Remapper

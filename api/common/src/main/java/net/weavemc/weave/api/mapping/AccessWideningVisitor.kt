@@ -5,6 +5,9 @@ import org.objectweb.asm.FieldVisitor
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes
 
+/**
+ * [ClassVisitor] that widens access to PUBLIC, non-FINAL (except for fields)
+ */
 class AccessWideningVisitor(parent: ClassVisitor) : ClassVisitor(Opcodes.ASM9, parent) {
     private fun Int.widen() = this and (Opcodes.ACC_PRIVATE or Opcodes.ACC_PROTECTED).inv() or Opcodes.ACC_PUBLIC
     private fun Int.removeFinal() = this and Opcodes.ACC_FINAL.inv()

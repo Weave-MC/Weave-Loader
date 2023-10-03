@@ -1,14 +1,37 @@
 package net.weavemc.weave.api.mapping
 
+import org.objectweb.asm.commons.SimpleRemapper
+
+/**
+ * Represents mappings in the Surge format
+ */
 data class SRGMappings(override val classes: List<MappedClass>, val isExtended: Boolean) : Mappings {
     override val namespaces = listOf("official", "named")
 }
 
+/**
+ * Writes [SRGMappings] to a [List<String>] representing the SRG file format
+ */
+fun SRGMappings.write() = (if (isExtended) XSRGMappingsFormat else SRGMappingsFormat).write(this)
+
+/**
+ * Converts [SRGMappings] to a [SimpleRemapper]
+ */
 fun SRGMappings.asSimpleRemapper() = asSimpleRemapper(namespaces[0], namespaces[1])
 
+/**
+ * Defines the SRG format in terms of an abstract SRG implementation
+ */
 data object SRGMappingsFormat : MappingsFormat<SRGMappings> by BasicSRGParser(false)
+
+/**
+ * Defines the XSRG format in terms of an abstract SRG implementation
+ */
 data object XSRGMappingsFormat : MappingsFormat<SRGMappings> by BasicSRGParser(true)
 
+/**
+ * Abstract implementation of (X)SRG
+ */
 private class BasicSRGParser(private val isExtended: Boolean) : MappingsFormat<SRGMappings> {
     private val entryTypes = setOf("CL", "FD", "MD", "PK")
     override fun detect(lines: List<String>): Boolean {
