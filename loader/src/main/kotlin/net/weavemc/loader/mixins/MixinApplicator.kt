@@ -388,7 +388,7 @@ class MixinApplicator {
             val invokedMethod = targetMethod.instructions
                 .filterIsInstance<MethodInsnNode>()
                 .filter { it.name == annotation.invokedMethod }
-                .getOrNull(annotation.index)
+                .getOrNull(annotation.shift)
                 ?: error("Failed to find invoked method ${annotation.invokedMethod} Either the method does not exist or the index is out of bounds (targetClass: ${targetClass.name}, method: ${targetMethod.name}, annotation: ${annotation.id})")
             val copiedMethod = copyMixinToTarget(targetClass, mixinMethod)
 
@@ -401,10 +401,10 @@ class MixinApplicator {
 
             val loads = asm {
                 val parametersStrings = targetMethod.parametersStrings ?: error("Failed to find parameterStrings for ${targetMethod.name} in ${targetClass.name} when applying @ModifyArg (mixinClass: ${mixinClass.name}, method: ${mixinMethod.name}, annotation: ${annotation.id})")
-                for (parametersString in parametersStrings) {
-                    load(index++, parametersString)
+                parametersStrings.forEachIndexed { i, parameterString ->
+                    index += load(index, parameterString)
 
-                    if (index == argIndex) {
+                    if (i == argIndex) {
                         if (isStatic) {
                             invokestatic(targetClass.name, copiedMethod.name, copiedMethod.desc)
                         } else {
@@ -452,12 +452,122 @@ class MixinApplicator {
             return listOf(targetMethod, generatedMethod)
         }
 
+        /**
+         * (1) Copies the mixin method to the target class.
+         * (2) Creates a new method in the target class that has the same descriptor as the invoked method that creates an instance of [Args] and invokes the copied mixin method with the [Args] instance. Lastly, it gets all the parameters from the [Args] instance and invokes the method that was originally invoked.
+         * (3) Replaces the invoked method with the newly created method.
+         */
         private fun applyModifyArgs(
             targetClass: ClassNode,
             mixinMethod: MethodNode,
             annotation: ModifyArgs
         ): List<MethodNode> {
-            TODO()
+            val targetMethod = targetClass.methods.find { "${it.name}${it.desc}" == annotation.method }
+                ?: error("Failed to load Mixin ${mixinClass.name}: ${annotation.method} is not present in class ${targetClass.name}")
+
+            val invokedMethod = targetMethod.instructions
+                .filterIsInstance<MethodInsnNode>()
+                .filter { it.name == annotation.invokedMethod }
+                .getOrNull(annotation.shift)
+                ?: error("Failed to find invoked method ${annotation.invokedMethod} Either the method does not exist or the index is out of bounds (targetClass: ${targetClass.name}, method: ${targetMethod.name}, annotation: ${annotation.id})")
+            val copiedMethod = copyMixinToTarget(targetClass, mixinMethod)
+
+            val isStatic = targetMethod.access and Opcodes.ACC_STATIC != 0
+
+            // if static start at 0, else start at 1
+            var index = if (isStatic) 0 else 1
+
+            val loads = asm {
+                val parametersStrings = targetMethod.parametersStrings ?: error("Failed to find parameterStrings for ${targetMethod.name} in ${targetClass.name} when applying @ModifyArg (mixinClass: ${mixinClass.name}, method: ${mixinMethod.name}, annotation: ${annotation.id})")
+
+                // creates an instance of Args which accepts an array of objects which are the parameters of the target method
+                new(internalNameOf<Args>())
+                dup // Args
+                value(parametersStrings.size)
+                anewarray(internalNameOf<Any>())
+                parametersStrings.forEachIndexed { i, parametersString ->
+                    dup // array reference
+                    value(i)
+                    index += load(index, parametersString)
+                    boxNoException(Type.getType(parametersString))
+                    aastore
+                }
+                invokespecial(internalNameOf<Args>(), "<init>", "([L${internalNameOf<Any>()};)V")
+
+                // invokes the copied mixin method with the Args instance
+                dup // Args
+                if (isStatic) {
+                    invokestatic(targetClass.name, copiedMethod.name, copiedMethod.desc)
+                } else {
+                    aload(0)
+                    swap
+                    invokevirtual(targetClass.name, copiedMethod.name, copiedMethod.desc)
+                }
+
+                // stores the returned Args instance in a local variable
+                if (isStatic) {
+                    astore(parametersStrings.size)
+                } else {
+                    // prepares "this" for the invocation of the target method
+                    aload(0)
+                    astore(parametersStrings.size + 1)
+                }
+
+                // gets all the parameters from the Args instance
+                parametersStrings.forEachIndexed { i, parametersString ->
+                    // loads the Args instance
+                    if (isStatic) {
+                        aload(parametersStrings.size)
+                    } else {
+                        aload(parametersStrings.size + 1)
+                    }
+                    value(i)
+                    invokevirtual(internalNameOf<Args>(), "get", "(I)L${internalNameOf<Any>()};")
+                    unboxNoException(Type.getType(parametersString))
+                }
+
+                // invokes the target method
+                if (isStatic) {
+                    invokestatic(targetClass.name, targetMethod.name, targetMethod.desc)
+                } else {
+                    invokevirtual(targetClass.name, targetMethod.name, targetMethod.desc)
+                }
+            }
+
+            val returnInstructions = setOf(
+                Opcodes.IRETURN,
+                Opcodes.LRETURN,
+                Opcodes.FRETURN,
+                Opcodes.DRETURN,
+                Opcodes.ARETURN,
+            )
+            var returnInstruction: AbstractInsnNode? = null
+            for (r in returnInstructions) {
+                val mixinReturnInstruction = mixinMethod.instructions.find { it.opcode == r }
+                if (mixinReturnInstruction != null) {
+                    returnInstruction = mixinReturnInstruction
+                    break
+                }
+            }
+
+            val generatedMethod = MethodNode(
+                if (isStatic) Opcodes.ACC_PUBLIC or Opcodes.ACC_STATIC else Opcodes.ACC_PUBLIC,
+                "${targetMethod.name}_weaveMixin\$ModifyArg",
+                mixinMethod.desc,
+                null,
+                null
+            ).apply {
+                instructions = loads.apply {
+                    if (invokedMethod.opcode != Opcodes.INVOKESTATIC) {
+                        insert(VarInsnNode(Opcodes.ALOAD, 0))
+                    }
+                    add(MethodInsnNode(invokedMethod.opcode, invokedMethod.owner, invokedMethod.name, invokedMethod.desc, invokedMethod.itf))
+                    add(returnInstruction)
+                }
+                targetClass.methods.add(this)
+            }
+
+            return listOf(targetMethod, generatedMethod)
         }
 
         private fun applyModifyConstant(
@@ -748,14 +858,119 @@ inline fun <reified T : AbstractInsnNode> InsnList.findConstantInstruction(opcod
         .elementAtOrNull(shift)
 }
 
-fun InsnBuilder.load(index: Int, typeDescriptor: String) =
-    when (typeDescriptor) {
-        "Z", "B", "C", "S", "I" -> iload(index)
-        "J" -> lload(index)
-        "F" -> fload(index)
-        "D" -> dload(index)
-        else -> aload(index)
-    }
 
 val MethodNode.parametersStrings: List<String>?
     get() = desc?.let { string -> Type.getArgumentTypes(string).map { it.descriptor } }
+
+/**
+ * Loads a local variable from the stack based on the [type descriptor][typeDescriptor].
+ *
+ * @return The size of the local variable on the stack.
+ */
+fun InsnBuilder.load(index: Int, typeDescriptor: String) =
+    when (typeDescriptor) {
+        "Z", "B", "C", "S", "I" -> {
+            iload(index)
+            1
+        }
+        "J" -> {
+            lload(index)
+            2
+        }
+        "F" -> {
+            fload(index)
+            1
+        }
+        "D" -> {
+            dload(index)
+            2
+        }
+        else -> {
+            aload(index)
+            1
+        }
+    }
+
+/**
+ * Pushes a value onto the stack based on the [value]'s type.
+ *
+ * @param value The value to push onto the stack.
+ */
+fun InsnBuilder.value(value: Any?) =
+    when (value) {
+        null -> aconst_null
+
+        is Boolean -> if (value) iconst_1 else iconst_0
+
+        is Byte -> bipush(value.toInt())
+
+        is Short -> sipush(value.toInt())
+
+        is Int -> when (value) {
+            -1 -> iconst_m1
+            0 -> iconst_0
+            1 -> iconst_1
+            2 -> iconst_2
+            3 -> iconst_3
+            4 -> iconst_4
+            5 -> iconst_5
+            else -> when {
+                value >= -128 && value <= 127 -> bipush(value)
+                value >= -32768 && value <= 32767 -> sipush(value)
+                else -> ldc(value)
+            }
+        }
+
+        is Long -> when (value) {
+            0L -> lconst_0
+            1L -> lconst_1
+            else -> ldc(value)
+        }
+
+        is Float -> when (value) {
+            0F -> fconst_0
+            1F -> fconst_1
+            2F -> fconst_2
+            else -> ldc(value)
+        }
+
+        is Double -> when (value) {
+            0.0 -> dconst_0
+            1.0 -> dconst_1
+            else -> ldc(value)
+        }
+
+        is String -> ldc(value)
+
+        else -> throw IllegalArgumentException("Unsupported value type: ${value::class.java}")
+    }
+
+fun InsnBuilder.box(type: Type) {
+    when (type) {
+        Type.BOOLEAN_TYPE -> invokestatic("java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;")
+        Type.BYTE_TYPE -> invokestatic("java/lang/Byte", "valueOf", "(B)Ljava/lang/Byte;")
+        Type.SHORT_TYPE -> invokestatic("java/lang/Short", "valueOf", "(S)Ljava/lang/Short;")
+        Type.INT_TYPE -> invokestatic("java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;")
+        Type.LONG_TYPE -> invokestatic("java/lang/Long", "valueOf", "(J)Ljava/lang/Long;")
+        Type.FLOAT_TYPE -> invokestatic("java/lang/Float", "valueOf", "(F)Ljava/lang/Float;")
+        Type.DOUBLE_TYPE -> invokestatic("java/lang/Double", "valueOf", "(D)Ljava/lang/Double;")
+        else -> throw IllegalArgumentException("Unsupported type: $type")
+    }
+}
+
+fun InsnBuilder.boxNoException(type: Type) = runCatching { box(type) }
+
+fun InsnBuilder.unbox(type: Type) {
+    when (type) {
+        Type.BOOLEAN_TYPE -> invokevirtual("java/lang/Boolean", "booleanValue", "()Z")
+        Type.BYTE_TYPE -> invokevirtual("java/lang/Byte", "byteValue", "()B")
+        Type.SHORT_TYPE -> invokevirtual("java/lang/Short", "shortValue", "()S")
+        Type.INT_TYPE -> invokevirtual("java/lang/Integer", "intValue", "()I")
+        Type.LONG_TYPE -> invokevirtual("java/lang/Long", "longValue", "()J")
+        Type.FLOAT_TYPE -> invokevirtual("java/lang/Float", "floatValue", "()F")
+        Type.DOUBLE_TYPE -> invokevirtual("java/lang/Double", "doubleValue", "()D")
+        else -> throw IllegalArgumentException("Unsupported type: $type")
+    }
+}
+
+fun InsnBuilder.unboxNoException(type: Type) = runCatching { unbox(type) }

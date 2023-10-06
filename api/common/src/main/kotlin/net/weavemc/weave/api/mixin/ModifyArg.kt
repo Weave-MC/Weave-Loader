@@ -5,4 +5,5 @@ annotation class ModifyArg(
     val method: String = "",
     val invokedMethod: String = "",
     val index: Int = -1,
+    val shift: Int = 0,
 )
