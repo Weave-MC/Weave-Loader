@@ -1,7 +1,8 @@
 package net.weavemc.weave.api.mixin
 
-annotation class ModifyConstant(
+annotation class ModifyArg(
     val id: String = "",
     val method: String = "",
-    val constant: Constant = Constant(),
+    val invokedMethod: String = "",
+    val index: Int = -1,
 )

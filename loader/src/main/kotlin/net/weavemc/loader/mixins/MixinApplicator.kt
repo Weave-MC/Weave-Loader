@@ -5,9 +5,12 @@ import kotlinx.serialization.json.decodeFromStream
 import net.weavemc.loader.HookClassWriter
 import net.weavemc.loader.MixinConfig
 import net.weavemc.loader.bootstrap.SafeTransformer
+import net.weavemc.weave.api.bytecode.InsnBuilder
 import net.weavemc.weave.api.bytecode.asm
+import net.weavemc.weave.api.bytecode.dump
 import net.weavemc.weave.api.bytecode.internalNameOf
 import net.weavemc.weave.api.mixin.*
+import net.weavemc.weave.api.mixin.Constant.ConstantType
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
@@ -88,15 +91,15 @@ class MixinApplicator {
                     method.isAnnotationPresent(Inject::class.java) -> applyInjection(
                         node, mixinNode, rawMethod, method.parameters, method.getAnnotation(Inject::class.java)
                     )
+
                     method.isAnnotationPresent(Overwrite::class.java) -> applyOverwrite(
                         node, rawMethod, method.getAnnotation(Overwrite::class.java)
                     )
-                    method.isAnnotationPresent(ModifyArgs::class.java) -> applyModifyArgs(
-                        node, rawMethod, method.getAnnotation(ModifyArgs::class.java)
-                    )
+
                     method.isAnnotationPresent(ModifyConstant::class.java) -> applyModifyConstant(
                         node, rawMethod, method.getAnnotation(ModifyConstant::class.java)
                     )
+
                     method.isAnnotationPresent(Accessor::class.java) -> {
                         if (!mixinClass.isInterface)
                             error("Accessor annotation found in non-interface Mixin class ${mixinClass.name}")
@@ -105,6 +108,7 @@ class MixinApplicator {
                             node, mixinClass, rawMethod, method.getAnnotation(Accessor::class.java)
                         )
                     }
+
                     method.isAnnotationPresent(Invoker::class.java) -> {
                         if (!mixinClass.isInterface)
                             error("Invoker annotation found in non-interface Mixin class ${mixinClass.name}")
@@ -113,13 +117,28 @@ class MixinApplicator {
                             node, mixinClass, rawMethod
                         )
                     }
+
                     method.isAnnotationPresent(Redirect::class.java) -> applyRedirect(
                         node, rawMethod, method.getAnnotation(Redirect::class.java)
                     )
+
                     method.isAnnotationPresent(Shadow::class.java) -> {
                         shadowed += rawMethod.name to rawMethod.desc
                         continue
                     }
+
+                    else -> continue
+                }
+
+                mixedMethods += when {
+                    method.isAnnotationPresent(ModifyArg::class.java) -> applyModifyArg(
+                        node, rawMethod, method.getAnnotation(ModifyArg::class.java)
+                    )
+
+                    method.isAnnotationPresent(ModifyArgs::class.java) -> applyModifyArgs(
+                        node, rawMethod, method.getAnnotation(ModifyArgs::class.java)
+                    )
+
                     else -> continue
                 }
             }
@@ -349,16 +368,96 @@ class MixinApplicator {
             mixinMethod: MethodNode,
             annotation: Overwrite
         ): MethodNode {
-            return targetClass.methods.find{ it.name == annotation.method }?.also { it.instructions = mixinMethod.instructions }
+            return targetClass.methods.find { it.name == annotation.method }?.also { it.instructions = mixinMethod.instructions }
                 ?: error("Failed to load Mixin ${mixinClass.name}: ${annotation.method} is not present in class ${targetClass.name}")
+        }
+
+        /**
+         * (1) Copies the mixin method to the target class.
+         * (2) Creates a new method in the target class that has the same descriptor as the invoked method that loads all of its parameters and when the index of the parameter is the same as the specified index, it invokes the copied mixin method. Lastly, it invokes the method that was originally invoked.
+         * (3) Replaces the invoked method with the newly created method.
+         */
+        private fun applyModifyArg(
+            targetClass: ClassNode,
+            mixinMethod: MethodNode,
+            annotation: ModifyArg
+        ): List<MethodNode> {
+            val targetMethod = targetClass.methods.find { "${it.name}${it.desc}" == annotation.method }
+                ?: error("Failed to load Mixin ${mixinClass.name}: ${annotation.method} is not present in class ${targetClass.name}")
+
+            val invokedMethod = targetMethod.instructions
+                .filterIsInstance<MethodInsnNode>()
+                .filter { it.name == annotation.invokedMethod }
+                .getOrNull(annotation.index)
+                ?: error("Failed to find invoked method ${annotation.invokedMethod} Either the method does not exist or the index is out of bounds (targetClass: ${targetClass.name}, method: ${targetMethod.name}, annotation: ${annotation.id})")
+            val copiedMethod = copyMixinToTarget(targetClass, mixinMethod)
+
+            val isStatic = targetMethod.access and Opcodes.ACC_STATIC != 0
+
+            // if static start at 0, else start at 1
+            var index = if (isStatic) 0 else 1
+
+            val argIndex = annotation.index + index
+
+            val loads = asm {
+                val parametersStrings = targetMethod.parametersStrings ?: error("Failed to find parameterStrings for ${targetMethod.name} in ${targetClass.name} when applying @ModifyArg (mixinClass: ${mixinClass.name}, method: ${mixinMethod.name}, annotation: ${annotation.id})")
+                for (parametersString in parametersStrings) {
+                    load(index++, parametersString)
+
+                    if (index == argIndex) {
+                        if (isStatic) {
+                            invokestatic(targetClass.name, copiedMethod.name, copiedMethod.desc)
+                        } else {
+                            aload(0)
+                            swap
+                            invokevirtual(targetClass.name, copiedMethod.name, copiedMethod.desc)
+                        }
+                    }
+                }
+            }
+
+            val returnInstructions = setOf(
+                Opcodes.IRETURN,
+                Opcodes.LRETURN,
+                Opcodes.FRETURN,
+                Opcodes.DRETURN,
+                Opcodes.ARETURN,
+            )
+            var returnInstruction: AbstractInsnNode? = null
+            for (r in returnInstructions) {
+                val mixinReturnInstruction = mixinMethod.instructions.find { it.opcode == r }
+                if (mixinReturnInstruction != null) {
+                    returnInstruction = mixinReturnInstruction
+                    break
+                }
+            }
+
+            val generatedMethod = MethodNode(
+                if (isStatic) Opcodes.ACC_PUBLIC or Opcodes.ACC_STATIC else Opcodes.ACC_PUBLIC,
+                "${targetMethod.name}_weaveMixin\$ModifyArg",
+                mixinMethod.desc,
+                null,
+                null
+            ).apply {
+                instructions = loads.apply {
+                    if (invokedMethod.opcode != Opcodes.INVOKESTATIC) {
+                        insert(VarInsnNode(Opcodes.ALOAD, 0))
+                    }
+                    add(MethodInsnNode(invokedMethod.opcode, invokedMethod.owner, invokedMethod.name, invokedMethod.desc, invokedMethod.itf))
+                    add(returnInstruction)
+                }
+                targetClass.methods.add(this)
+            }
+
+            return listOf(targetMethod, generatedMethod)
         }
 
         private fun applyModifyArgs(
             targetClass: ClassNode,
             mixinMethod: MethodNode,
             annotation: ModifyArgs
-        ): MethodNode {
-            return mixinMethod
+        ): List<MethodNode> {
+            TODO()
         }
 
         private fun applyModifyConstant(
@@ -366,7 +465,142 @@ class MixinApplicator {
             mixinMethod: MethodNode,
             annotation: ModifyConstant
         ): MethodNode {
-            return mixinMethod
+            val method = targetClass.methods.find { "${it.name}${it.desc}" == annotation.method }
+                ?: error("Failed to load Mixin ${mixinClass.name}: ${annotation.method} is not present in class ${targetClass.name}")
+            val instructions = method.instructions
+            val constant = annotation.constant
+            val shift = constant.shift
+
+            val generatedMethod = copyMixinToTarget(targetClass, mixinMethod)
+
+            val targetInstruction: AbstractInsnNode = when(constant.constantType) {
+                ConstantType.NULL -> {
+                    instructions.findConstantInstruction<InsnNode>(
+                        opcodes = intArrayOf(Opcodes.ACONST_NULL),
+                        shift = shift
+                    )
+                }
+
+                ConstantType.INT -> {
+                    instructions.findConstantInstruction<AbstractInsnNode>(
+                        opcodes =  intArrayOf(Opcodes.ICONST_M1, Opcodes.ICONST_0, Opcodes.ICONST_1, Opcodes.ICONST_2, Opcodes.ICONST_3, Opcodes.ICONST_4, Opcodes.ICONST_5, Opcodes.BIPUSH, Opcodes.SIPUSH, Opcodes.LDC),
+                        insnConstant = { instruction ->
+                            when (instruction.opcode) {
+                                Opcodes.ICONST_M1 -> -1
+                                Opcodes.ICONST_0 -> 0
+                                Opcodes.ICONST_1 -> 1
+                                Opcodes.ICONST_2 -> 2
+                                Opcodes.ICONST_3 -> 3
+                                Opcodes.ICONST_4 -> 4
+                                Opcodes.ICONST_5 -> 5
+                                Opcodes.BIPUSH -> (instruction as IntInsnNode).operand
+                                Opcodes.SIPUSH -> (instruction as IntInsnNode).operand
+                                Opcodes.LDC -> (instruction as LdcInsnNode).cst
+                                else -> error("Failed to find instruction for ${instruction.opcode} (targetClass: ${targetClass.name}, method: ${method.name}, annotation: ${annotation.id})")
+                            }
+                        },
+                        constant = constant.valueInt,
+                        shift = shift
+                    )
+                }
+
+                ConstantType.FLOAT -> {
+                    instructions.findConstantInstruction<AbstractInsnNode>(
+                        opcodes = intArrayOf(Opcodes.FCONST_0, Opcodes.FCONST_1, Opcodes.FCONST_2, Opcodes.LDC),
+                        insnConstant = { instruction ->
+                            when (instruction.opcode) {
+                                Opcodes.FCONST_0 -> 0.0f
+                                Opcodes.FCONST_1 -> 1.0f
+                                Opcodes.FCONST_2 -> 2.0f
+                                Opcodes.LDC -> (instruction as LdcInsnNode).cst
+                                else -> error("Failed to find instruction for ${instruction.opcode} (targetClass: ${targetClass.name}, method: ${method.name}, annotation: ${annotation.id})")
+                            }
+                        },
+                        constant = constant.valueFloat,
+                        shift = shift
+                    )
+                }
+
+                ConstantType.LONG -> {
+                    instructions.findConstantInstruction<AbstractInsnNode>(
+                        opcodes = intArrayOf(Opcodes.LCONST_0, Opcodes.LCONST_1, Opcodes.LDC),
+                        insnConstant = { instruction ->
+                            when (instruction.opcode) {
+                                Opcodes.LCONST_0 -> 0L
+                                Opcodes.LCONST_1 -> 1L
+                                Opcodes.LDC -> (instruction as LdcInsnNode).cst
+                                else -> error("Failed to find instruction for ${instruction.opcode} (targetClass: ${targetClass.name}, method: ${method.name}, annotation: ${annotation.id})")
+                            }
+                        },
+                        constant = constant.valueLong,
+                        shift = shift
+                    )
+                }
+
+                ConstantType.DOUBLE -> {
+                    println("Finding double constant")
+                    instructions.findConstantInstruction<AbstractInsnNode>(
+                        opcodes = intArrayOf(Opcodes.DCONST_0, Opcodes.DCONST_1, Opcodes.LDC),
+                        insnConstant = { instruction ->
+                            println("Instruction: $instruction")
+                            if (instruction is LdcInsnNode) {
+                                println("Instruction.cst: ${instruction.cst}")
+                            }
+                            when (instruction.opcode) {
+                                Opcodes.DCONST_0 -> 0.0
+                                Opcodes.DCONST_1 -> 1.0
+                                Opcodes.LDC -> (instruction as LdcInsnNode).cst
+                                else -> error("Failed to find instruction for ${instruction.opcode} (targetClass: ${targetClass.name}, method: ${method.name}, annotation: ${annotation.id})")
+                            }
+                        },
+                        constant = constant.valueDouble.also { println("valueDouble: $it") },
+                        shift = shift
+                    )
+                }
+
+                ConstantType.STRING -> {
+                    instructions.findConstantInstruction<AbstractInsnNode>(
+                        opcodes = intArrayOf(Opcodes.LDC),
+                        insnConstant = { instruction ->
+                            when (instruction.opcode) {
+                                Opcodes.LDC -> (instruction as LdcInsnNode).cst
+                                else -> error("Failed to find instruction for ${instruction.opcode} (targetClass: ${targetClass.name}, method: ${method.name}, annotation: ${annotation.id})")
+                            }
+                        },
+                        constant = constant.valueString,
+                        shift = shift
+                    )
+                }
+
+                ConstantType.CLASS -> {
+                    instructions.findConstantInstruction<AbstractInsnNode>(
+                        opcodes = intArrayOf(Opcodes.LDC),
+                        insnConstant = { instruction ->
+                            when (instruction.opcode) {
+                                Opcodes.LDC -> (instruction as LdcInsnNode).cst
+                                else -> error("Failed to find instruction for ${instruction.opcode} (targetClass: ${targetClass.name}, method: ${method.name}, annotation: ${annotation.id})")
+                            }
+                        },
+                        constant = constant.valueClass,
+                        shift = shift
+                    )
+                }
+            }
+                ?: error("Failed to find target instruction for ${constant.constantType} (targetClass: ${targetClass.name}, method: ${method.name}, annotation: ${annotation.id})")
+
+            println("Target instruction: $targetInstruction")
+            println("targetClass: ${targetClass.name}, generatedMethod: ${generatedMethod.name}, generatedMethod.desc: ${generatedMethod.desc}")
+
+            instructions.insertBefore(targetInstruction, asm { aload(0)
+//                f_same()
+            })
+            instructions.insert(targetInstruction, asm { invokevirtual(targetClass.name, generatedMethod.name, generatedMethod.desc)
+//                f_same()
+            })
+
+            targetClass.dump("/tmp/targetClass.class")
+
+            return generatedMethod
         }
 
         private fun applyAccessor(
@@ -463,7 +697,7 @@ class MixinApplicator {
          */
         private fun copyMixinToTarget(classNode: ClassNode, method: MethodNode): MethodNode {
             return MethodNode(
-                Opcodes.ACC_PUBLIC,
+                if (method.access and Opcodes.ACC_STATIC != 0) Opcodes.ACC_PUBLIC or Opcodes.ACC_STATIC else Opcodes.ACC_PUBLIC,
                 "${method.name}_weaveMixin",
                 method.desc,
                 "",
@@ -506,3 +740,22 @@ class MixinApplicator {
         }
     }
 }
+
+inline fun <reified T : AbstractInsnNode> InsnList.findConstantInstruction(opcodes: IntArray, noinline insnConstant: ((T) -> Any)? = null, constant: Any? = null, shift: Int): T? {
+    return filterIsInstance<T>()
+        .filter { it.opcode in opcodes }
+        .filter { insnConstant?.invoke(it) == constant }
+        .elementAtOrNull(shift)
+}
+
+fun InsnBuilder.load(index: Int, typeDescriptor: String) =
+    when (typeDescriptor) {
+        "Z", "B", "C", "S", "I" -> iload(index)
+        "J" -> lload(index)
+        "F" -> fload(index)
+        "D" -> dload(index)
+        else -> aload(index)
+    }
+
+val MethodNode.parametersStrings: List<String>?
+    get() = desc?.let { string -> Type.getArgumentTypes(string).map { it.descriptor } }
