@@ -39,12 +39,12 @@ object EventBus {
     }
 
     /**
-     * Call an event for all the listeners listening for it.
+     * Post an event for all the listeners listening for it.
      *
      * @param event The event to call.
      */
     @JvmStatic
-    fun <T : Event> callEvent(event: T) {
+    fun <T : Event> postEvent(event: T) {
         var curr: Class<*> = event.javaClass
 
         while (curr != Any::class.java) {
