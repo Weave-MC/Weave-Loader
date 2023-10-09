@@ -1,12 +1,13 @@
 package net.weavemc.loader.mixins
 
 import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
 import net.weavemc.loader.HookClassWriter
+import net.weavemc.loader.JSON
 import net.weavemc.loader.MixinConfig
 import net.weavemc.loader.bootstrap.SafeTransformer
 import net.weavemc.weave.api.bytecode.asm
+import net.weavemc.weave.api.bytecode.dump
 import net.weavemc.weave.api.bytecode.internalNameOf
 import net.weavemc.weave.api.mixin.*
 import org.objectweb.asm.ClassReader
@@ -24,7 +25,7 @@ class MixinApplicator {
             if (!value) error("Cannot unfreeze mixin applicator!")
             field = true
         }
-    private val json = Json { ignoreUnknownKeys = true }
+    private val json = JSON
 
     private fun registerMixin(classBytes: ByteArray) {
         if (frozen) error("Mixin registration is already frozen!")
@@ -326,12 +327,13 @@ class MixinApplicator {
                     if (Type.getReturnType(copiedMixinMethod.desc) == Type.VOID_TYPE)
                         _return
                     else {
+                        //TODO fix this
                         val returnType = Type.getReturnType(targetMethod.desc)
                         // CallbackInfo.returnValue is assumed to be the correct type to be returned.
                         invokevirtual(
                             internalNameOf<CallbackInfo>(),
                             "getReturnValue",
-                            "()${returnType.descriptor};"
+                            "()Ljava/lang/Object;"
                         )
                         +InsnNode(returnType.getOpcode(Opcodes.IRETURN))
                     }
@@ -376,7 +378,8 @@ class MixinApplicator {
             mixinMethod: MethodNode,
             annotation: Accessor
         ): MethodNode {
-            targetClass.interfaces.add(Type.getInternalName(mixinClass))
+            if (!targetClass.interfaces.any { it == Type.getInternalName(mixinClass) })
+                targetClass.interfaces.add(Type.getInternalName(mixinClass))
 
             val target = annotation.target
             val accessedField = targetClass.fields.find { it.name == target }
@@ -395,17 +398,18 @@ class MixinApplicator {
                     Opcodes.ACC_PUBLIC,
                     mixinMethod.name,
                     mixinMethod.desc,
-                    "",
+                    null,
                     mixinMethod.exceptions.toTypedArray()
                 ).also {
                     it.instructions = asm {
                         aload(0)
-                        aload(1)
+                        +VarInsnNode(argTypes[0].getOpcode(Opcodes.ILOAD), 1)
                         putfield(
                             targetClass.name,
                             accessedField.name,
                             accessedField.desc
                         )
+                        _return
                     }
                     targetClass.methods.add(it)
                 }
@@ -415,7 +419,7 @@ class MixinApplicator {
                     Opcodes.ACC_PUBLIC,
                     mixinMethod.name,
                     mixinMethod.desc,
-                    "",
+                    null,
                     mixinMethod.exceptions.toTypedArray()
                 ).also {
                     it.instructions = asm {
