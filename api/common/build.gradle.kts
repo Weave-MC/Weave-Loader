@@ -8,7 +8,7 @@ repositories {
 }
 
 dependencies {
-    implementation(libs.bundles.asm)
+    api(libs.bundles.asm)
 }
 
 publishing {
