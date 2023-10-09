@@ -13,21 +13,40 @@ import java.util.jar.JarOutputStream
 import kotlin.io.path.*
 
 internal object ModCachingManager {
-    private val modsDirectory = getOrCreateDirectory("mods")
-    private val cacheDirectory = getOrCreateDirectory(".cache")
+    val modsDirectory = getOrCreateDirectory("mods")
+    val cacheDirectory = getOrCreateDirectory(".cache")
 
     /**
      * Gets the cached api and mod jars.
      *
      * @return The cached api, mapped mods, and original mods.
      */
-    fun getCachedApiAndMods(): Triple<File, List<File>, List<File>> {
+    fun getCachedApiAndMods(): Triple<File?, List<File>, List<File>> {
         val apiJar = WeaveApiManager.getApiJar()
-        val cacheApi = ModJar.fromFile(apiJar)
         val modFiles = getModFiles()
-
         val cacheFiles = getCacheFiles()
 
+        if (apiJar == null) {
+            // Weave events not supported for this version
+            println("[Weave] Built-in events not supported for this version!")
+
+            for (cacheFile in cacheFiles) {
+                if (modFiles.any { it sha256Equals cacheFile }) {
+                    continue
+                }
+
+                println("[Weave] Deleting unused cache for ${cacheFile.file.name}")
+                cacheFile.file.deleteRecursively()
+            }
+
+            val mappedMods = modFiles.map {
+                cacheFiles.find { cacheMod -> it sha256Equals cacheMod } ?: createCache(mapper, it)
+            }
+
+            return Triple(null, mappedMods.map { it.file }, modFiles.map { it.file })
+        }
+
+        val cacheApi = ModJar.fromFile(apiJar)
         for (cacheFile in cacheFiles) {
             if (cacheApi sha256Equals cacheFile || modFiles.any { it sha256Equals cacheFile }) {
                 continue
@@ -135,7 +154,7 @@ internal object ModCachingManager {
      * Gets the cache file name for the given [file].
      * The cache file name is in the format of `<gameVersion>-<mapper>-<sha256>.cache`.
      *
-     * Example: `1.7.10-McpMapper-8f498d2e11f3e9eb016a5a1c35885b87b561f5fd1941864b2db704878bc0c79d.cache`
+     * Example: `1.7-McpMapper-8f498d2e11f3e9eb016a5a1c35885b87b561f5fd1941864b2db704878bc0c79d.cache`
      */
     private fun getCacheFileName(version: GameInfo.Version = gameVersion, file: File): String =
         "${version.versionName}-${mapper.mappingsType}-${file.toSha256()}.cache"

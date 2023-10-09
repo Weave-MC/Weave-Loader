@@ -15,12 +15,11 @@ object WeaveApiManager {
     fun getCommonApiJar(): File =
         apiDirectory.resolve("common.jar").toFile()
 
-    fun getApiJar(): File =
+    fun getApiJar(): File? =
         apiDirectory.listDirectoryEntries()
             .filter { it.name.matches(apiJarNameRegex) }
             .filter { it.isRegularFile() }
             .find { gameVersion == (GameInfo.Version.fromVersionName(it.nameWithoutExtension.removePrefix("v"))
                 ?: error("Invalid API version: ${it.nameWithoutExtension}")) }
             ?.toFile()
-            ?: error("No API jar found for version ${gameVersion.versionName}")
 }

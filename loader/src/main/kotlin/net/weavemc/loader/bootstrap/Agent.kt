@@ -23,7 +23,7 @@ import kotlin.io.path.writeBytes
 @Suppress("UNUSED_PARAMETER")
 fun premain(opt: String?, inst: Instrumentation) {
     val version = gameVersion
-    if (version !in arrayOf(V1_7_10, V1_8_9, V1_12_2)) {
+    if (version !in arrayOf(V1_7_10, V1_8_9, V1_12_2, V1_20_1)) {
         println("[Weave] $version not supported, disabling...")
         return
     }
@@ -45,7 +45,9 @@ fun premain(opt: String?, inst: Instrumentation) {
 
                 val (apiJar, modJars, _) = ModCachingManager.getCachedApiAndMods()
                 loader.addWeaveURL(WeaveApiManager.getCommonApiJar().toURI().toURL())
-                loader.addWeaveURL(apiJar.toURI().toURL())
+                if (apiJar != null)
+                    loader.addWeaveURL(apiJar.toURI().toURL())
+
                 modJars.forEach { loader.addWeaveURL(it.toURI().toURL()) }
 
                 /*

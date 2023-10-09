@@ -1,6 +1,5 @@
 package net.weavemc.loader
 
-import kotlinx.serialization.json.Json
 import net.weavemc.loader.analytics.launchStart
 import net.weavemc.loader.mixins.MixinApplicator
 import net.weavemc.weave.api.Hook
@@ -28,7 +27,7 @@ public object WeaveLoader {
      * @see net.weavemc.loader.bootstrap.premain
      */
     @JvmStatic
-    public fun init(inst: Instrumentation, apiJar: File, modJars: List<File>) {
+    public fun init(inst: Instrumentation, apiJar: File?, modJars: List<File>) {
         println("[Weave] Initializing Weave")
         launchStart = System.currentTimeMillis()
         inst.addTransformer(HookManager)
@@ -37,7 +36,7 @@ public object WeaveLoader {
             mixins = MixinApplicator()
             inst.addTransformer(mixins.Transformer())
         }.onFailure {
-            System.err.println("Failed to load mixins:")
+            System.err.println("[Weave] Failed to load mixins:")
             it.printStackTrace()
         }
 
@@ -45,7 +44,8 @@ public object WeaveLoader {
         modJars.forEach { inst.appendToSystemClassLoaderSearch(JarFile(it)) }
 
         addMods(modJars)
-        addApiHooks(apiJar)
+        if (apiJar != null)
+            addApiHooks(apiJar)
 
         // Call preInit() once everything is done.
         mods.forEach { weaveMod ->
@@ -79,7 +79,7 @@ public object WeaveLoader {
      * Adds Weave Mod's Hooks to HookManager and adds to mods list for later instantiation
      */
     private fun addMods(modJars: List<File>) {
-        val json = Json { ignoreUnknownKeys = true }
+        val json = JSON
 
         modJars.forEach { file ->
             val jar = JarFile(file)
