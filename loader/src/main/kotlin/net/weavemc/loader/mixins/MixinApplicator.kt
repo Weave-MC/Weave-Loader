@@ -5,9 +5,10 @@ import kotlinx.serialization.json.decodeFromStream
 import net.weavemc.loader.HookClassWriter
 import net.weavemc.loader.JSON
 import net.weavemc.loader.MixinConfig
+import net.weavemc.loader.ModConfig
 import net.weavemc.loader.bootstrap.SafeTransformer
+import net.weavemc.loader.mapping.*
 import net.weavemc.weave.api.bytecode.asm
-import net.weavemc.weave.api.bytecode.dump
 import net.weavemc.weave.api.bytecode.internalNameOf
 import net.weavemc.weave.api.mixin.*
 import org.objectweb.asm.ClassReader
@@ -27,7 +28,7 @@ class MixinApplicator {
         }
     private val json = JSON
 
-    private fun registerMixin(classBytes: ByteArray) {
+    private fun registerMixin(mapper: String, classBytes: ByteArray) {
         if (frozen) error("Mixin registration is already frozen!")
 
         val classNode = ClassNode()
@@ -40,20 +41,20 @@ class MixinApplicator {
             ?: error("Failed to parse @Mixin annotation. This should never happen!")
 
         println("Registered Mixin for $targetClasspath using ${mixinClass.name}")
-        mixins += MixinClass(targetClasspath, mixinClass, classNode)
+        mixins += MixinClass(mapper, targetClasspath, mixinClass, classNode)
     }
 
     @OptIn(ExperimentalSerializationApi::class)
-    fun registerMixin(configPath: String, modJar: JarFile) {
+    fun registerMixin(modConfig: ModConfig, mixinConfigPath: String, modJar: JarFile) {
         if (frozen) error("Mixin registration is already frozen!")
 
-        val mixinConfig = json.decodeFromStream<MixinConfig>(modJar.getInputStream(modJar.getEntry(configPath)))
+        val mixinConfig = json.decodeFromStream<MixinConfig>(modJar.getInputStream(modJar.getEntry(mixinConfigPath)))
         mixinConfig.mixins.forEach { mixinClasspath ->
             val mixinClassBytes = modJar.getInputStream(
                 modJar.getEntry("${mixinConfig.packagePath.replace(".", "/")}/$mixinClasspath.class")
             ).readBytes()
 
-            registerMixin(mixinClassBytes)
+            registerMixin(modConfig.mappings ?: "emptyMapper", mixinClassBytes)
         }
     }
 
@@ -64,6 +65,7 @@ class MixinApplicator {
     }
 
     internal data class MixinClass(
+        val mapper: String,
         val targetClasspath: String,
         val mixinClass: Class<*>,
         private val mixinNode: ClassNode
@@ -71,8 +73,6 @@ class MixinApplicator {
         private val callbackInfoType: Type = Type.getType(CallbackInfo::class.java)
 
         fun applyMixin(node: ClassNode) {
-            node.remapToMCP()
-
             val mixedMethods: ArrayList<MethodNode> = arrayListOf()
             val shadowed: ArrayList<Pair<String, String>> = arrayListOf()
 
@@ -127,7 +127,6 @@ class MixinApplicator {
             }
 
             mixedMethods.forEach { it.remapShadowed() }
-            node.remapToNormal()
         }
 
         // TODO probably move this to a utility class to reduce size of this file
@@ -487,20 +486,36 @@ class MixinApplicator {
             className: String,
             originalClass: ByteArray
         ): ByteArray? {
-            val applicableMixins = mixins.filter { it.targetClasspath == className }
+            val applicableMixins = mixins.filter { fullMapper.map(it.targetClasspath) == fullMapper.map(className) }
             if (applicableMixins.isEmpty()) return null
 
             println("[Weave Mixin] Applying Mixins to $className")
+
             val node = ClassNode()
             val reader = ClassReader(originalClass)
             reader.accept(node, 0)
 
+            val writer = HookClassWriter(reader, ClassWriter.COMPUTE_FRAMES)
+
+            // map class to vanilla mappings
+            node.accept(LambdaAwareRemapper(node, environmentMapper))
+
             applicableMixins.forEach {
+                println("  - ${it.mixinClass.name} (${it.mapper.uppercase()})")
+                val mapper = when(it.mapper) {
+                    mojangMapper.name -> mojangMapper
+                    yarnMapper.name -> yarnMapper
+                    srgMapper.name -> srgMapper
+                    else -> emptyMapper
+                }
+
+                node.accept(LambdaAwareRemapper(node, mapper))
                 it.applyMixin(node)
-                println("  - ${it.mixinClass.name}")
+                node.accept(LambdaAwareRemapper(node, mapper.reverse()))
             }
 
-            val writer = HookClassWriter(reader, ClassWriter.COMPUTE_FRAMES)
+            // map class back to its original mappings
+            node.accept(LambdaAwareRemapper(node, environmentMapper.reverse()))
 
             node.accept(writer)
             return writer.toByteArray()

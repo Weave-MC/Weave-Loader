@@ -1,4 +1,4 @@
-package net.weavemc.loader.mappings
+package net.weavemc.loader.mapping
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -8,42 +8,79 @@ import net.weavemc.loader.ModCachingManager
 import net.weavemc.weave.api.gameVersion
 import java.io.File
 import java.io.InputStream
+import java.lang.IllegalStateException
 import java.net.URL
+import kotlin.io.path.notExists
 
 object MappingsManager {
-
     private inline fun <reified T> String?.decodeJSON() =
         if (this != null) JSON.decodeFromString<T>(this) else null
 
     /**
      * Retrieves a text file containing srg, yarn, and mojmap mappings
      */
-    fun getOrCreateBundledMappings(): File? {
+    fun getOrCreateBundledMappings(): File {
         val bundledFile = ModCachingManager.cacheDirectory
             .resolve("mappings")
             .resolve(gameVersion.versionName)
             .resolve("bundled.mappings").toFile()
 
+        // TODO add a way to tell what mappings are bundled in this file
+        // TODO if the bundledfile match the mappings weave loader is attempting to bundle, return the cached file
         if (bundledFile.exists())
             return bundledFile
 
         bundledFile.parentFile.mkdirs()
 
+        var failCount: Int = 0
+
         val srgStream = MappingsManager.javaClass.getResourceAsStream(
-            "weave/mappings/srg/${gameVersion.aliases[0]}"
-        ) ?: error("Could not retrieve SRG mappings for ${gameVersion.aliases[0]}")
+            "weave/mappings/srg/${gameVersion.mappingName}"
+        )
+        srgStream?.use { bundledFile.writeBytes(it.readBytes()) }
+            ?: { println("Could not retrieve SRG mappings for ${gameVersion.mappingName}"); failCount++ }
+
         val yarnStream = MappingsManager.javaClass.getResourceAsStream(
-            "weave/mappings/yarn/${gameVersion.aliases[0]}"
-        ) ?: error("Could not retrieve Yarn mappings for ${gameVersion.aliases[0]}")
+            "weave/mappings/yarn/${gameVersion.mappingName}"
+        )
+        yarnStream?.use { bundledFile.appendBytes(it.readBytes()) }
+            ?: { println("Could not retrieve Yarn mappings for ${gameVersion.mappingName}"); failCount++ }
 
-        bundledFile.writeBytes(srgStream.readBytes())
-        bundledFile.appendBytes(yarnStream.readBytes())
+        downloadMojangMappings()?.also { bundledFile.appendBytes(it.readBytes()) }
+            ?:{ println("Could not retrieve Mojang mappings for ${gameVersion.mappingName}"); failCount++ }
 
-        val mojmapFile = downloadMojangMappings()
-        if (mojmapFile != null)
-            bundledFile.appendBytes(mojmapFile.readBytes())
+        if (failCount == 3)
+            error("Failed to retrieve any mappings for ${gameVersion.mappingName}")
 
         return bundledFile
+    }
+
+    fun getMojangMappings(): File? {
+        val file = ModCachingManager.cacheDirectory
+            .resolve("mappings")
+            .resolve(gameVersion.versionName)
+            .resolve("mojang.mappings").toFile()
+
+        if (!file.exists())
+            return downloadMojangMappings()
+
+        return file
+    }
+
+    fun getSrgMappings(): List<String>? {
+        val stream = MappingsManager.javaClass.getResourceAsStream(
+            "weave/mappings/srg/${gameVersion.mappingName}"
+        ) ?: return null
+
+        return stream.toLines()
+    }
+
+    fun getYarnMappings(): List<String>? {
+        val stream = MappingsManager.javaClass.getResourceAsStream(
+            "weave/mappings/yarn/${gameVersion.mappingName}"
+        ) ?: return null
+
+        return stream.toLines()
     }
 
     private fun InputStream.toLines(): List<String> =

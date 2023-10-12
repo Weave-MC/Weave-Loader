@@ -1,8 +1,9 @@
 package net.weavemc.loader
 
 import net.weavemc.weave.api.*
-import net.weavemc.weave.api.mapping.LambdaAwareRemapper
-import net.weavemc.weave.api.mapping.MappingsRemapper
+import net.weavemc.loader.mapping.LambdaAwareRemapper
+import net.weavemc.loader.mapping.MappingsRemapper
+import net.weavemc.loader.mapping.environmentMapper
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import java.io.File
@@ -40,7 +41,7 @@ internal object ModCachingManager {
             }
 
             val mappedMods = modFiles.map {
-                cacheFiles.find { cacheMod -> it sha256Equals cacheMod } ?: createCache(mapper, it)
+                cacheFiles.find { cacheMod -> it sha256Equals cacheMod } ?: createCache(environmentMapper, it)
             }
 
             return Triple(null, mappedMods.map { it.file }, modFiles.map { it.file })
@@ -56,9 +57,9 @@ internal object ModCachingManager {
             cacheFile.file.deleteRecursively()
         }
 
-        val mappedApi = cacheFiles.find { it sha256Equals cacheApi } ?: createCache(mapper, cacheApi)
+        val mappedApi = cacheFiles.find { it sha256Equals cacheApi } ?: createCache(environmentMapper, cacheApi)
         val mappedMods = modFiles.map {
-            cacheFiles.find { cacheMod -> it sha256Equals cacheMod } ?: createCache(mapper, it)
+            cacheFiles.find { cacheMod -> it sha256Equals cacheMod } ?: createCache(environmentMapper, it)
         }
 
         return Triple(mappedApi.file, mappedMods.map { it.file }, modFiles.map { it.file })
@@ -118,7 +119,7 @@ internal object ModCachingManager {
      * If the cache is invalid or the original mod is missing, the cache is deleted.
      */
     private fun getCacheFiles(): List<ModJar> =
-        cacheDirectory.listDirectoryEntries("{${gameVersion.versionName},all}-${mapper.javaClass.simpleName}-*.cache")
+        cacheDirectory.listDirectoryEntries("{${gameVersion.versionName},all}-${environmentMapper.javaClass.simpleName}-*.cache")
             .filter { it.isRegularFile() || it.isSymbolicLink() }
             .mapNotNull { f ->
                 val (_, sha256) = runCatching { f.fileName.toString().split("-") }.getOrElse {
@@ -157,7 +158,7 @@ internal object ModCachingManager {
      * Example: `1.7-McpMapper-8f498d2e11f3e9eb016a5a1c35885b87b561f5fd1941864b2db704878bc0c79d.cache`
      */
     private fun getCacheFileName(version: GameInfo.Version = gameVersion, file: File): String =
-        "${version.versionName}-${mapper.mappingsType}-${file.toSha256()}.cache"
+        "${version.versionName}-${environmentMapper.mappingsType}-${file.toSha256()}.cache"
 
     /**
      * Represents an original mod jar or a cache file.

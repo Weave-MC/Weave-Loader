@@ -1,4 +1,4 @@
-package net.weavemc.weave.api.mapping
+package net.weavemc.loader.mapping
 
 import org.objectweb.asm.commons.SimpleRemapper
 

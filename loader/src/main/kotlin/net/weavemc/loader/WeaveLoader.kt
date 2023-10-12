@@ -1,6 +1,8 @@
 package net.weavemc.loader
 
 import net.weavemc.loader.analytics.launchStart
+import net.weavemc.loader.mapping.srgMapper
+import net.weavemc.loader.mapping.yarnMapper
 import net.weavemc.loader.mixins.MixinApplicator
 import net.weavemc.weave.api.Hook
 import net.weavemc.weave.api.ModInitializer
@@ -69,7 +71,7 @@ public object WeaveLoader {
                 runCatching {
                     val clazz = Class.forName(it.name.removeSuffix(".class").replace('/', '.'))
                     if (clazz.superclass == Hook::class.java) {
-                        HookManager.hooks += clazz.getConstructor().newInstance() as Hook
+                        HookManager.hooks += ModHook(yarnMapper.name, clazz.getConstructor().newInstance() as Hook)
                     }
                 }
             }
@@ -91,8 +93,10 @@ public object WeaveLoader {
             val config = json.decodeFromString<ModConfig>(jar.getInputStream(configEntry).readBytes().decodeToString())
             val name = config.name ?: jar.name.removeSuffix(".jar")
 
-            config.mixinConfigs.forEach { mixins.registerMixin(it, jar) }
-            HookManager.hooks += config.hooks.map(::instantiate)
+            config.mixinConfigs.forEach { mixins.registerMixin(config, it, jar) }
+            HookManager.hooks += config.hooks.map {
+                ModHook(config.mappings ?: "emptyMapper", instantiate(it))
+            }
 
             // TODO: Add a name field to the config.
             mods += WeaveMod(name, config)

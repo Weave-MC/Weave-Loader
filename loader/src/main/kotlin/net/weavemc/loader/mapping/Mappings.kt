@@ -1,6 +1,10 @@
-package net.weavemc.weave.api.mapping
+package net.weavemc.loader.mapping
 
+import net.weavemc.weave.api.GameInfo
+import net.weavemc.weave.api.gameClient
+import net.weavemc.weave.api.gameVersion
 import org.objectweb.asm.commons.SimpleRemapper
+import java.lang.IllegalStateException
 
 /**
  * Represents anything that can have mapped names
@@ -157,3 +161,77 @@ data object EmptyMappingsFormat : MappingsFormat<EmptyMappings> {
     override fun parse(lines: List<String>) = EmptyMappings
     override fun write(mappings: EmptyMappings) = error("Cannot write Empty Mappings")
 }
+
+val fullMappings by lazy {
+    loadMappings(MappingsManager.getOrCreateBundledMappings().readLines())
+}
+val mojangMappings by lazy {
+    val file = MappingsManager.getMojangMappings()
+    if (file == null) {
+        println("Failed to specifically retrieve Mojang mappings for ${gameVersion.mappingName}")
+        return@lazy EmptyMappings
+    }
+
+    loadMappings(file.readLines())
+}
+
+val srgMappings by lazy {
+    val stream = MappingsManager.getSrgMappings()
+    if (stream == null) {
+        println("Failed to specifically retrieve SRG mappings for ${gameVersion.mappingName}")
+        return@lazy EmptyMappings
+    }
+
+    loadMappings(stream)
+}
+val yarnMappings by lazy {
+    val stream = MappingsManager.getYarnMappings()
+    if (stream == null) {
+        println("Failed to specifically retrieve Yarn mappings for ${gameVersion.mappingName}")
+        return@lazy EmptyMappings
+    }
+
+    loadMappings(stream)
+}
+
+val environmentMappings by lazy {
+    when (gameClient) {
+        GameInfo.Client.LUNAR -> mojangMappings
+        GameInfo.Client.FORGE -> srgMappings
+        else -> yarnMappings // not the safest
+    }
+}
+val isEmptyMappings get() = environmentMappings == EmptyMappings
+
+val fromNamespace = when {
+    isEmptyMappings -> "none"
+    else -> "named"
+}
+
+val toNamespace = when {
+    isEmptyMappings -> "none"
+    else -> when (gameClient) {
+        GameInfo.Client.FORGE -> "srg"
+        else -> "official"
+    }
+}
+
+// FIXME: in the future we might need a solid way of providing class bytes
+private fun bytesProvider(@Suppress("UNUSED_PARAMETER") expectedNamespace: String): (String) -> ByteArray? = { null }
+
+val environmentMapper: MappingsRemapper by lazy {
+    MappingsRemapper("namespaceMapper", environmentMappings, fromNamespace, toNamespace, loader = bytesProvider(fromNamespace))
+}
+val demapper by lazy { environmentMapper.reverse(bytesProvider(toNamespace)) }
+
+val fullMapper by lazy { MappingsRemapper("full", fullMappings, "named", "official", loader = bytesProvider("named")) }
+val emptyMapper by lazy { MappingsRemapper("empty", EmptyMappings, "named", "official", loader = bytesProvider("named"))}
+
+val yarnMapper by lazy { MappingsRemapper("yarn", yarnMappings, "official", "named", loader = bytesProvider("official")) }
+val reverseYarnMapper by lazy { yarnMapper.reverse(bytesProvider("named")) }
+
+val mojangMapper by lazy { MappingsRemapper("mojang", mojangMappings, "official", "named", loader = bytesProvider("official")) }
+val reverseMojangMapper by lazy { mojangMapper.reverse(bytesProvider("named")) }
+
+val srgMapper by lazy { MappingsRemapper("srg", srgMappings, "named", "official", loader = bytesProvider("official")) }
+val reverseSRGMapper by lazy { srgMapper.reverse(bytesProvider("named")) }

@@ -1,4 +1,4 @@
-package net.weavemc.weave.api.mapping
+package net.weavemc.loader.mapping
 
 import org.objectweb.asm.*
 import org.objectweb.asm.commons.ClassRemapper
@@ -35,5 +35,15 @@ class LambdaAwareRemapper(
                 /* ...bootstrapMethodArguments = */ *args.map { remapper.mapValue(it) }.toTypedArray()
             )
         }
+    }
+
+    override fun visitMethod(
+        access: Int,
+        name: String?,
+        descriptor: String?,
+        signature: String?,
+        exceptions: Array<out String>?
+    ): MethodVisitor {
+        return super.visitMethod(access, name, descriptor, null, exceptions)
     }
 }

@@ -1,10 +1,9 @@
 package net.weavemc.loader
 
 import net.weavemc.loader.bootstrap.SafeTransformer
+import net.weavemc.loader.mapping.*
 import net.weavemc.weave.api.Hook
 import net.weavemc.weave.api.bytecode.dump
-import net.weavemc.weave.api.namedMapper
-import net.weavemc.weave.api.vanillaMapper
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
@@ -19,14 +18,28 @@ internal object HookManager : SafeTransformer {
      * Defaults to `false`.
      */
     val dumpBytecode = System.getProperty("dumpBytecode")?.toBoolean() ?: false
-    val hooks = mutableListOf<Hook>()
+    val hooks = mutableListOf<ModHook>()
 
     override fun transform(loader: ClassLoader, className: String, originalClass: ByteArray): ByteArray? {
-        val hooks = hooks.filter { it.targets.contains("*") || it.targets.contains(className) }
+        val hooks = mutableMapOf<MappingsRemapper, List<Hook>>()
+
+        this.hooks.forEach { hook ->
+            val mapper = when (hook.mapper) {
+                mojangMapper.name -> mojangMapper
+                srgMapper.name -> srgMapper
+                yarnMapper.name -> yarnMapper
+                else -> {
+                    println("Failed to find mappings for ${hook.javaClass.name}")
+                    emptyMapper
+                }
+            }
+
+            hooks[mapper] = (hooks[mapper] ?: mutableListOf()) + hook.hook
+        }
+
         if (hooks.isEmpty()) return null
 
         println("[HookManager] Transforming $className")
-        hooks.forEach { println("  - ${it.javaClass.name}") }
 
         val node = ClassNode()
         val reader = ClassReader(originalClass)
@@ -38,12 +51,21 @@ internal object HookManager : SafeTransformer {
                 computeFrames = true
             }
         }
-
-        hooks.forEach { it.transform(node, config) }
         val flags = if (config.computeFrames) ClassWriter.COMPUTE_FRAMES else ClassWriter.COMPUTE_MAXS
 
         val writer = HookClassWriter(reader, flags)
-        node.accept(writer)
+        hooks.forEach {
+            println(" -${it.key.name}")
+
+            reader.accept(LambdaAwareRemapper(writer, it.key), 0)
+
+            it.value.forEach { hook ->
+                println("  -${hook.javaClass.name}")
+                hook.transform(node, config)
+            }
+
+            reader.accept(LambdaAwareRemapper(writer, it.key.reverse()), 0)
+        }
 
         if (dumpBytecode) {
             val bytecodeOut = getBytecodeDir().resolve("$className.class")
@@ -53,6 +75,7 @@ internal object HookManager : SafeTransformer {
             }.onFailure { println("Failed to dump bytecode for $bytecodeOut") }
         }
 
+        node.accept(writer)
         return writer.toByteArray()
     }
 
@@ -65,10 +88,13 @@ internal object HookManager : SafeTransformer {
         .toFile().apply { mkdirs() }
 }
 
-class HookClassWriter(classReader: ClassReader, flags: Int) : ClassWriter(classReader, flags) {
+class HookClassWriter(
+    classReader: ClassReader,
+    flags: Int
+) : ClassWriter(classReader, flags) {
     private fun getResourceAsByteArray(resourceName: String): ByteArray =
         classLoader.getResourceAsStream("$resourceName.class")?.readBytes()
-            ?: classLoader.getResourceAsStream("${vanillaMapper.map(resourceName)}.class")?.readBytes()
+            ?: classLoader.getResourceAsStream("${fullMapper.map(resourceName)}.class")?.readBytes()
             ?: throw ClassNotFoundException("Failed to retrieve class from resources: $resourceName")
 
     private fun ByteArray.asClassReader(): ClassReader = ClassReader(this)
@@ -106,7 +132,7 @@ class HookClassWriter(classReader: ClassReader, flags: Int) : ClassWriter(classR
                 while (!class1.isAssignableFrom(class2))
                     class1 = getResourceAsByteArray(class1.superName).asClassReader()
 
-                return namedMapper.map(class1.className)
+                return fullMapper.map(class1.className)
             }
         }
     }

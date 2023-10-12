@@ -7,12 +7,13 @@ data class GameInfo(
     enum class Version(
         val protocol: Int,
         val versionName: String,
+        val mappingName: String,
         vararg val aliases: String,
     ) {
-        V1_7_10(5, "1.7.10", "1.7"),
-        V1_8_9(47, "1.8.9", "1.8"),
-        V1_12_2(340, "1.12.2", "1.12"),
-        V1_20_1(-1, "1.20.1", "1.20");
+        V1_7_10(5, "1.7.10", "1.7", "1.7"),
+        V1_8_9(47, "1.8.9", "1.8", "1.8"),
+        V1_12_2(340, "1.12.2", "1.12", "1.12"),
+        V1_20_1(-1, "1.20.1", "1.20","1.20");
 
         companion object {
             fun fromProtocol(protocol: Int): Version? = entries.find { it.protocol == protocol }

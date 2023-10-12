@@ -1,4 +1,4 @@
-package net.weavemc.weave.api.mapping
+package net.weavemc.loader.mapping
 
 /**
  * Defines the Tiny v1 format in terms of an abstract Tiny mappings implementation

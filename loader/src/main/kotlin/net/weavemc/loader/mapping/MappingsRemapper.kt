@@ -1,4 +1,4 @@
-package net.weavemc.weave.api.mapping
+package net.weavemc.loader.mapping
 
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.commons.Remapper
@@ -8,6 +8,7 @@ import org.objectweb.asm.commons.Remapper
  * while respecting the inheritance structure of the bytecode and respecting descriptors
  */
 class MappingsRemapper(
+    val name: String,
     private val mappings: Mappings,
     private val from: String,
     private val to: String,
@@ -17,7 +18,7 @@ class MappingsRemapper(
     val mappingsType: String = mappings.javaClass.simpleName
     private val map = mappings.asASMMapping(from, to)
     private val baseMapper by lazy {
-        MappingsRemapper(mappings, from, mappings.namespaces[0], shouldRemapDesc = false, loader)
+        MappingsRemapper("${name}BaseMapper", mappings, from, mappings.namespaces[0], shouldRemapDesc = false, loader)
     }
 
     override fun map(internalName: String): String = map[internalName] ?: internalName
@@ -61,5 +62,12 @@ class MappingsRemapper(
     }
 
     fun reverse(loader: (name: String) -> ByteArray? = this.loader) =
-        MappingsRemapper(mappings, to, from, loader = loader)
+        MappingsRemapper("${name}Reverse", mappings, to, from, loader = loader)
+
+    override fun equals(other: Any?): Boolean {
+        if (other !is MappingsRemapper)
+            return false
+
+        return other.name == this.name
+    }
 }

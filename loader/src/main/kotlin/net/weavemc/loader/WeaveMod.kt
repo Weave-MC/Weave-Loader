@@ -2,6 +2,8 @@ package net.weavemc.loader
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import net.weavemc.loader.mapping.MappingsRemapper
+import net.weavemc.weave.api.Hook
 import net.weavemc.weave.api.ModInitializer
 
 /**
@@ -31,7 +33,17 @@ public data class ModConfig(
     val hooks: List<String> = listOf(),
     val entrypoints: List<String> = listOf(),
     val name: String? = null,
-    val modId: String? = null
+    val modId: String? = null,
+    val mappings: String? = null
+)
+
+/**
+ * @param mapper Name of the mapper
+ * @param hook Hook class
+ */
+data class ModHook(
+    val mapper: String,
+    val hook: Hook
 )
 
 @Serializable
