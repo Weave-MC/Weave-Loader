@@ -83,7 +83,7 @@ class MixinApplicator {
             for (method in mixinClass.declaredMethods) {
                 val rawMethod = mixinNode.methods.find {
                     it.name == method.name && it.desc == Type.getMethodDescriptor(method)
-                } ?: error("No matching raw method found for $mixinClass, should never happen")
+                } ?: error("No matching raw method found for ${method.name}${Type.getMethodDescriptor(method)} in class ${mixinClass.name}, should never happen")
 
                 //TODO find a way to clean this up
                 mixedMethods += when {
@@ -130,21 +130,6 @@ class MixinApplicator {
         }
 
         // TODO probably move this to a utility class to reduce size of this file
-
-        /**
-         * Remaps the ClassNode to MCP mappings to match with the mod's mixin
-         */
-        fun ClassNode.remapToMCP() {
-
-        }
-
-        /**
-         * Remaps the ClassNode to its normal mappings
-         * Should be called after the mixin is applied so that the mixin is mapped as well
-         */
-        fun ClassNode.remapToNormal() {
-
-        }
 
         fun MethodNode.remapShadowed() {
 
@@ -481,6 +466,27 @@ class MixinApplicator {
     )
 
     internal inner class Transformer : SafeTransformer {
+        /**
+         * Remaps the ClassNode from vanilla to the mappings of the current Minecraft environment loaded
+         *
+         * !! IMPORTANT !!
+         * Node must be already mapped to vanilla before remapping to environment mappings
+         *
+         * TODO create mapping file that links all named mappings...
+         * TODO ...rather than having to map to an intermediary (vanilla) then to the target mapping
+         */
+        private fun ClassNode.remapToEnvironment(): ClassNode =
+            ClassNode().apply { this@remapToEnvironment.accept(LambdaAwareRemapper(this@apply, environmentMapper.reverse())) }
+
+        /**
+         * Remaps the ClassNode to vanilla mappings
+         */
+        private fun ClassNode.remapToVanilla(): ClassNode =
+            ClassNode().apply { this@remapToVanilla.accept(LambdaAwareRemapper(this@apply, fullMapper)) }
+
+        private fun ClassNode.remapUsing(mapper: MappingsRemapper): ClassNode =
+            ClassNode().apply { this@remapUsing.accept(LambdaAwareRemapper(this@apply, mapper)) }
+
         override fun transform(
             loader: ClassLoader,
             className: String,
@@ -491,14 +497,12 @@ class MixinApplicator {
 
             println("[Weave Mixin] Applying Mixins to $className")
 
-            val node = ClassNode()
+            val originalNode = ClassNode()
             val reader = ClassReader(originalClass)
-            reader.accept(node, 0)
+            reader.accept(originalNode, 0)
 
-            val writer = HookClassWriter(reader, ClassWriter.COMPUTE_FRAMES)
-
-            // map class to vanilla mappings
-            node.accept(LambdaAwareRemapper(node, environmentMapper))
+            // map node to vanilla
+            var vanillaNode = originalNode.remapToVanilla()
 
             applicableMixins.forEach {
                 println("  - ${it.mixinClass.name} (${it.mapper.uppercase()})")
@@ -509,15 +513,18 @@ class MixinApplicator {
                     else -> emptyMapper
                 }
 
-                node.accept(LambdaAwareRemapper(node, mapper))
-                it.applyMixin(node)
-                node.accept(LambdaAwareRemapper(node, mapper.reverse()))
+                val modMappedNode = vanillaNode.remapUsing(mapper)
+
+                it.applyMixin(modMappedNode)
+
+                vanillaNode = modMappedNode.remapToVanilla()
             }
 
-            // map class back to its original mappings
-            node.accept(LambdaAwareRemapper(node, environmentMapper.reverse()))
+            val writer = HookClassWriter(ClassWriter.COMPUTE_FRAMES)
 
-            node.accept(writer)
+            val environmentNode = vanillaNode.remapToEnvironment()
+            environmentNode.accept(writer)
+
             return writer.toByteArray()
         }
     }
