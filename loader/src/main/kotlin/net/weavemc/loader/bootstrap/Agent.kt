@@ -1,20 +1,13 @@
 package net.weavemc.loader.bootstrap
 
-import net.weavemc.loader.ModCachingManager
-import net.weavemc.loader.WeaveApiManager
+import net.weavemc.loader.FileManager
 import net.weavemc.loader.WeaveLoader
 import net.weavemc.weave.api.GameInfo
 import net.weavemc.weave.api.GameInfo.Version.*
 import net.weavemc.weave.api.gameClient
 import net.weavemc.weave.api.gameVersion
 import java.io.File
-import java.lang.instrument.ClassFileTransformer
 import java.lang.instrument.Instrumentation
-import java.nio.file.Paths
-import java.security.ProtectionDomain
-import kotlin.io.path.createDirectories
-import kotlin.io.path.isDirectory
-import kotlin.io.path.writeBytes
 
 /**
  * The JavaAgent's `premain()` method, this is where initialization of Weave Loader begins.
@@ -43,12 +36,14 @@ fun premain(opt: String?, inst: Instrumentation) {
                     "ClassLoader was not transformed to implement URLClassLoaderAccessor interface. Report to Developers."
                 }
 
-                val (apiJar, modJars, _) = ModCachingManager.getCachedApiAndMods()
-                loader.addWeaveURL(WeaveApiManager.getCommonApiJar().toURI().toURL())
-                if (apiJar != null)
-                    loader.addWeaveURL(apiJar.toURI().toURL())
+                val versionApi = FileManager.getVersionApi()
+                val mods = FileManager.getMods()
 
-                modJars.forEach { loader.addWeaveURL(it.toURI().toURL()) }
+                loader.addWeaveURL(FileManager.getCommonApi().toURI().toURL())
+                if (versionApi != null)
+                    loader.addWeaveURL(versionApi.toURI().toURL())
+
+                mods.forEach { loader.addWeaveURL(it.file.toURI().toURL()) }
 
                 /*
                 Load the rest of the loader using Minecraft's class loader.
@@ -56,7 +51,7 @@ fun premain(opt: String?, inst: Instrumentation) {
                 */
                 loader.loadClass("net.weavemc.loader.WeaveLoader")
                     .getDeclaredMethod("init", Instrumentation::class.java, File::class.java, List::class.java)
-                    .invoke(null, inst, apiJar, modJars)
+                    .invoke(null, inst, versionApi, mods.map { it.file })
             }
 
             return null

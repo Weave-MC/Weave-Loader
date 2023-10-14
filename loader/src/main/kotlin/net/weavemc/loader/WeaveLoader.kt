@@ -13,14 +13,14 @@ import java.util.jar.JarFile
 /**
  * The main class of the Weave Loader.
  */
-public object WeaveLoader {
+object WeaveLoader {
 
     /**
      * Stored list of [WeaveMod]s.
      *
      * @see ModConfig
      */
-    public val mods: MutableList<WeaveMod> = mutableListOf()
+    val mods: MutableList<WeaveMod> = mutableListOf()
     lateinit var mixins: MixinApplicator
 
     /**
@@ -29,7 +29,7 @@ public object WeaveLoader {
      * @see net.weavemc.loader.bootstrap.premain
      */
     @JvmStatic
-    public fun init(inst: Instrumentation, apiJar: File?, modJars: List<File>) {
+    fun init(inst: Instrumentation, apiJar: File?, modJars: List<File>) {
         println("[Weave] Initializing Weave")
         launchStart = System.currentTimeMillis()
         inst.addTransformer(HookManager)

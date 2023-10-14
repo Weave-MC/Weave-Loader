@@ -4,13 +4,11 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import net.weavemc.loader.DownloadUtil
 import net.weavemc.loader.JSON
-import net.weavemc.loader.ModCachingManager
+import net.weavemc.loader.FileManager
 import net.weavemc.weave.api.gameVersion
 import java.io.File
 import java.io.InputStream
-import java.lang.IllegalStateException
 import java.net.URL
-import kotlin.io.path.notExists
 
 object MappingsManager {
     private inline fun <reified T> String?.decodeJSON() =
@@ -20,7 +18,7 @@ object MappingsManager {
      * Retrieves a text file containing srg, yarn, and mojmap mappings
      */
     fun getOrCreateBundledMappings(): File {
-        val bundledFile = ModCachingManager.cacheDirectory
+        val bundledFile = FileManager.CACHE_DIRECTORY
             .resolve("mappings")
             .resolve(gameVersion.versionName)
             .resolve("bundled.mappings").toFile()
@@ -56,7 +54,7 @@ object MappingsManager {
     }
 
     fun getMojangMappings(): File? {
-        val file = ModCachingManager.cacheDirectory
+        val file = FileManager.CACHE_DIRECTORY
             .resolve("mappings")
             .resolve(gameVersion.versionName)
             .resolve("mojang.mappings").toFile()
@@ -96,7 +94,7 @@ object MappingsManager {
         val mappings = versionInfo.downloads.mappings
 
         if (mappings.size != -1) {
-            val path = ModCachingManager.cacheDirectory
+            val path = FileManager.CACHE_DIRECTORY
                 .resolve("mappings")
                 .resolve(gameVersion.versionName)
                 .resolve("mojang.mappings")
