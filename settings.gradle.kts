@@ -1,3 +1,9 @@
+includeBuild("mappings-util") {
+    dependencySubstitution {
+        substitute(module("com.grappenmaker:mappings-util")).using(project(":"))
+    }
+}
+
 pluginManagement {
     repositories {
         mavenCentral()

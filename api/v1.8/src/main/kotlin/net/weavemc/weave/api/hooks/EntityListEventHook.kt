@@ -19,7 +19,7 @@ internal class EntityListEventAddHook : Hook("net/minecraft/world/World") {
             "(Lnet/minecraft/entity/Entity;)Z"
         )
 
-        node.methods.search(mappedMethod.runtimeName, mappedMethod.descriptor).instructions.insert(asm {
+        node.methods.search(mappedMethod.runtimeName, mappedMethod.desc).instructions.insert(asm {
             new(internalNameOf<EntityListEvent.Add>())
             dup
             aload(1)
@@ -41,7 +41,7 @@ internal class EntityListEventRemoveHook : Hook("net/minecraft/client/multiplaye
             "(I)Lnet/minecraft/entity/Entity;"
         )
 
-        val mn = node.methods.search(mappedMethod.runtimeName, mappedMethod.descriptor)
+        val mn = node.methods.search(mappedMethod.runtimeName, mappedMethod.desc)
         mn.instructions.insert(mn.instructions.find { it.opcode == Opcodes.IFNULL }, asm {
             new(internalNameOf<EntityListEvent.Remove>())
             dup

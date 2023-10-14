@@ -26,7 +26,7 @@ class ChatReceivedEventHook : Hook(getMappedClass("net/minecraft/client/gui/GuiN
             "(Lnet/minecraft/util/IChatComponent;I)V"
         )
 
-        node.methods.search(mappedMethod.runtimeName, mappedMethod.descriptor).instructions.insert(asm {
+        node.methods.search(mappedMethod.runtimeName, mappedMethod.desc).instructions.insert(asm {
             new(internalNameOf<ChatReceivedEvent>())
             dup
             dup

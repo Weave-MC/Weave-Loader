@@ -35,7 +35,7 @@ class WorldEventHook: Hook(getMappedClass("net/minecraft/client/Minecraft")) {
             "theWorld"
         )
 
-        node.methods.search(mappedMethod.runtimeName, mappedMethod.descriptor)
+        node.methods.search(mappedMethod.runtimeName, mappedMethod.desc)
             .instructions.insert(asm {
                 val lbl = LabelNode()
 

@@ -27,7 +27,7 @@ class PacketEventHook: Hook(getMappedClass("net/minecraft/network/NetworkManager
             "(Lnet/minecraft/network/Packet;[Lio/netty/util/concurrent/GenericFutureListener;)V"
         )
 
-        node.methods.search(scheduleOutboundPacket.runtimeName, scheduleOutboundPacket.descriptor).instructions.insert(asm {
+        node.methods.search(scheduleOutboundPacket.runtimeName, scheduleOutboundPacket.desc).instructions.insert(asm {
             new(internalNameOf<PacketEvent.Send>())
             dup; dup
             aload(1)
@@ -57,7 +57,7 @@ class PacketEventHook: Hook(getMappedClass("net/minecraft/network/NetworkManager
             "(Lio/netty/channel/ChannelHandlerContext;Lnet/minecraft/network/Packet;)V"
         )
 
-        node.methods.search(channelRead0.runtimeName, channelRead0.descriptor).instructions.insert(asm {
+        node.methods.search(channelRead0.runtimeName, channelRead0.desc).instructions.insert(asm {
             new(internalNameOf<PacketEvent.Receive>())
             dup; dup
             aload(2)

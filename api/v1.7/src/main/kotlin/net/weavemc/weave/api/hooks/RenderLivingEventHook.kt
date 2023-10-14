@@ -35,7 +35,7 @@ class RenderLivingEventHook : Hook(getMappedClass("net/minecraft/client/renderer
             "(Lnet/minecraft/entity/EntityLivingBase;DDDFF)V"
         )
 
-        val doRender = node.methods.search(mappedMethod.runtimeName, mappedMethod.descriptor)
+        val doRender = node.methods.search(mappedMethod.runtimeName, mappedMethod.desc)
 
         doRender.instructions.insert(asm {
             new(internalNameOf<RenderLivingEvent.Pre>())

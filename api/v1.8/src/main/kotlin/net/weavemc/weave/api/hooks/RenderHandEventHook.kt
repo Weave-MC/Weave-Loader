@@ -22,7 +22,7 @@ internal class RenderHandEventHook : Hook(getMappedClass("net/minecraft/client/r
             "(IFJ)V"
         )
 
-        val renderWorldPass = node.methods.search(mappedMethod.runtimeName, mappedMethod.descriptor)
+        val renderWorldPass = node.methods.search(mappedMethod.runtimeName, mappedMethod.desc)
 
         val ifeq = renderWorldPass.instructions.find {
             it is LdcInsnNode && it.cst == "hand"

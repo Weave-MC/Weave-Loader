@@ -28,7 +28,7 @@ class MouseEventHook : Hook(getMappedClass("net/minecraft/client/Minecraft")) {
             "()V"
         )
 
-        val mn = node.methods.search(runTick.runtimeName, runTick.descriptor)
+        val mn = node.methods.search(runTick.runtimeName, runTick.desc)
 
         val mouseNext = mn.instructions.find {
             it is MethodInsnNode && it.owner == internalNameOf<Mouse>() && it.name == "next"

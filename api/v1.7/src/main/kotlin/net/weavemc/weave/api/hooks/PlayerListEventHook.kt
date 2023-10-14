@@ -49,7 +49,7 @@ class PlayerListEventHook : Hook(getMappedClass("net/minecraft/client/network/Ne
             "(Lnet/minecraft/network/play/server/S38PacketPlayerListItem;)V"
         )
 
-        val mn = node.methods.search(mappedMethod.runtimeName, mappedMethod.descriptor)
+        val mn = node.methods.search(mappedMethod.runtimeName, mappedMethod.desc)
         mn.instructions.insertBefore(mn.instructions.find { it is MethodInsnNode && it.name == "put" }, addInsn)
         mn.instructions.insertBefore(mn.instructions.find { it is MethodInsnNode && it.name == "remove" }, removeInsn)
     }

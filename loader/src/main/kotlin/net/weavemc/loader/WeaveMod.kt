@@ -2,7 +2,6 @@ package net.weavemc.loader
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import net.weavemc.loader.mapping.MappingsRemapper
 import net.weavemc.weave.api.Hook
 import net.weavemc.weave.api.ModInitializer
 

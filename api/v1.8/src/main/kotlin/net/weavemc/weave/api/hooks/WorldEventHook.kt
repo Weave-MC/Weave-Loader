@@ -39,7 +39,7 @@ internal class WorldEventHook: Hook(getMappedClass("net/minecraft/client/Minecra
             "theWorld"
         )
 
-        node.methods.search(loadWorld.runtimeName, loadWorld.descriptor).instructions.insert(asm {
+        node.methods.search(loadWorld.runtimeName, loadWorld.desc).instructions.insert(asm {
             val lbl = LabelNode()
 
             aload(0)

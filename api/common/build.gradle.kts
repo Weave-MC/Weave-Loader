@@ -9,6 +9,7 @@ repositories {
 
 dependencies {
     api(libs.bundles.asm)
+    api("com.grappenmaker:mappings-util:0.1")
 }
 
 publishing {

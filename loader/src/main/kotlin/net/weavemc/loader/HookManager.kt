@@ -1,5 +1,7 @@
 package net.weavemc.loader
 
+import com.grappenmaker.mappings.LambdaAwareRemapper
+import com.grappenmaker.mappings.MappingsRemapper
 import net.weavemc.loader.bootstrap.SafeTransformer
 import net.weavemc.loader.mapping.*
 import net.weavemc.weave.api.Hook
@@ -21,22 +23,7 @@ internal object HookManager : SafeTransformer {
     val hooks = mutableListOf<ModHook>()
 
     override fun transform(loader: ClassLoader, className: String, originalClass: ByteArray): ByteArray? {
-        val hooks = mutableMapOf<MappingsRemapper, List<Hook>>()
-
-        this.hooks.forEach { hook ->
-            val mapper = when (hook.mapper) {
-                mojangMapper.name -> mojangMapper
-                srgMapper.name -> srgMapper
-                yarnMapper.name -> yarnMapper
-                else -> {
-                    println("Failed to find mappings for ${hook.javaClass.name}")
-                    emptyMapper
-                }
-            }
-
-            hooks[mapper] = (hooks[mapper] ?: mutableListOf()) + hook.hook
-        }
-
+        val hooks = this.hooks.groupBy { findMapper(it.mapper) }.mapValues { (_, v) -> v.map { it.hook } }
         if (hooks.isEmpty()) return null
 
         println("[HookManager] Transforming $className")
@@ -51,6 +38,7 @@ internal object HookManager : SafeTransformer {
                 computeFrames = true
             }
         }
+
         val flags = if (config.computeFrames) ClassWriter.COMPUTE_FRAMES else ClassWriter.COMPUTE_MAXS
 
         val writer = HookClassWriter(flags)

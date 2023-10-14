@@ -1,11 +1,11 @@
 package net.weavemc.loader.mixins
 
+import com.grappenmaker.mappings.LambdaAwareRemapper
+import com.grappenmaker.mappings.MappingsRemapper
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.decodeFromStream
-import net.weavemc.loader.HookClassWriter
+import net.weavemc.loader.*
 import net.weavemc.loader.JSON
-import net.weavemc.loader.MixinConfig
-import net.weavemc.loader.ModConfig
 import net.weavemc.loader.bootstrap.SafeTransformer
 import net.weavemc.loader.mapping.*
 import net.weavemc.weave.api.bytecode.asm
@@ -506,17 +506,16 @@ class MixinApplicator {
 
             applicableMixins.forEach {
                 println("  - ${it.mixinClass.name} (${it.mapper.uppercase()})")
-                val mapper = when(it.mapper) {
-                    mojangMapper.name -> mojangMapper
-                    yarnMapper.name -> yarnMapper
-                    srgMapper.name -> srgMapper
+                val mapper = when (it.mapper) {
+                    "mojang" -> mojangMapper
+                    "yarn" -> yarnMapper
+                    "srg" -> srgMapper
                     else -> emptyMapper
                 }
 
                 val modMappedNode = vanillaNode.remapUsing(mapper)
 
                 it.applyMixin(modMappedNode)
-
                 vanillaNode = modMappedNode.remapToVanilla()
             }
 

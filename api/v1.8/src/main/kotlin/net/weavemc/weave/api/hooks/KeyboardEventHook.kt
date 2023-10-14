@@ -19,7 +19,7 @@ internal class KeyboardEventHook : Hook(getMappedClass("net/minecraft/client/Min
             "()V"
         )
 
-        node.methods.search(mappedMethod.runtimeName, mappedMethod.descriptor).let { mn ->
+        node.methods.search(mappedMethod.runtimeName, mappedMethod.desc).let { mn ->
             val dispatchKeypresses = getMappedMethod(
                 "net/minecraft/client/Minecraft",
                 "dispatchKeypresses",

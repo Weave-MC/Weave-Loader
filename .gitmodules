@@ -1,0 +1,3 @@
+[submodule "mappings-util"]
+	path = mappings-util
+	url = https://github.com/770grappenmaker/mappings-util.git

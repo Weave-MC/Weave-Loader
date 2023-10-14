@@ -28,7 +28,7 @@ internal class ShutdownEventHook : Hook(getMappedClass("net/minecraft/client/Min
             "()V"
         )
 
-        node.methods.search(mappedMethod.runtimeName, mappedMethod.descriptor).instructions.insert(asm {
+        node.methods.search(mappedMethod.runtimeName, mappedMethod.desc).instructions.insert(asm {
             getSingleton<ShutdownEvent>()
             callEvent()
         })

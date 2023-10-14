@@ -31,9 +31,9 @@ class KeyboardEventHook : Hook(getMappedClass("net/minecraft/client/Minecraft"))
             "()V"
         )
 
-        node.methods.search(runTick.runtimeName, runTick.descriptor).let { mn ->
+        node.methods.search(runTick.runtimeName, runTick.desc).let { mn ->
             mn.instructions.insert(
-                mn.instructions.find { it is MethodInsnNode && it.name == dispatchKeypresses.runtimeName && it.desc == dispatchKeypresses.descriptor },
+                mn.instructions.find { it is MethodInsnNode && it.name == dispatchKeypresses.runtimeName && it.desc == dispatchKeypresses.desc },
                 asm {
                     new(internalNameOf<KeyboardEvent>())
                     dup

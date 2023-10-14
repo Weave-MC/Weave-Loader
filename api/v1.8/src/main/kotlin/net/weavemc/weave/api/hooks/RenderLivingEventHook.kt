@@ -30,7 +30,7 @@ internal class RenderLivingEventHook : Hook(getMappedClass("net/minecraft/client
             "(Lnet/minecraft/entity/EntityLivingBase;DDDFF)V"
         )
 
-        val mn = node.methods.search(mappedMethod.runtimeName, mappedMethod.descriptor)
+        val mn = node.methods.search(mappedMethod.runtimeName, mappedMethod.desc)
         mn.instructions.insert(asm {
             new(internalNameOf<RenderLivingEvent.Pre>())
             dup

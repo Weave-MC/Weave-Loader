@@ -21,7 +21,7 @@ internal class RenderGameOverlayHook : Hook(
             "(F)V"
         )
 
-        val mn = node.methods.search(mappedMethod.runtimeName, mappedMethod.descriptor)
+        val mn = node.methods.search(mappedMethod.runtimeName, mappedMethod.desc)
         mn.instructions.insert(asm {
             new(internalNameOf<RenderGameOverlayEvent.Pre>())
             dup

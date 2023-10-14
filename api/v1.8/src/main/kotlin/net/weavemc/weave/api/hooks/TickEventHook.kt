@@ -33,7 +33,7 @@ internal class TickEventHook : Hook(getMappedClass("net/minecraft/client/Minecra
             "()V"
         )
 
-        val runTick = node.methods.search(mappedMethod.runtimeName, mappedMethod.descriptor)
+        val runTick = node.methods.search(mappedMethod.runtimeName, mappedMethod.desc)
         runTick.instructions.insert(asm {
             getSingleton<TickEvent.Pre>()
             callEvent()

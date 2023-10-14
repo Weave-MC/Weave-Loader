@@ -19,7 +19,7 @@ class ChatSentEventHook : Hook("net/minecraft/client/entity/EntityPlayerSP") {
             "(Ljava/lang/String;)V"
         )
 
-        node.methods.search(mappedMethod.runtimeName, mappedMethod.descriptor).instructions.insert(asm {
+        node.methods.search(mappedMethod.runtimeName, mappedMethod.desc).instructions.insert(asm {
             new(internalNameOf<ChatSentEvent>())
             dup
             dup

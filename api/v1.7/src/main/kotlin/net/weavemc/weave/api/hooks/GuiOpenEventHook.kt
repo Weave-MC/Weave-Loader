@@ -26,7 +26,7 @@ class GuiOpenEventHook : Hook(getMappedClass("net/minecraft/client/Minecraft")) 
             "(Lnet/minecraft/client/gui/GuiScreen;)V"
         )
 
-        node.methods.search(mappedMethod.runtimeName, mappedMethod.descriptor).instructions.insert(asm {
+        node.methods.search(mappedMethod.runtimeName, mappedMethod.desc).instructions.insert(asm {
             new(internalNameOf<GuiOpenEvent>())
             dup
             dup

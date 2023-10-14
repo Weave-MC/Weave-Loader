@@ -31,7 +31,7 @@ class RenderWorldEventHook : Hook(getMappedClass("net/minecraft/client/renderer/
             "(FJ)V"
         )
 
-        val renderWorld = node.methods.search(mappedMethod.runtimeName, mappedMethod.descriptor)
+        val renderWorld = node.methods.search(mappedMethod.runtimeName, mappedMethod.desc)
 
         renderWorld.instructions.insertBefore(
             renderWorld.instructions.find { it is LdcInsnNode && it.cst == "hand" },

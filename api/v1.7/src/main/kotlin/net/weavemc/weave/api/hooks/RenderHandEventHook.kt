@@ -25,7 +25,7 @@ class RenderHandEventHook : Hook(getMappedClass("net/minecraft/client/renderer/E
             "(FJ)V"
         )
 
-        val renderWorld = node.methods.search(mappedMethod.runtimeName, mappedMethod.descriptor)
+        val renderWorld = node.methods.search(mappedMethod.runtimeName, mappedMethod.desc)
 
         val ifeq = renderWorld.instructions.find {
             it is LdcInsnNode && it.cst == "hand"

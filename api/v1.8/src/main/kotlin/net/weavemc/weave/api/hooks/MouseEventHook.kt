@@ -22,7 +22,7 @@ internal class MouseEventHook : Hook(getMappedClass("net/minecraft/client/Minecr
             "()V"
         )
 
-        val mn = node.methods.search(mappedMethod.runtimeName, mappedMethod.descriptor)
+        val mn = node.methods.search(mappedMethod.runtimeName, mappedMethod.desc)
         val mouseNext = mn.instructions.find {
             it is MethodInsnNode && it.owner == internalNameOf<Mouse>() && it.name == "next"
         }!!

@@ -1,8 +1,6 @@
 package net.weavemc.loader
 
 import net.weavemc.loader.analytics.launchStart
-import net.weavemc.loader.mapping.srgMapper
-import net.weavemc.loader.mapping.yarnMapper
 import net.weavemc.loader.mixins.MixinApplicator
 import net.weavemc.weave.api.Hook
 import net.weavemc.weave.api.ModInitializer

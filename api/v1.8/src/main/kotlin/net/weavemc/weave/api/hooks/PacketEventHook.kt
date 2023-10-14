@@ -43,7 +43,7 @@ internal class PacketEventHook: Hook(getMappedClass("net/minecraft/network/Netwo
             "(Lio/netty/channel/ChannelHandlerContext;Lnet/minecraft/network/Packet;)V"
         )
 
-        node.methods.search(channelRead0.runtimeName, channelRead0.descriptor).instructions.insert(asm {
+        node.methods.search(channelRead0.runtimeName, channelRead0.desc).instructions.insert(asm {
             new(internalNameOf<PacketEvent.Receive>())
             dup; dup
             aload(2)

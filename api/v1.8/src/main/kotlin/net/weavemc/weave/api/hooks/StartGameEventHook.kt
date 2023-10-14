@@ -28,7 +28,7 @@ internal class StartGameEventHook : Hook(getMappedClass("net/minecraft/client/Mi
             "()V"
         )
 
-        val mn = node.methods.search(mappedMethod.runtimeName, mappedMethod.descriptor)
+        val mn = node.methods.search(mappedMethod.runtimeName, mappedMethod.desc)
         mn.instructions.insert(asm {
             getSingleton<StartGameEvent.Pre>()
             callEvent()
