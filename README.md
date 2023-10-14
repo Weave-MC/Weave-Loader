@@ -52,6 +52,7 @@ the [releases page](https://github.com/Weave-MC/Weave-Loader/releases), or build
 
 ```bash
 git clone https://github.com/Weave-MC/Weave-Loader.git
+git submodule update --init --recursive
 ```
 
 - **UN*X**
