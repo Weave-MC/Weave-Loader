@@ -53,7 +53,7 @@ internal object HookManager : SafeTransformer {
         }
         val flags = if (config.computeFrames) ClassWriter.COMPUTE_FRAMES else ClassWriter.COMPUTE_MAXS
 
-        val writer = HookClassWriter(reader, flags)
+        val writer = HookClassWriter(flags)
         hooks.forEach {
             println(" -${it.key.name}")
 
@@ -89,9 +89,8 @@ internal object HookManager : SafeTransformer {
 }
 
 class HookClassWriter(
-    classReader: ClassReader,
     flags: Int
-) : ClassWriter(classReader, flags) {
+) : ClassWriter(flags) {
     private fun getResourceAsByteArray(resourceName: String): ByteArray =
         classLoader.getResourceAsStream("$resourceName.class")?.readBytes()
             ?: classLoader.getResourceAsStream("${fullMapper.map(resourceName)}.class")?.readBytes()
