@@ -24,6 +24,7 @@ fun premain(opt: String?, inst: Instrumentation) {
     println("[Weave] Detected Minecraft version: $version")
 
     inst.addTransformer(URLClassLoaderTransformer)
+    inst.addTransformer(AntiLunarCache)
     inst.addTransformer(object : SafeTransformer {
         override fun transform(loader: ClassLoader, className: String, originalClass: ByteArray): ByteArray? {
             // Initialize Weave once the first Minecraft class is loaded into LaunchClassLoader (or main classloader for Minecraft)
@@ -31,7 +32,9 @@ fun premain(opt: String?, inst: Instrumentation) {
                 (gameClient != GameInfo.Client.FORGE && className.startsWith("net/minecraft/client/")) ||
                 (gameClient == GameInfo.Client.FORGE && className == "net/minecraftforge/fml/common/Loader")
             ) {
+                inst.removeTransformer(AntiLunarCache)
                 inst.removeTransformer(this)
+
                 require(loader is URLClassLoaderAccessor) {
                     "ClassLoader was not transformed to implement URLClassLoaderAccessor interface. Report to Developers."
                 }
