@@ -1,7 +1,7 @@
-package net.weavemc.loader
+package net.weavemc.loader.mapping
 
 import com.grappenmaker.mappings.*
-import net.weavemc.loader.mapping.MappingsManager
+import net.weavemc.loader.WeaveLoader
 import net.weavemc.weave.api.*
 
 val fullMappings by lazy {
@@ -61,8 +61,19 @@ val toNamespace = when {
     }
 }
 
-// FIXME: in the future we might need a solid way of providing class bytes
-private fun bytesProvider(@Suppress("UNUSED_PARAMETER") expectedNamespace: String): (String) -> ByteArray? = { null }
+private fun bytesProvider(expectedNamespace: String): (String) -> ByteArray? {
+    val names = if (expectedNamespace != "official") fullMappings.asASMMapping(
+        from = expectedNamespace,
+        to = "official",
+        includeMethods = false,
+        includeFields = false
+    ) else emptyMap()
+
+    return { name ->
+        WeaveLoader.javaClass.classLoader.getResourceAsStream("${names[name] ?: name}.class")?.readBytes()
+            ?: throw ClassNotFoundException("Failed to retrieve class from resources: $name")
+    }
+}
 
 val environmentMapper: MappingsRemapper by lazy {
     MappingsRemapper(environmentMappings, fromNamespace, toNamespace, loader = bytesProvider(fromNamespace))

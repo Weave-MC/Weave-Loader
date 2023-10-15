@@ -1,7 +1,6 @@
 package net.weavemc.loader
 
 import com.grappenmaker.mappings.LambdaAwareRemapper
-import com.grappenmaker.mappings.MappingsRemapper
 import net.weavemc.loader.bootstrap.SafeTransformer
 import net.weavemc.loader.mapping.*
 import net.weavemc.weave.api.Hook
