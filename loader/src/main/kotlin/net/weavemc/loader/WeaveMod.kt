@@ -37,17 +37,13 @@ public data class ModConfig(
 )
 
 /**
- * @param mapper Name of the mapper
  * @param hook Hook class
  */
-data class ModHook(
-    val mapper: String,
-    val hook: Hook
-)
+data class ModHook(val hook: Hook)
 
 @Serializable
 public data class MixinConfig(
     @SerialName("package")
     val packagePath: String,
-    val mixins: Array<String>
+    val mixins: List<String>
 )

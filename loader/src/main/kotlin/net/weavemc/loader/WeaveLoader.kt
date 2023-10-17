@@ -1,8 +1,7 @@
 package net.weavemc.loader
 
+import kotlinx.serialization.json.Json
 import net.weavemc.loader.analytics.launchStart
-import net.weavemc.loader.mapping.name
-import net.weavemc.loader.mapping.yarnMapper
 import net.weavemc.loader.mixins.MixinApplicator
 import net.weavemc.weave.api.Hook
 import net.weavemc.weave.api.ModInitializer
@@ -71,7 +70,7 @@ object WeaveLoader {
                 runCatching {
                     val clazz = Class.forName(it.name.removeSuffix(".class").replace('/', '.'))
                     if (clazz.superclass == Hook::class.java) {
-                        HookManager.hooks += ModHook(yarnMapper.name, clazz.getConstructor().newInstance() as Hook)
+                        HookManager.hooks += ModHook(clazz.getConstructor().newInstance() as Hook)
                     }
                 }
             }
@@ -84,19 +83,12 @@ object WeaveLoader {
         val json = JSON
 
         modJars.forEach { file ->
-            val jar = JarFile(file)
-            println("[Weave] Loading ${jar.name}")
+            println("[Weave] Loading ${file.name}")
 
-            val configEntry = jar.getEntry("weave.mod.json")
-                ?: error("${jar.name} does not contain a weave.mod.json!")
-
-            val config = json.decodeFromString<ModConfig>(jar.getInputStream(configEntry).readBytes().decodeToString())
-            val name = config.name ?: jar.name.removeSuffix(".jar")
-
-            config.mixinConfigs.forEach { mixins.registerMixin(config, it, jar) }
-            HookManager.hooks += config.hooks.map {
-                ModHook(config.mappings ?: "emptyMapper", instantiate(it))
-            }
+            val config = file.fetchModConfig(json)
+            val name = config.name ?: file.name.removeSuffix(".jar")
+            JarFile(file).use { j -> config.mixinConfigs.forEach { mixins.registerMixin(it, j) } }
+            HookManager.hooks += config.hooks.map { ModHook(instantiate(it)) }
 
             // TODO: Add a name field to the config.
             mods += WeaveMod(name, config)
@@ -110,4 +102,16 @@ object WeaveLoader {
             .getConstructor()
             .newInstance() as? T
             ?: error("$className does not implement ${T::class.java.simpleName}!")
+}
+
+internal fun File.fetchModConfig(json: Json) = JarFile(this).use {
+    val configEntry = it.getEntry("weave.mod.json")
+        ?: error("${it.name} does not contain a weave.mod.json!")
+
+    json.decodeFromString<ModConfig>(it.getInputStream(configEntry).readBytes().decodeToString())
+}
+
+internal fun JarFile.fetchMixinConfig(path: String, json: Json): MixinConfig {
+    val configEntry = getEntry(path) ?: error("$name does not contain a $path (the mixin config)!")
+    return json.decodeFromString<MixinConfig>(getInputStream(configEntry).readBytes().decodeToString())
 }

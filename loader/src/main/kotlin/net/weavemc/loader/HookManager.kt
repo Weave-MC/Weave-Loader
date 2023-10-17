@@ -22,7 +22,8 @@ internal object HookManager : SafeTransformer {
     val hooks = mutableListOf<ModHook>()
 
     override fun transform(loader: ClassLoader, className: String, originalClass: ByteArray): ByteArray? {
-        val hooks = this.hooks.groupBy { findMapper(it.mapper) }.mapValues { (_, v) -> v.map { it.hook } }
+        // TODO: this looks like it will not work: there is no filtering
+        val hooks = this.hooks.map { it.hook }
         if (hooks.isEmpty()) return null
 
         println("[HookManager] Transforming $className")
@@ -39,20 +40,9 @@ internal object HookManager : SafeTransformer {
         }
 
         val flags = if (config.computeFrames) ClassWriter.COMPUTE_FRAMES else ClassWriter.COMPUTE_MAXS
+        val writer = HookClassWriter(flags, reader)
 
-        val writer = HookClassWriter(flags)
-        hooks.forEach {
-            println(" -${it.key.name}")
-
-            reader.accept(LambdaAwareRemapper(writer, it.key), 0)
-
-            it.value.forEach { hook ->
-                println("  -${hook.javaClass.name}")
-                hook.transform(node, config)
-            }
-
-            reader.accept(LambdaAwareRemapper(writer, it.key.reverse()), 0)
-        }
+        // TODO: reimplement hooks
 
         if (dumpBytecode) {
             val bytecodeOut = getBytecodeDir().resolve("$className.class")
@@ -76,11 +66,13 @@ internal object HookManager : SafeTransformer {
 }
 
 class HookClassWriter(
-    flags: Int
-) : ClassWriter(flags) {
+    flags: Int,
+    reader: ClassReader? = null,
+) : ClassWriter(reader, flags) {
     private fun getResourceAsByteArray(resourceName: String): ByteArray =
         classLoader.getResourceAsStream("$resourceName.class")?.readBytes()
-            ?: classLoader.getResourceAsStream("${fullMapper.map(resourceName)}.class")?.readBytes()
+            ?: classLoader.getResourceAsStream("${resourceNameMapper.map(resourceName)}.class")
+                ?.readBytes()?.remapToEnvironment()
             ?: throw ClassNotFoundException("Failed to retrieve class from resources: $resourceName")
 
     private fun ByteArray.asClassReader(): ClassReader = ClassReader(this)
@@ -118,7 +110,7 @@ class HookClassWriter(
                 while (!class1.isAssignableFrom(class2))
                     class1 = getResourceAsByteArray(class1.superName).asClassReader()
 
-                return fullMapper.map(class1.className)
+                return class1.className
             }
         }
     }

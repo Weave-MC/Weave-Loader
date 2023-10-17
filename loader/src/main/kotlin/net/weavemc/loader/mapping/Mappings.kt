@@ -2,64 +2,30 @@ package net.weavemc.loader.mapping
 
 import com.grappenmaker.mappings.*
 import net.weavemc.loader.WeaveLoader
-import net.weavemc.weave.api.*
+import net.weavemc.weave.api.GameInfo
+import net.weavemc.weave.api.GameInfo.Client
+import net.weavemc.weave.api.gameClient
+import net.weavemc.weave.api.gameVersion
+import org.objectweb.asm.ClassReader
+import org.objectweb.asm.ClassWriter
+import org.objectweb.asm.commons.Remapper
+import org.objectweb.asm.commons.SimpleRemapper
 
 val fullMappings by lazy {
     MappingsLoader.loadMappings(MappingsManager.getOrCreateBundledMappings().readLines())
 }
 
-val mojangMappings by lazy {
-    val file = MappingsManager.getMojangMappings()
-    if (file == null) {
-        println("Failed to specifically retrieve Mojang mappings for ${gameVersion.mappingName}")
-        return@lazy EmptyMappings
-    }
-
-    MappingsLoader.loadMappings(file.readLines())
-}
-
-val srgMappings by lazy {
-    val stream = MappingsManager.getSrgMappings()
-    if (stream == null) {
-        println("Failed to specifically retrieve SRG mappings for ${gameVersion.mappingName}")
-        return@lazy EmptyMappings
-    }
-
-    MappingsLoader.loadMappings(stream)
-}
-
-val yarnMappings by lazy {
-    val stream = MappingsManager.getYarnMappings()
-    if (stream == null) {
-        println("Failed to specifically retrieve Yarn mappings for ${gameVersion.mappingName}")
-        return@lazy EmptyMappings
-    }
-
-    MappingsLoader.loadMappings(stream)
-}
-
-val environmentMappings by lazy {
+val environmentNamespace by lazy {
     when (gameClient) {
-        GameInfo.Client.LUNAR -> mojangMappings
-        GameInfo.Client.FORGE -> srgMappings
-        else -> yarnMappings // not the safest
+        // TODO: correct version
+        Client.LUNAR -> if (gameVersion < GameInfo.Version.V1_16_5) "mcp" else "mojang"
+        Client.FORGE, Client.LABYMOD -> "mcp"
+        Client.VANILLA -> "official"
+        Client.BADLION -> error("We do not know")
     }
 }
 
-val isEmptyMappings get() = environmentMappings == EmptyMappings
-
-val fromNamespace = when {
-    isEmptyMappings -> "none"
-    else -> "named"
-}
-
-val toNamespace = when {
-    isEmptyMappings -> "none"
-    else -> when (gameClient) {
-        GameInfo.Client.FORGE -> "srg"
-        else -> "official"
-    }
-}
+const val resourceNamespace = "official"
 
 private fun bytesProvider(expectedNamespace: String): (String) -> ByteArray? {
     val names = if (expectedNamespace != "official") fullMappings.asASMMapping(
@@ -69,40 +35,38 @@ private fun bytesProvider(expectedNamespace: String): (String) -> ByteArray? {
         includeFields = false
     ) else emptyMap()
 
-    return { name ->
-        WeaveLoader.javaClass.classLoader.getResourceAsStream("${names[name] ?: name}.class")?.readBytes()
-            ?: throw ClassNotFoundException("Failed to retrieve class from resources: $name")
-    }
+    val mapper = SimpleRemapper(names)
+    val callback = ClasspathLoaders.fromLoader(WeaveLoader.javaClass.classLoader)
+
+    return { name -> callback(names[name] ?: name)?.remap(mapper) }
 }
 
-val environmentMapper: MappingsRemapper by lazy {
-    MappingsRemapper(environmentMappings, fromNamespace, toNamespace, loader = bytesProvider(fromNamespace))
+fun mapper(from: String, to: String) = MappingsRemapper(fullMappings, from, to, loader = bytesProvider(from))
+fun MappingsRemapper.reverseWithBytes() = reverse(bytesProvider(to))
+
+val availableMappers by lazy {
+    (fullMappings.namespaces - environmentNamespace).associateWith { mapper(environmentNamespace, it) }
 }
 
-val demapper by lazy { environmentMapper.reverse(bytesProvider(toNamespace)) }
+val availableUnmappers by lazy { availableMappers.mapValues { it.value.reverseWithBytes() } }
 
-val fullMapper by lazy { MappingsRemapper(fullMappings, "named", "official", loader = bytesProvider("named")) }
-val emptyMapper by lazy { MappingsRemapper(EmptyMappings, "named", "official", loader = bytesProvider("named"))}
+fun cachedMapper(to: String) = availableMappers[to] ?: error("Could not find a mapper for $to!")
+fun cachedUnmapper(to: String) = availableUnmappers[to] ?: error("Could not find an unmapper for $to!")
 
-val yarnMapper by lazy { MappingsRemapper(yarnMappings, "official", "named", loader = bytesProvider("official")) }
-val reverseYarnMapper by lazy { yarnMapper.reverse(bytesProvider("named")) }
-
-val mojangMapper by lazy { MappingsRemapper(mojangMappings, "official", "named", loader = bytesProvider("official")) }
-val reverseMojangMapper by lazy { mojangMapper.reverse(bytesProvider("named")) }
-
-val srgMapper by lazy { MappingsRemapper(srgMappings, "named", "official", loader = bytesProvider("official")) }
-val reverseSRGMapper by lazy { srgMapper.reverse(bytesProvider("named")) }
-
-fun findMapper(name: String) = when (name) {
-    "srg" -> srgMapper
-    "yarn" -> yarnMapper
-    "mojang" -> mojangMapper
-    else -> error("Invalid mapping id $name!")
+val resourceNameMapper by lazy { cachedMapper(resourceNamespace) }
+val resourceNameUnmapper by lazy { cachedUnmapper(resourceNamespace) }
+val mappable by lazy {
+    val id = fullMappings.namespace("official")
+    fullMappings.classes.mapTo(hashSetOf()) { it.names[id] }
 }
 
-val MappingsRemapper.name get() = when (this) {
-    mojangMapper -> "mojang"
-    yarnMapper -> "yarn"
-    srgMapper -> "srg"
-    else -> error("Mapper $this is not a mapper known to Weave Loader!")
+fun ByteArray.remapToEnvironment(): ByteArray = remap(resourceNameUnmapper)
+fun ByteArray.remap(remapper: Remapper): ByteArray {
+    val reader = ClassReader(this)
+    if (reader.className !in mappable) return this
+
+    val writer = ClassWriter(reader, 0)
+    reader.accept(LambdaAwareRemapper(writer, remapper), 0)
+
+    return writer.toByteArray()
 }

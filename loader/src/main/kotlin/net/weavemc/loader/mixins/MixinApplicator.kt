@@ -1,22 +1,19 @@
 package net.weavemc.loader.mixins
 
-import com.grappenmaker.mappings.LambdaAwareRemapper
-import com.grappenmaker.mappings.MappingsRemapper
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.decodeFromStream
 import net.weavemc.loader.*
-import net.weavemc.loader.JSON
 import net.weavemc.loader.bootstrap.SafeTransformer
-import net.weavemc.loader.mapping.*
 import net.weavemc.weave.api.bytecode.asm
 import net.weavemc.weave.api.bytecode.internalNameOf
 import net.weavemc.weave.api.mixin.*
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
+import org.objectweb.asm.Opcodes.ACC_INTERFACE
 import org.objectweb.asm.Type
 import org.objectweb.asm.tree.*
-import java.lang.reflect.Parameter
+import java.io.File
 import java.util.jar.JarFile
 
 class MixinApplicator {
@@ -26,104 +23,78 @@ class MixinApplicator {
             if (!value) error("Cannot unfreeze mixin applicator!")
             field = true
         }
+
     private val json = JSON
 
-    private fun registerMixin(mapper: String, classBytes: ByteArray) {
+    private fun registerMixin(classBytes: ByteArray) {
         if (frozen) error("Mixin registration is already frozen!")
 
         val classNode = ClassNode()
         ClassReader(classBytes).accept(classNode, 0)
 
-        val mixinClass = Class.forName(classNode.name.replace("/", "."), false, MixinApplicator::class.java.classLoader)
         val mixinAnnotation = classNode.visibleAnnotations?.find { it.desc == "L${internalNameOf<Mixin>()};" }
-            ?: error("Mixin class ${mixinClass.name} missing @Mixin annotation")
-        val targetClasspath = (mixinAnnotation.values?.get(1) as? Type)?.className?.replace(".", "/")
+            ?: error("Mixin class ${classNode.name} missing @Mixin annotation")
+
+        val targetClasspath = (mixinAnnotation.values?.get(1) as? Type)?.className?.replace('.', '/')
             ?: error("Failed to parse @Mixin annotation. This should never happen!")
 
-        println("Registered Mixin for $targetClasspath using ${mixinClass.name}")
-        mixins += MixinClass(mapper, targetClasspath, mixinClass, classNode)
+        println("Registered Mixin for $targetClasspath using ${classNode.name}")
+        mixins += MixinClass(targetClasspath, classNode)
     }
 
-    @OptIn(ExperimentalSerializationApi::class)
-    fun registerMixin(modConfig: ModConfig, mixinConfigPath: String, modJar: JarFile) {
+    fun registerMixin(mixinConfigPath: String, modJar: JarFile) {
         if (frozen) error("Mixin registration is already frozen!")
 
-        val mixinConfig = json.decodeFromStream<MixinConfig>(modJar.getInputStream(modJar.getEntry(mixinConfigPath)))
+        val mixinConfig = modJar.fetchMixinConfig(mixinConfigPath, json)
         mixinConfig.mixins.forEach { mixinClasspath ->
             val mixinClassBytes = modJar.getInputStream(
                 modJar.getEntry("${mixinConfig.packagePath.replace(".", "/")}/$mixinClasspath.class")
             ).readBytes()
 
-            registerMixin(modConfig.mappings ?: "emptyMapper", mixinClassBytes)
+            registerMixin(mixinClassBytes)
         }
     }
 
     fun freeze() {
-        if (!frozen) {
-            frozen = true
-        }
+        frozen = true
     }
 
     internal data class MixinClass(
-        val mapper: String,
         val targetClasspath: String,
-        val mixinClass: Class<*>,
-        private val mixinNode: ClassNode
+        val mixinNode: ClassNode
     ) {
         private val callbackInfoType: Type = Type.getType(CallbackInfo::class.java)
 
         fun applyMixin(node: ClassNode) {
-            val mixedMethods: ArrayList<MethodNode> = arrayListOf()
-            val shadowed: ArrayList<Pair<String, String>> = arrayListOf()
+            val mixedMethods = mutableListOf<MethodNode>()
+            val shadowed = mutableListOf<Pair<String, String>>()
 
-            mixinClass.declaredFields
-                .filter { it.isAnnotationPresent(Shadow::class.java) }
-                .forEach { shadowed += it.name to it.type.name }
+            mixinNode.fields.forEach { f -> f.useAnnotation<Shadow> { shadowed += f.name to f.desc } }
 
-            for (method in mixinClass.declaredMethods) {
-                val rawMethod = mixinNode.methods.find {
-                    it.name == method.name && it.desc == Type.getMethodDescriptor(method)
-                } ?: error("No matching raw method found for ${method.name}${Type.getMethodDescriptor(method)} in class ${mixinClass.name}, should never happen")
-
-                //TODO find a way to clean this up
-                mixedMethods += when {
-                    method.isAnnotationPresent(Inject::class.java) -> applyInjection(
-                        node, mixinNode, rawMethod, method.parameters, method.getAnnotation(Inject::class.java)
-                    )
-                    method.isAnnotationPresent(Overwrite::class.java) -> applyOverwrite(
-                        node, rawMethod, method.getAnnotation(Overwrite::class.java)
-                    )
-                    method.isAnnotationPresent(ModifyArgs::class.java) -> applyModifyArgs(
-                        node, rawMethod, method.getAnnotation(ModifyArgs::class.java)
-                    )
-                    method.isAnnotationPresent(ModifyConstant::class.java) -> applyModifyConstant(
-                        node, rawMethod, method.getAnnotation(ModifyConstant::class.java)
-                    )
-                    method.isAnnotationPresent(Accessor::class.java) -> {
-                        if (!mixinClass.isInterface)
-                            error("Accessor annotation found in non-interface Mixin class ${mixinClass.name}")
-
-                        applyAccessor(
-                            node, mixinClass, rawMethod, method.getAnnotation(Accessor::class.java)
-                        )
-                    }
-                    method.isAnnotationPresent(Invoker::class.java) -> {
-                        if (!mixinClass.isInterface)
-                            error("Accessor annotation found in non-interface Mixin class ${mixinClass.name}")
-
-                        applyInvoker(
-                            node, mixinClass, rawMethod
-                        )
-                    }
-                    method.isAnnotationPresent(Redirect::class.java) -> applyRedirect(
-                        node, rawMethod, method.getAnnotation(Redirect::class.java)
-                    )
-                    method.isAnnotationPresent(Shadow::class.java) -> {
-                        shadowed += rawMethod.name to rawMethod.desc
-                        continue
-                    }
-                    else -> continue
+            for (method in mixinNode.methods) {
+                method.useAnnotation<Inject> {
+                    applyInjection(node, mixinNode, method, method.parameters?.toList() ?: emptyList(), it)
                 }
+
+                method.useAnnotation<Overwrite> { applyOverwrite(node, method, it) }
+                method.useAnnotation<ModifyArgs> { applyModifyArgs(node, method, it) }
+                method.useAnnotation<ModifyConstant> { applyModifyConstant(node, method, it) }
+                method.useAnnotation<Accessor> {
+                    if (mixinNode.access and ACC_INTERFACE == 0)
+                        error("Accessor annotation found in non-interface Mixin class ${mixinNode.name}")
+
+                    applyAccessor(node, method, it)
+                }
+
+                method.useAnnotation<Invoker> {
+                    if (mixinNode.access and ACC_INTERFACE == 0)
+                        error("Accessor annotation found in non-interface Mixin class ${mixinNode.name}")
+
+                    applyInvoker(node, method)
+                }
+
+                method.useAnnotation<Redirect> { applyRedirect(node, method, it) }
+                method.useAnnotation<Shadow> { shadowed += method.name to method.desc }
             }
 
             mixedMethods.forEach { it.remapShadowed() }
@@ -139,10 +110,16 @@ class MixinApplicator {
             targetClass: ClassNode,
             mixinClass: ClassNode,
             mixinMethod: MethodNode,
-            mixinMethodParams: Array<Parameter>,
+            mixinMethodParams: List<ParameterNode>,
             annotation: Inject,
         ): MethodNode {
-            val targetMethod = targetClass.methods.find{ "${it.name}${it.desc}" == annotation.method }
+            val actualMethod = when (val m = annotation.method) {
+                "keyPress(JIIII)V" -> "onKey(JIIII)V"
+                "render(Z)V" -> "runTick(Z)V"
+                else -> m
+            }
+
+            val targetMethod = targetClass.methods.find { "${it.name}${it.desc}" == actualMethod }
                 ?: error("Failed to load Mixin ${mixinClass.name}: ${annotation.method} is not present in class ${targetClass.name}")
 
             val copiedMixinMethod = copyMixinToTarget(targetClass, mixinMethod)
@@ -155,44 +132,49 @@ class MixinApplicator {
                         it.opcode == Type.getReturnType(targetMethod.desc).getOpcode(Opcodes.IRETURN)
                     }
                 }
+
                 At.Location.OPCODE -> {
                     when (at.opcode) {
                         Opcodes.GETFIELD, Opcodes.PUTFIELD -> {
                             val (className, fieldName) = at.target.split(";")
                             targetMethod.instructions.find {
                                 it is FieldInsnNode &&
-                                    it.opcode == at.opcode &&
-                                    it.owner == className &&
-                                    it.name == fieldName
+                                        it.opcode == at.opcode &&
+                                        it.owner == className &&
+                                        it.name == fieldName
                             }
                         }
+
                         Opcodes.INVOKESTATIC, Opcodes.INVOKEVIRTUAL, Opcodes.INVOKEDYNAMIC, Opcodes.INVOKESPECIAL -> {
                             val (className, methodString) = at.target.split(";")
                             val (methodName, methodDesc) = methodString.split("(", limit = 2)
                             val methodDescFormatted = "($methodDesc"
                             targetMethod.instructions.find {
                                 it is MethodInsnNode &&
-                                    it.opcode == at.opcode &&
-                                    it.owner == className &&
-                                    it.name == methodName &&
-                                    it.desc == methodDescFormatted
+                                        it.opcode == at.opcode &&
+                                        it.owner == className &&
+                                        it.name == methodName &&
+                                        it.desc == methodDescFormatted
                             }
                         }
+
                         Opcodes.ALOAD, Opcodes.ILOAD, Opcodes.LLOAD, Opcodes.DLOAD, Opcodes.FLOAD,
                         Opcodes.ASTORE, Opcodes.ISTORE, Opcodes.LSTORE, Opcodes.DSTORE, Opcodes.FSTORE -> {
                             targetMethod.instructions.find {
                                 it is VarInsnNode &&
-                                    it.opcode == at.opcode &&
-                                    it.`var` == at.target.toInt()
+                                        it.opcode == at.opcode &&
+                                        it.`var` == at.target.toInt()
                             }
                         }
+
                         Opcodes.LDC -> {
                             targetMethod.instructions.find {
                                 it is LdcInsnNode &&
-                                    it.opcode == at.opcode &&
-                                    it.cst == at.target
+                                        it.opcode == at.opcode &&
+                                        it.cst == at.target
                             }
                         }
+
                         Opcodes.JSR, Opcodes.GOTO, Opcodes.IFEQ, Opcodes.IFNE,
                         Opcodes.IFLT, Opcodes.IFGE, Opcodes.IFGT, Opcodes.IFLE,
                         Opcodes.IF_ICMPEQ, Opcodes.IF_ICMPNE, Opcodes.IF_ICMPLT,
@@ -203,9 +185,11 @@ class MixinApplicator {
                                 it is JumpInsnNode && it.opcode == at.opcode
                             }
                         }
+
                         else -> targetMethod.instructions.find { it.opcode == at.opcode }
                     }
                 }
+
                 else -> targetMethod.instructions.first
             } ?: error("Failed to find injection point $at")
 
@@ -214,14 +198,16 @@ class MixinApplicator {
                 At.Shift.BEFORE -> {
                     index - at.by
                 }
+
                 At.Shift.AFTER -> {
                     index + at.by + 1
                 }
+
                 else -> index
             }
-            val injectionPoint = targetMethod.instructions[shiftedIndex]
 
-            val insn: InsnList =  asm {
+            val injectionPoint = targetMethod.instructions[shiftedIndex]
+            val insn = asm {
                 when (Type.getReturnType(copiedMixinMethod.desc)) {
                     Type.BOOLEAN_TYPE -> {
                         // Simplistic way to "cancel" a method using a function that returns a boolean
@@ -236,13 +222,13 @@ class MixinApplicator {
                         +label
                         f_same()
                     }
+
                     Type.VOID_TYPE -> {
                         aload(0)
                         invokevirtual(targetClass.name, copiedMixinMethod.name, copiedMixinMethod.desc)
                     }
-                    else -> {
-                        error("${copiedMixinMethod.name}'s return type is required to be either boolean or void")
-                    }
+
+                    else -> error("${copiedMixinMethod.name}'s return type is required to be either boolean or void")
                 }
             }
 
@@ -271,12 +257,11 @@ class MixinApplicator {
 
                     val argIndex = when {
                         argType == callbackInfoType -> callbackInfo
-                        targetArgs[i]?.type == argType ->
-                            targetArgs[i]?.stackLocation
-                        i < mixinMethodParams.size && mixinMethodParams[i].isAnnotationPresent(Local::class.java) ->
-                            mixinMethodParams[i].getAnnotation(Local::class.java).ordinal
-                        else ->
-                            null
+                        targetArgs[i]?.type == argType -> targetArgs[i]?.stackLocation
+//                        i < mixinMethodParams.size && mixinMethodParams[i].isAnnotationPresent(Local::class.java) ->
+//                            mixinMethodParams[i].getAnnotation(Local::class.java).ordinal
+
+                        else -> null
                     } ?: error("Mismatch Parameters. ${copiedMixinMethod.desc} has parameter(s) that do not match ${targetMethod.desc}")
 
                     argsInsn.add(VarInsnNode(argType.getOpcode(Opcodes.ILOAD), argIndex))
@@ -308,9 +293,7 @@ class MixinApplicator {
                     val label = LabelNode()
                     ifeq(label)
 
-                    if (Type.getReturnType(copiedMixinMethod.desc) == Type.VOID_TYPE)
-                        _return
-                    else {
+                    if (Type.getReturnType(copiedMixinMethod.desc) == Type.VOID_TYPE) _return else {
                         //TODO fix this
                         val returnType = Type.getReturnType(targetMethod.desc)
                         // CallbackInfo.returnValue is assumed to be the correct type to be returned.
@@ -319,6 +302,7 @@ class MixinApplicator {
                             "getReturnValue",
                             "()Ljava/lang/Object;"
                         )
+
                         +InsnNode(returnType.getOpcode(Opcodes.IRETURN))
                     }
 
@@ -335,50 +319,42 @@ class MixinApplicator {
             targetClass: ClassNode,
             mixinMethod: MethodNode,
             annotation: Overwrite
-        ): MethodNode {
-            return targetClass.methods.find{ it.name == annotation.method }?.also { it.instructions = mixinMethod.instructions }
-                ?: error("Failed to load Mixin ${mixinClass.name}: ${annotation.method} is not present in class ${targetClass.name}")
-        }
+        ) = targetClass.methods.find { it.name == annotation.method }
+            ?.also { it.instructions = mixinMethod.instructions }
+            ?: error("Failed to load Mixin ${mixinNode.name}: ${annotation.method} is not present in class ${targetClass.name}")
 
         private fun applyModifyArgs(
             targetClass: ClassNode,
             mixinMethod: MethodNode,
             annotation: ModifyArgs
-        ): MethodNode {
-            return mixinMethod
-        }
+        ) = mixinMethod
 
         private fun applyModifyConstant(
             targetClass: ClassNode,
             mixinMethod: MethodNode,
             annotation: ModifyConstant
-        ): MethodNode {
-            return mixinMethod
-        }
+        ) = mixinMethod
 
         private fun applyAccessor(
             targetClass: ClassNode,
-            mixinClass: Class<*>,
             mixinMethod: MethodNode,
             annotation: Accessor
         ): MethodNode {
-            if (!targetClass.interfaces.any { it == Type.getInternalName(mixinClass) })
-                targetClass.interfaces.add(Type.getInternalName(mixinClass))
+            if (!targetClass.interfaces.any { it == mixinNode.name })
+                targetClass.interfaces.add(mixinNode.name)
 
             val target = annotation.target
             val accessedField = targetClass.fields.find { it.name == target }
                 ?: error("Failed to find $target field in ${targetClass.name}")
 
             val argTypes = Type.getArgumentTypes(mixinMethod.desc)
-            if (argTypes.isNotEmpty()) {
-                // setter
-                if ((accessedField.access and Opcodes.ACC_FINAL) != 0)
+            return if (argTypes.isNotEmpty()) when {
+                (accessedField.access and Opcodes.ACC_FINAL) != 0 ->
                     error("Cannot create Accessor setter for a final field: $target in ${targetClass.name}")
 
-                if (argTypes.size > 1)
-                    error("Accessor setters should only have a single parameter")
+                argTypes.size > 1 -> error("Accessor setters should only have a single parameter")
 
-                return MethodNode(
+                else -> MethodNode(
                     Opcodes.ACC_PUBLIC,
                     mixinMethod.name,
                     mixinMethod.desc,
@@ -393,51 +369,47 @@ class MixinApplicator {
                             accessedField.name,
                             accessedField.desc
                         )
+
                         _return
                     }
+
                     targetClass.methods.add(it)
                 }
-            } else {
-                // getter
-                return MethodNode(
-                    Opcodes.ACC_PUBLIC,
-                    mixinMethod.name,
-                    mixinMethod.desc,
-                    null,
-                    mixinMethod.exceptions.toTypedArray()
-                ).also {
-                    it.instructions = asm {
-                        aload(0)
-                        getfield(
-                            targetClass.name,
-                            accessedField.name,
-                            accessedField.desc
-                        )
-                        +InsnNode(Type.getReturnType(accessedField.desc).getOpcode(Opcodes.IRETURN))
-                    }
-                    targetClass.methods.add(it)
+            } else MethodNode(
+                Opcodes.ACC_PUBLIC,
+                mixinMethod.name,
+                mixinMethod.desc,
+                null,
+                mixinMethod.exceptions.toTypedArray()
+            ).also {
+                it.instructions = asm {
+                    aload(0)
+                    getfield(
+                        targetClass.name,
+                        accessedField.name,
+                        accessedField.desc
+                    )
+
+                    +InsnNode(Type.getReturnType(accessedField.desc).getOpcode(Opcodes.IRETURN))
                 }
+
+                targetClass.methods.add(it)
             }
         }
 
         private fun applyInvoker(
             targetClass: ClassNode,
-            mixinClass: Class<*>,
             mixinMethod: MethodNode
-        ): MethodNode {
-            return targetClass.methods
-                .find { it.desc == mixinMethod.desc }
-                .also { targetClass.interfaces.add(Type.getInternalName(mixinClass)) }
-                ?: error("Failed to find method with matching descriptor: ${mixinMethod.desc} in ${targetClass.name}")
-        }
+        ) = targetClass.methods
+            .find { it.desc == mixinMethod.desc }
+            .also { targetClass.interfaces.add(mixinNode.name) }
+            ?: error("Failed to find method with matching descriptor: ${mixinMethod.desc} in ${targetClass.name}")
 
         private fun applyRedirect(
             targetClass: ClassNode,
             mixinMethod: MethodNode,
             annotation: Redirect
-        ): MethodNode {
-            return mixinMethod
-        }
+        ) = mixinMethod
 
         /**
          * Creates a method in the target class identical to the mixin method
@@ -466,33 +438,12 @@ class MixinApplicator {
     )
 
     internal inner class Transformer : SafeTransformer {
-        /**
-         * Remaps the ClassNode from vanilla to the mappings of the current Minecraft environment loaded
-         *
-         * !! IMPORTANT !!
-         * Node must be already mapped to vanilla before remapping to environment mappings
-         *
-         * TODO create mapping file that links all named mappings...
-         * TODO ...rather than having to map to an intermediary (vanilla) then to the target mapping
-         */
-        private fun ClassNode.remapToEnvironment(): ClassNode =
-            ClassNode().apply { this@remapToEnvironment.accept(LambdaAwareRemapper(this@apply, environmentMapper.reverse())) }
-
-        /**
-         * Remaps the ClassNode to vanilla mappings
-         */
-        private fun ClassNode.remapToVanilla(): ClassNode =
-            ClassNode().apply { this@remapToVanilla.accept(LambdaAwareRemapper(this@apply, fullMapper)) }
-
-        private fun ClassNode.remapUsing(mapper: MappingsRemapper): ClassNode =
-            ClassNode().apply { this@remapUsing.accept(LambdaAwareRemapper(this@apply, mapper)) }
-
         override fun transform(
             loader: ClassLoader,
             className: String,
             originalClass: ByteArray
         ): ByteArray? {
-            val applicableMixins = mixins.filter { fullMapper.map(it.targetClasspath) == fullMapper.map(className) }
+            val applicableMixins = mixins.filter { it.targetClasspath == className }
             if (applicableMixins.isEmpty()) return null
 
             println("[Weave Mixin] Applying Mixins to $className")
@@ -501,30 +452,31 @@ class MixinApplicator {
             val reader = ClassReader(originalClass)
             reader.accept(originalNode, 0)
 
-            // map node to vanilla
-            var vanillaNode = originalNode.remapToVanilla()
-
-            applicableMixins.forEach {
-                println("  - ${it.mixinClass.name} (${it.mapper.uppercase()})")
-                val mapper = when (it.mapper) {
-                    "mojang" -> mojangMapper
-                    "yarn" -> yarnMapper
-                    "srg" -> srgMapper
-                    else -> emptyMapper
-                }
-
-                val modMappedNode = vanillaNode.remapUsing(mapper)
-
-                it.applyMixin(modMappedNode)
-                vanillaNode = modMappedNode.remapToVanilla()
-            }
-
             val writer = HookClassWriter(ClassWriter.COMPUTE_FRAMES)
 
-            val environmentNode = vanillaNode.remapToEnvironment()
-            environmentNode.accept(writer)
+            applicableMixins.forEach { mixin ->
+                println("  - ${mixin.mixinNode.name}")
+                mixin.applyMixin(originalNode)
+            }
 
+            originalNode.accept(writer)
             return writer.toByteArray()
         }
     }
 }
+
+private inline fun <reified T : Annotation> MethodNode.getAnnotation(): T? {
+    val desc = "L${internalNameOf<T>()};"
+    return visibleAnnotations?.find { it.desc == desc }?.reflect<T>()
+}
+
+private inline fun <reified T : Annotation> MethodNode.useAnnotation(block: (T) -> Unit) =
+    getAnnotation<T>()?.let(block)
+
+private inline fun <reified T : Annotation> FieldNode.getAnnotation(): T? {
+    val desc = "L${internalNameOf<T>()};"
+    return visibleAnnotations?.find { it.desc == desc }?.reflect<T>()
+}
+
+private inline fun <reified T : Annotation> FieldNode.useAnnotation(block: (T) -> Unit) =
+    getAnnotation<T>()?.let(block)

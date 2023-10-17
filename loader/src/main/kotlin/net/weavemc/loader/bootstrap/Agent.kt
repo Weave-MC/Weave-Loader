@@ -1,9 +1,13 @@
 package net.weavemc.loader.bootstrap
 
+import com.grappenmaker.mappings.remapJar
 import net.weavemc.loader.FileManager
+import net.weavemc.loader.JSON
 import net.weavemc.loader.WeaveLoader
+import net.weavemc.loader.fetchModConfig
+import net.weavemc.loader.mapping.environmentNamespace
+import net.weavemc.loader.mapping.fullMappings
 import net.weavemc.weave.api.GameInfo
-import net.weavemc.weave.api.GameInfo.Version.*
 import net.weavemc.weave.api.gameClient
 import net.weavemc.weave.api.gameVersion
 import java.io.File
@@ -15,13 +19,7 @@ import java.lang.instrument.Instrumentation
  */
 @Suppress("UNUSED_PARAMETER")
 fun premain(opt: String?, inst: Instrumentation) {
-    val version = gameVersion
-    if (version !in arrayOf(V1_7_10, V1_8_9, V1_12_2, V1_20_1)) {
-        println("[Weave] $version not supported, disabling...")
-        return
-    }
-
-    println("[Weave] Detected Minecraft version: $version")
+    println("[Weave] Detected Minecraft version: $gameVersion")
 
     inst.addTransformer(URLClassLoaderTransformer)
     inst.addTransformer(AntiLunarCache)
@@ -40,13 +38,21 @@ fun premain(opt: String?, inst: Instrumentation) {
                 }
 
                 val versionApi = FileManager.getVersionApi()
-                val mods = FileManager.getMods()
+                val modFiles = FileManager.getMods().map { it.file }
+                val mods = modFiles.map { unmappedMod ->
+                    unmappedMod.fetchModConfig(JSON).mappings?.let { target ->
+                        val temp = File.createTempFile(unmappedMod.nameWithoutExtension, "weavemod.jar")
+                        remapJar(fullMappings, unmappedMod, temp, target, environmentNamespace)
+                        temp.deleteOnExit()
+                        temp
+                    } ?: unmappedMod
+                }
 
                 loader.addWeaveURL(FileManager.getCommonApi().toURI().toURL())
                 if (versionApi != null)
                     loader.addWeaveURL(versionApi.toURI().toURL())
 
-                mods.forEach { loader.addWeaveURL(it.file.toURI().toURL()) }
+                mods.forEach { loader.addWeaveURL(it.toURI().toURL()) }
 
                 /*
                 Load the rest of the loader using Minecraft's class loader.
@@ -54,7 +60,7 @@ fun premain(opt: String?, inst: Instrumentation) {
                 */
                 loader.loadClass("net.weavemc.loader.WeaveLoader")
                     .getDeclaredMethod("init", Instrumentation::class.java, File::class.java, List::class.java)
-                    .invoke(null, inst, versionApi, mods.map { it.file })
+                    .invoke(null, inst, versionApi, mods)
             }
 
             return null

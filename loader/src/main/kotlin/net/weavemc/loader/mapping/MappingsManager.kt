@@ -52,8 +52,12 @@ object MappingsManager {
                         .renameNamespaces("mcp", "official")
                 }
             }.join(intermediateNamespace = "official")
+            
+            val ordered = joinedMappings.reorderNamespaces(
+                listOf("official", "yarn", "mcp", "mojang").filter { it in joinedMappings.namespaces }
+            )
 
-            bundledFile.writeText(joinedMappings.asTinyMappings(v2 = true).write().joinToString("\n"))
+            bundledFile.writeText(ordered.asTinyMappings(v2 = true).write().joinToString("\n"))
         } / 1000f}s to bundle mappings")
 
         return bundledFile

@@ -22,6 +22,7 @@ val relocate = tasks.register("relocate") {
             "com/google/" to "net/weavemc/google/"
         )
 
+        val remapPackages = setOf("net/weavemc/", "com/grappenmaker/mappings/")
         val mappingsExclusions = listOf("gson")
         val relocateExclusions = setOf("net/weavemc/loader/mixins/WeaveMixinService")
 
@@ -42,8 +43,8 @@ val relocate = tasks.register("relocate") {
             classes.forEach { entry ->
                 val originalBytes = artifact.read(entry)
                 val toMap = findMapping(entry.name)
-                val shouldRemap = toMap != null || entry.name.startsWith("net/weavemc/")
                 val internalName = entry.name.removeSuffix(".class")
+                val shouldRemap = toMap != null || remapPackages.any { it in internalName }
                 val isExcluded = internalName in relocateExclusions
 
                 if (shouldRemap && !isExcluded) {
