@@ -1,15 +1,15 @@
 package net.weavemc.loader.bootstrap
 
-import com.grappenmaker.mappings.remapJar
 import net.weavemc.loader.FileManager
 import net.weavemc.loader.JSON
 import net.weavemc.loader.WeaveLoader
 import net.weavemc.loader.fetchModConfig
 import net.weavemc.loader.mapping.environmentNamespace
 import net.weavemc.loader.mapping.fullMappings
-import net.weavemc.weave.api.GameInfo
-import net.weavemc.weave.api.gameClient
-import net.weavemc.weave.api.gameVersion
+import net.weavemc.api.GameInfo
+import net.weavemc.api.gameClient
+import net.weavemc.api.gameVersion
+import net.weavemc.loader.mapping.remapModJar
 import java.io.File
 import java.lang.instrument.Instrumentation
 
@@ -42,7 +42,7 @@ fun premain(opt: String?, inst: Instrumentation) {
                 val mods = modFiles.map { unmappedMod ->
                     unmappedMod.fetchModConfig(JSON).mappings?.let { target ->
                         val temp = File.createTempFile(unmappedMod.nameWithoutExtension, "weavemod.jar")
-                        remapJar(fullMappings, unmappedMod, temp, target, environmentNamespace)
+                        remapModJar(fullMappings, unmappedMod, temp, target, environmentNamespace)
                         temp.deleteOnExit()
                         temp
                     } ?: unmappedMod

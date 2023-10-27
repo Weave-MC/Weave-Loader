@@ -2,8 +2,8 @@ package net.weavemc.loader
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import net.weavemc.weave.api.Hook
-import net.weavemc.weave.api.ModInitializer
+import net.weavemc.api.Hook
+import net.weavemc.api.ModInitializer
 
 /**
  * The data class containing information about a loaded Weave mod.

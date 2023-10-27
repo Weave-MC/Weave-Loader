@@ -1,8 +1,8 @@
 package net.weavemc.loader.bootstrap
 
-import net.weavemc.weave.api.bytecode.asm
-import net.weavemc.weave.api.bytecode.named
-import net.weavemc.weave.api.bytecode.next
+import net.weavemc.api.bytecode.asm
+import net.weavemc.api.bytecode.named
+import net.weavemc.api.bytecode.next
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.tree.ClassNode

@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 import net.weavemc.loader.DownloadUtil
 import net.weavemc.loader.JSON
 import net.weavemc.loader.FileManager
-import net.weavemc.weave.api.gameVersion
+import net.weavemc.api.gameVersion
 import java.io.File
 import java.io.InputStream
 import java.net.URL
@@ -16,7 +16,7 @@ object MappingsManager {
     private inline fun <reified T> String?.decodeJSON() = if (this != null) JSON.decodeFromString<T>(this) else null
 
     /**
-     * Retrieves a text file containing srg, yarn, and mojmap mappings
+     * Retrieves a text file containing srg, yarn, and mojang mappings
      */
     fun getOrCreateBundledMappings(): File {
         val bundledFile = FileManager.CACHE_DIRECTORY
@@ -25,7 +25,8 @@ object MappingsManager {
             .resolve("bundled.mappings").toFile()
 
         // TODO add a way to tell what mappings are bundled in this file
-        // TODO if the bundledfile match the mappings weave loader is attempting to bundle, return the cached file
+        // TODO if the bundled file match the mappings weave loader is attempting to bundle, return the cached file
+        // The above messages are only relevant when weave supports users to provide custom mappings
         if (bundledFile.exists()) return bundledFile
         bundledFile.parentFile.mkdirs()
 

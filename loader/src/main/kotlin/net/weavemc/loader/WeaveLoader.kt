@@ -3,8 +3,8 @@ package net.weavemc.loader
 import kotlinx.serialization.json.Json
 import net.weavemc.loader.analytics.launchStart
 import net.weavemc.loader.mixins.MixinApplicator
-import net.weavemc.weave.api.Hook
-import net.weavemc.weave.api.ModInitializer
+import net.weavemc.api.Hook
+import net.weavemc.api.ModInitializer
 import java.io.File
 import java.lang.instrument.Instrumentation
 import java.util.jar.JarFile
@@ -65,7 +65,7 @@ object WeaveLoader {
         val apiJar = JarFile(apiFile)
         apiJar.entries()
             .toList()
-            .filter { it.name.startsWith("net/weavemc/weave/api/hooks/") && !it.isDirectory }
+            .filter { it.name.startsWith("net/weavemc/api/hooks/") && !it.isDirectory }
             .forEach {
                 runCatching {
                     val clazz = Class.forName(it.name.removeSuffix(".class").replace('/', '.'))

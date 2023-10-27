@@ -1,12 +1,10 @@
 package net.weavemc.loader.mixins
 
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.json.decodeFromStream
 import net.weavemc.loader.*
 import net.weavemc.loader.bootstrap.SafeTransformer
-import net.weavemc.weave.api.bytecode.asm
-import net.weavemc.weave.api.bytecode.internalNameOf
-import net.weavemc.weave.api.mixin.*
+import net.weavemc.api.bytecode.asm
+import net.weavemc.api.bytecode.internalNameOf
+import net.weavemc.api.mixin.*
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
@@ -343,7 +341,7 @@ class MixinApplicator {
             if (!targetClass.interfaces.any { it == mixinNode.name })
                 targetClass.interfaces.add(mixinNode.name)
 
-            val target = annotation.target
+            val target = annotation.field
             val accessedField = targetClass.fields.find { it.name == target }
                 ?: error("Failed to find $target field in ${targetClass.name}")
 

@@ -1,6 +1,7 @@
 package net.weavemc.loader
 
-import net.weavemc.weave.api.*
+import net.weavemc.api.GameInfo
+import net.weavemc.api.gameVersion
 import java.io.File
 import kotlin.io.path.*
 
