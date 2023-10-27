@@ -29,6 +29,8 @@ internal fun getOrCreateDirectory(directory: String): Path {
     return dir
 }
 
+internal fun String.splitAround(c: Char): Pair<String,String> = substringBefore(c) to substringAfter(c)
+
 internal fun File.toSha256(): String {
     val bytes = Files.readAllBytes(toPath())
     val messageDigest = MessageDigest.getInstance("SHA-256")
