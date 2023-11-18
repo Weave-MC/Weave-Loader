@@ -23,9 +23,10 @@ internal fun getOrCreateDirectory(directory: String): Path {
     return dir
 }
 
-internal fun File.toSha256(): String {
-    val bytes = Files.readAllBytes(toPath())
-    val messageDigest = MessageDigest.getInstance("SHA-256")
-    val digest = messageDigest.digest(bytes)
-    return digest.fold("") { str, it -> str + "%02x".format(it) }
-}
+val File.sha256: String
+    get() {
+        val bytes = Files.readAllBytes(toPath())
+        val messageDigest = MessageDigest.getInstance("SHA-256")
+        val digest = messageDigest.digest(bytes)
+        return digest.fold("") { str, it -> str + "%02x".format(it) }
+    }

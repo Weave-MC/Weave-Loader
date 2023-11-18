@@ -140,7 +140,7 @@ internal object ModCachingManager {
      *
      * Example: `1.7.10-McpMapper-8f498d2e11f3e9eb016a5a1c35885b87b561f5fd1941864b2db704878bc0c79d.cache`
      */
-    private fun getCacheFileName(version: GameInfo.Version = gameVersion, file: File): String = "${version.versionName}-${mapper.getMapperName()}-${file.toSha256()}.cache"
+    private fun getCacheFileName(version: GameInfo.Version = gameVersion, file: File): String = "${version.versionName}-${mapper.getMapperName()}-${file.sha256}.cache"
 
     /**
      * Represents an original mod jar or a cache file.
@@ -161,7 +161,7 @@ internal object ModCachingManager {
              * Creates a [ModJar] from the given [original mod jar][file].
              */
             fun fromFile(file: File): ModJar {
-                val sha256 = file.toSha256()
+                val sha256 = file.sha256
                 val version = runCatching { GameInfo.Version.fromVersionName(file.nameWithoutExtension) }.getOrNull()
                 return ModJar(file, sha256, version)
             }
