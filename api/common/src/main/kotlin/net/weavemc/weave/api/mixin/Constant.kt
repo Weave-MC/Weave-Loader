@@ -4,7 +4,6 @@ import kotlin.reflect.KClass
 
 annotation class Constant(
     val id: String = "",
-    val targetOpcodes: Int = 0,
     val constantType: ConstantType = ConstantType.NULL,
     val valueInt: Int = 0,
     val valueFloat: Float = 0.0f,

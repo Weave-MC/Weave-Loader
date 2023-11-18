@@ -701,14 +701,14 @@ class MixinApplicator {
             println("Target instruction: $targetInstruction")
             println("targetClass: ${targetClass.name}, generatedMethod: ${generatedMethod.name}, generatedMethod.desc: ${generatedMethod.desc}")
 
-            instructions.insertBefore(targetInstruction, asm { aload(0)
+            instructions.insertBefore(targetInstruction, asm {
+                aload(0)
 //                f_same()
             })
-            instructions.insert(targetInstruction, asm { invokevirtual(targetClass.name, generatedMethod.name, generatedMethod.desc)
+            instructions.insert(targetInstruction, asm {
+                invokevirtual(targetClass.name, generatedMethod.name, generatedMethod.desc)
 //                f_same()
             })
-
-            targetClass.dump("/tmp/targetClass.class")
 
             return generatedMethod
         }
