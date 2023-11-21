@@ -14,7 +14,6 @@ import org.objectweb.asm.commons.AnnotationRemapper
 import org.objectweb.asm.commons.ClassRemapper
 import org.objectweb.asm.commons.Remapper
 import org.objectweb.asm.commons.SimpleRemapper
-import org.objectweb.asm.tree.AnnotationNode
 import java.io.File
 import java.util.jar.JarEntry
 import java.util.jar.JarFile
@@ -27,7 +26,7 @@ val fullMappings by lazy {
 val environmentNamespace by lazy {
     when (gameClient) {
         // TODO: correct version
-        Client.LUNAR -> if (gameVersion < GameInfo.Version.V1_16_5) "mcp" else "mojang"
+        Client.LUNAR -> if (gameVersion < GameInfo.Version.V1_16_5) "mcp" else "mcp"
         Client.FORGE, Client.LABYMOD -> "mcp"
         Client.VANILLA -> "official"
         Client.BADLION -> error("We do not know")
@@ -36,7 +35,7 @@ val environmentNamespace by lazy {
 
 const val resourceNamespace = "official"
 
-private fun bytesProvider(expectedNamespace: String): (String) -> ByteArray? {
+internal fun bytesProvider(expectedNamespace: String): (String) -> ByteArray? {
     val names = if (expectedNamespace != "official") fullMappings.asASMMapping(
         from = expectedNamespace,
         to = "official",
@@ -75,7 +74,7 @@ fun ByteArray.remap(remapper: Remapper): ByteArray {
     if (reader.className !in mappable) return this
 
     val writer = ClassWriter(reader, 0)
-    reader.accept(ModJarRemapper(writer, remapper), 0)
+    reader.accept(LambdaAwareRemapper(writer, remapper), 0)
 
     return writer.toByteArray()
 }
@@ -128,22 +127,46 @@ class ModJarRemapper(
     parent: ClassVisitor,
     remapper: Remapper
 ): ClassRemapper(Opcodes.ASM9, parent, remapper) {
-    override fun createMethodRemapper(parent: MethodVisitor): MethodVisitor =
-        LambdaAwareMethodRemapper(parent, remapper)
-
+    var annotationNode: SimpleAnnotationNode? = null
     override fun createAnnotationRemapper(
         descriptor: String?,
-        parent: AnnotationVisitor
+        parent: AnnotationVisitor?
     ): AnnotationVisitor {
-        val mixinAnnotationDesc = internalNameOf<Mixin>()
-        val annotationVisitor = cv.visitAnnotation(mixinAnnotationDesc, true)
+        if (descriptor != "L${internalNameOf<Mixin>()};")
+            return super.createAnnotationRemapper(descriptor, parent)
 
-        if (annotationVisitor != null) {
-            val annotationNode = annotationVisitor as AnnotationNode
-            return MixinAnnotationRemapper(annotationNode.values.first() as String, parent, descriptor, remapper)
-        }
+        annotationNode = SimpleAnnotationNode(parent)
+        return annotationNode!!
+    }
+    override fun createMethodRemapper(parent: MethodVisitor): MethodVisitor {
+        if (annotationNode == null)
+            return super.createMethodRemapper(parent)
 
-        return super.createAnnotationRemapper(descriptor, parent)
+        val targetClass: String = annotationNode!!.values[0].toString()
+        // substring targetClass to remove 'L' and ';' from the full name
+        val formattedTargetClass = targetClass.substring(1, targetClass.length - 1)
+        return ModMethodRemapper(formattedTargetClass, parent, remapper)
+    }
+}
+
+class SimpleAnnotationNode(
+    parent: AnnotationVisitor?
+): AnnotationVisitor(Opcodes.ASM9, parent) {
+    val values: ArrayList<Any?> = arrayListOf()
+    override fun visit(name: String?, value: Any?) {
+        values += value
+        super.visit(name, value)
+    }
+}
+class ModMethodRemapper(
+    private val targetMixinClass: String,
+    private val parent: MethodVisitor,
+    remapper: Remapper
+): LambdaAwareMethodRemapper(parent, remapper) {
+    override fun visitAnnotation(descriptor: String?, visible: Boolean): AnnotationVisitor {
+        val visitor = parent.visitAnnotation(descriptor, visible)
+        return if (visitor != null) MixinAnnotationRemapper(targetMixinClass, visitor, descriptor, remapper)
+        else super.visitAnnotation(descriptor, visible)
     }
 }
 class MixinAnnotationRemapper(
@@ -161,8 +184,12 @@ class MixinAnnotationRemapper(
                         if (!value.isMethod())
                             error("[Weave] Failed to identify $value as a method in $annotationName annotation")
 
-                        val methodName = value.substringBefore('(')
-                        remapper.mapMethodName(targetMixinClass, methodName, value.drop(methodName.length))
+                        val method = parseMethod(targetMixinClass, value)
+                            ?: error("Weave] Failed to parse mixin method value $value of annotation $annotationName")
+
+                        val mappedName = remapper.mapMethodName(method.owner, method.name, method.descriptor)
+                        val mappedDesc = remapper.mapMethodDesc(method.descriptor)
+                        mappedName + mappedDesc
                     }
                     "field" -> {
                         if (value.isMethod())
@@ -171,7 +198,7 @@ class MixinAnnotationRemapper(
                         remapper.mapFieldName(targetMixinClass, value, null)
                     }
                     "target" -> {
-                        name.parseAndRemap()
+                        name.parseAndRemapTarget()
                     }
                     else -> value
                 }
@@ -185,17 +212,19 @@ class MixinAnnotationRemapper(
         val endIndex = this.indexOf(')')
         return startIndex != -1 && endIndex != -1 && startIndex < endIndex
     }
-    private fun String.parseAndRemap(): String {
+    private fun String.parseAndRemapTarget(): String {
         return if (this.isMethod()) {
-            val method = parseMethod(this) ?: return this
-            remapper.mapMethodName(method.owner, method.name, method.descriptor)
+            val method = parseTargetMethod(this) ?: return this
+            val mappedName = remapper.mapMethodName(method.owner, method.name, method.descriptor)
+            val mappedDesc = remapper.mapMethodDesc(method.descriptor)
+            mappedName + mappedDesc
         } else {
-            val field = parseField(this) ?: return this
+            val field = parseTargetField(this) ?: return this
             remapper.mapFieldName(field.owner, field.name, null)
         }
     }
     private fun shouldRemap(): Boolean =
-        descriptor != null && descriptor.startsWith("net/weavemc/api/mixins")
+        descriptor != null && descriptor.startsWith("Lnet/weavemc/api/mixin")
 }
 data class MethodDeclaration(
     val owner: String,
@@ -208,7 +237,32 @@ data class FieldDeclaration(
     val owner: String,
     val name: String
 )
-private fun parseField(fieldDeclaration: String): FieldDeclaration? {
+
+/**
+ * Parses a method with an already known owner
+ * @param owner The inferred owner
+ * @param methodDeclaration The method declaration in methodName(methodDescriptor)methodReturnType format
+ * @return MethodDeclaration data class including the parsed method name, descriptor, and the passed owner param
+ */
+private fun parseMethod(owner: String, methodDeclaration: String): MethodDeclaration? {
+    try {
+        val methodName = methodDeclaration.substringBefore('(')
+        val methodDesc = methodDeclaration.drop(methodName.length)
+        val methodType = Type.getMethodType(methodDesc)
+        return MethodDeclaration(
+            owner,
+            methodName,
+            methodDesc,
+            methodType.returnType,
+            methodType.argumentTypes.toList()
+        )
+    } catch (ex: Exception) {
+        println("Failed to parse method declaration: $methodDeclaration")
+        ex.printStackTrace()
+    }
+    return null
+}
+private fun parseTargetField(fieldDeclaration: String): FieldDeclaration? {
     try {
         val (classPath, fieldName) = fieldDeclaration.splitAround('.')
         return FieldDeclaration(classPath, fieldName)
@@ -218,7 +272,14 @@ private fun parseField(fieldDeclaration: String): FieldDeclaration? {
     }
     return null
 }
-private fun parseMethod(methodDeclaration: String): MethodDeclaration? {
+
+/**
+ * Parses a method without an already known owner.
+ * Typically used for Mixin @At target values, where the owner cannot be inferred.
+ * @param methodDeclaration The method declaration in methodOwner.methodName(methodDescriptor)methodReturnType format
+ * @return MethodDeclaration data class including the parsed method name, descriptor, and owner
+ */
+private fun parseTargetMethod(methodDeclaration: String): MethodDeclaration? {
     try {
         val (classPath, fullMethod) = methodDeclaration.splitAround('.')
         val methodName = fullMethod.substringBefore('(')

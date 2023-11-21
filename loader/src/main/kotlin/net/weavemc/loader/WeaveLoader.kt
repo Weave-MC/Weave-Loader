@@ -1,10 +1,14 @@
 package net.weavemc.loader
 
+import com.grappenmaker.mappings.MappingsRemapper
 import kotlinx.serialization.json.Json
 import net.weavemc.loader.analytics.launchStart
 import net.weavemc.loader.mixins.MixinApplicator
 import net.weavemc.api.Hook
 import net.weavemc.api.ModInitializer
+import net.weavemc.loader.mapping.bytesProvider
+import net.weavemc.loader.mapping.environmentNamespace
+import net.weavemc.loader.mapping.fullMappings
 import java.io.File
 import java.lang.instrument.Instrumentation
 import java.util.jar.JarFile
@@ -87,7 +91,9 @@ object WeaveLoader {
 
             val config = file.fetchModConfig(json)
             val name = config.name ?: file.name.removeSuffix(".jar")
-            JarFile(file).use { j -> config.mixinConfigs.forEach { mixins.registerMixin(it, j) } }
+            val remapper = MappingsRemapper(fullMappings, config.mappings, environmentNamespace, loader = bytesProvider(config.mappings))
+
+            JarFile(file).use { j -> config.mixinConfigs.forEach { mixins.registerMixin(it, j, remapper) } }
             HookManager.hooks += config.hooks.map { ModHook(instantiate(it)) }
 
             // TODO: Add a name field to the config.

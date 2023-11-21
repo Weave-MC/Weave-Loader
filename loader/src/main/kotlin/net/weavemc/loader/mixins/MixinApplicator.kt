@@ -1,5 +1,6 @@
 package net.weavemc.loader.mixins
 
+import com.grappenmaker.mappings.MappingsRemapper
 import net.weavemc.loader.*
 import net.weavemc.loader.bootstrap.SafeTransformer
 import net.weavemc.api.bytecode.asm
@@ -11,7 +12,6 @@ import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Opcodes.ACC_INTERFACE
 import org.objectweb.asm.Type
 import org.objectweb.asm.tree.*
-import java.io.File
 import java.util.jar.JarFile
 
 class MixinApplicator {
@@ -24,7 +24,7 @@ class MixinApplicator {
 
     private val json = JSON
 
-    private fun registerMixin(classBytes: ByteArray) {
+    private fun registerMixin(remapper: MappingsRemapper, classBytes: ByteArray) {
         if (frozen) error("Mixin registration is already frozen!")
 
         val classNode = ClassNode()
@@ -36,11 +36,13 @@ class MixinApplicator {
         val targetClasspath = (mixinAnnotation.values?.get(1) as? Type)?.className?.replace('.', '/')
             ?: error("Failed to parse @Mixin annotation. This should never happen!")
 
-        println("Registered Mixin for $targetClasspath using ${classNode.name}")
-        mixins += MixinClass(targetClasspath, classNode)
+        val mappedTargetClasspath = remapper.map(targetClasspath)
+
+        println("Registered Mixin for $mappedTargetClasspath using ${classNode.name}")
+        mixins += MixinClass(mappedTargetClasspath, classNode)
     }
 
-    fun registerMixin(mixinConfigPath: String, modJar: JarFile) {
+    fun registerMixin(mixinConfigPath: String, modJar: JarFile, remapper: MappingsRemapper) {
         if (frozen) error("Mixin registration is already frozen!")
 
         val mixinConfig = modJar.fetchMixinConfig(mixinConfigPath, json)
@@ -49,7 +51,7 @@ class MixinApplicator {
                 modJar.getEntry("${mixinConfig.packagePath.replace(".", "/")}/$mixinClasspath.class")
             ).readBytes()
 
-            registerMixin(mixinClassBytes)
+            registerMixin(remapper, mixinClassBytes)
         }
     }
 
@@ -111,13 +113,7 @@ class MixinApplicator {
             mixinMethodParams: List<ParameterNode>,
             annotation: Inject,
         ): MethodNode {
-            val actualMethod = when (val m = annotation.method) {
-                "keyPress(JIIII)V" -> "onKey(JIIII)V"
-                "render(Z)V" -> "runTick(Z)V"
-                else -> m
-            }
-
-            val targetMethod = targetClass.methods.find { "${it.name}${it.desc}" == actualMethod }
+            val targetMethod = targetClass.methods.find { "${it.name}${it.desc}" == annotation.method }
                 ?: error("Failed to load Mixin ${mixinClass.name}: ${annotation.method} is not present in class ${targetClass.name}")
 
             val copiedMixinMethod = copyMixinToTarget(targetClass, mixinMethod)
