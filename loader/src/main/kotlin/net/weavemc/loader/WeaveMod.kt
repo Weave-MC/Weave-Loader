@@ -33,7 +33,7 @@ public data class ModConfig(
     val entrypoints: List<String> = listOf(),
     val name: String? = null,
     val modId: String? = null,
-    val mappings: String? = null
+    val mappings: String
 )
 
 /**
