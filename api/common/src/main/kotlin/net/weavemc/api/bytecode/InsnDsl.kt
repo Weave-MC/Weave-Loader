@@ -5,6 +5,7 @@ import net.weavemc.api.event.EventBus
 import org.objectweb.asm.*
 import org.objectweb.asm.tree.*
 import java.io.FileOutputStream
+import kotlin.reflect.KClass
 
 @Suppress(
     "PropertyName",
@@ -240,6 +241,7 @@ public fun List<FieldNode>.named(name: String) = find { it.name == name }!!
 public fun List<FieldNode>.search(name: String, type: String) = find { it.name == name && it.desc == type }!!
 
 public inline fun <reified T : Any> internalNameOf(): String = Type.getInternalName(T::class.java)
+public fun internalNameOf(javaClass: KClass<*>): String = Type.getInternalName(javaClass.java)
 
 public inline fun <reified T : AbstractInsnNode> AbstractInsnNode.next(p: (T) -> Boolean = { true }): T? {
     return generateSequence(next) { it.next }.filterIsInstance<T>().find(p)
