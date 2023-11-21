@@ -1,9 +1,3 @@
-includeBuild("mappings-util") {
-    dependencySubstitution {
-        substitute(module("com.grappenmaker:mappings-util")).using(project(":"))
-    }
-}
-
 pluginManagement {
     repositories {
         mavenCentral()
@@ -20,7 +14,3 @@ val projectName: String by settings
 rootProject.name = projectName
 
 include("loader", "api:common", "api:v1.7", "api:v1.8", "api:v1.12")
-
-plugins {
-    id("org.gradle.toolchains.foojay-resolver-convention") version "0.5.0"
-}

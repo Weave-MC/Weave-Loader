@@ -3,26 +3,28 @@ plugins {
     `maven-publish`
 }
 
-repositories {
-    mavenCentral()
-}
-
 dependencies {
     api(libs.bundles.asm)
-    api("com.grappenmaker:mappings-util:0.1")
+    api(libs.mappingsUtil)
 }
 
 publishing {
+    repositories {
+        maven {
+            name = "WeaveMC"
+            url = uri("https://repo.weavemc.dev/releases")
+            credentials(PasswordCredentials::class)
+            authentication {
+                create<BasicAuthentication>("basic")
+            }
+        }
+    }
     publications {
-        create<MavenPublication>("mavenJava") {
+        create<MavenPublication>("maven") {
             from(components["java"])
             groupId = "net.weavemc.api"
             artifactId = "common"
-            version = "1.0"
+            version = "1.0.0"
         }
-    }
-
-    repositories {
-        mavenLocal()
     }
 }

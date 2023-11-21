@@ -42,6 +42,7 @@ fun premain(opt: String?, inst: Instrumentation) {
                 val mods = modFiles.map { unmappedMod ->
                     unmappedMod.fetchModConfig(JSON).mappings?.let { target ->
                         val temp = File.createTempFile(unmappedMod.nameWithoutExtension, "weavemod.jar")
+                        println("[Weave] ${temp.absolutePath} path")
                         remapModJar(fullMappings, unmappedMod, temp, target, environmentNamespace)
                         temp.deleteOnExit()
                         temp
