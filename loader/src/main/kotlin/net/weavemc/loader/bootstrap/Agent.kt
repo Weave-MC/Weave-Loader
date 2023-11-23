@@ -4,12 +4,10 @@ import net.weavemc.loader.FileManager
 import net.weavemc.loader.JSON
 import net.weavemc.loader.WeaveLoader
 import net.weavemc.loader.fetchModConfig
-import net.weavemc.loader.mapping.environmentNamespace
-import net.weavemc.loader.mapping.fullMappings
 import net.weavemc.api.GameInfo
 import net.weavemc.api.gameClient
 import net.weavemc.api.gameVersion
-import net.weavemc.loader.mapping.remapModJar
+import net.weavemc.loader.mapping.MappingsHandler
 import java.io.File
 import java.lang.instrument.Instrumentation
 
@@ -40,13 +38,19 @@ fun premain(opt: String?, inst: Instrumentation) {
                 val versionApi = FileManager.getVersionApi()
                 val modFiles = FileManager.getMods().map { it.file }
                 val mods = modFiles.map { unmappedMod ->
-                    unmappedMod.fetchModConfig(JSON).mappings?.let { target ->
+                    unmappedMod.fetchModConfig(JSON).mappings.let { target ->
                         val temp = File.createTempFile(unmappedMod.nameWithoutExtension, "weavemod.jar")
-                        println("[Weave] ${temp.absolutePath} path")
-                        remapModJar(fullMappings, unmappedMod, temp, target, environmentNamespace)
+                        MappingsHandler.remapModJar(
+                            MappingsHandler.fullMappings,
+                            unmappedMod,
+                            temp,
+                            target,
+                            MappingsHandler.environmentNamespace,
+                            listOf(FileManager.getVanillaMinecraftJar())
+                        )
                         temp.deleteOnExit()
                         temp
-                    } ?: unmappedMod
+                    }
                 }
 
                 loader.addWeaveURL(FileManager.getCommonApi().toURI().toURL())

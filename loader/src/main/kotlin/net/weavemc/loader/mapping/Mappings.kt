@@ -19,109 +19,126 @@ import java.util.jar.JarEntry
 import java.util.jar.JarFile
 import java.util.jar.JarOutputStream
 
-val fullMappings by lazy {
-    MappingsLoader.loadMappings(MappingsManager.getOrCreateBundledMappings().readLines())
-}
-
-val environmentNamespace by lazy {
-    when (gameClient) {
-        // TODO: correct version
-        Client.LUNAR -> if (gameVersion < GameInfo.Version.V1_16_5) "mcp" else "mcp"
-        Client.FORGE, Client.LABYMOD -> "mcp"
-        Client.VANILLA -> "official"
-        Client.BADLION -> error("We do not know")
+object MappingsHandler {
+    const val resourceNamespace = "official"
+    val fullMappings by lazy {
+        MappingsLoader.loadMappings(MappingsManager.getOrCreateBundledMappings().readLines())
     }
-}
-
-const val resourceNamespace = "official"
-
-internal fun bytesProvider(expectedNamespace: String): (String) -> ByteArray? {
-    val names = if (expectedNamespace != "official") fullMappings.asASMMapping(
-        from = expectedNamespace,
-        to = "official",
-        includeMethods = false,
-        includeFields = false
-    ) else emptyMap()
-
-    val mapper = SimpleRemapper(names)
-    val callback = ClasspathLoaders.fromLoader(WeaveLoader.javaClass.classLoader)
-
-    return { name -> callback(names[name] ?: name)?.remap(mapper) }
-}
-
-fun mapper(from: String, to: String) = MappingsRemapper(fullMappings, from, to, loader = bytesProvider(from))
-fun MappingsRemapper.reverseWithBytes() = reverse(bytesProvider(to))
-
-val availableMappers by lazy {
-    (fullMappings.namespaces - environmentNamespace).associateWith { mapper(environmentNamespace, it) }
-}
-
-val availableUnmappers by lazy { availableMappers.mapValues { it.value.reverseWithBytes() } }
-
-fun cachedMapper(to: String) = availableMappers[to] ?: error("Could not find a mapper for $to!")
-fun cachedUnmapper(to: String) = availableUnmappers[to] ?: error("Could not find an unmapper for $to!")
-
-val resourceNameMapper by lazy { cachedMapper(resourceNamespace) }
-val resourceNameUnmapper by lazy { cachedUnmapper(resourceNamespace) }
-val mappable by lazy {
-    val id = fullMappings.namespace("official")
-    fullMappings.classes.mapTo(hashSetOf()) { it.names[id] }
-}
-
-fun ByteArray.remapToEnvironment(): ByteArray = remap(resourceNameUnmapper)
-fun ByteArray.remap(remapper: Remapper): ByteArray {
-    val reader = ClassReader(this)
-    if (reader.className !in mappable) return this
-
-    val writer = ClassWriter(reader, 0)
-    reader.accept(LambdaAwareRemapper(writer, remapper), 0)
-
-    return writer.toByteArray()
-}
-fun remapModJar(
-    mappings: Mappings,
-    input: File,
-    output: File,
-    from: String = "official",
-    to: String = "named",
-    classpath: List<File> = listOf(),
-) {
-    val cache = hashMapOf<String, ByteArray?>()
-    val jarsToUse = (classpath + input).map { JarFile(it) }
-    val lookup = jarsToUse.flatMap { j ->
-        j.entries().asSequence().filter { it.name.endsWith(".class") }
-            .map { it.name.dropLast(6) to { j.getInputStream(it).readBytes() } }
-    }.toMap()
-
-    JarFile(input).use { jar ->
-        JarOutputStream(output.outputStream()).use { out ->
-            val (classes, resources) = jar.entries().asSequence().partition { it.name.endsWith(".class") }
-
-            fun write(name: String, bytes: ByteArray) {
-                out.putNextEntry(JarEntry(name))
-                out.write(bytes)
-            }
-
-            resources.filterNot { it.name.endsWith(".RSA") || it.name.endsWith(".SF") }
-                .forEach { write(it.name, jar.getInputStream(it).readBytes()) }
-
-            val remapper = MappingsRemapper(
-                mappings, from, to,
-                loader = { name -> if (name in lookup) cache.getOrPut(name) { lookup.getValue(name)() } else null }
-            )
-
-            classes.forEach { entry ->
-                val reader = ClassReader(jar.getInputStream(entry).readBytes())
-                val writer = ClassWriter(reader, 0)
-
-                reader.accept(ModJarRemapper(writer, remapper), 0)
-
-                write("${remapper.map(reader.className)}.class", writer.toByteArray())
-            }
+    val environmentNamespace by lazy {
+        when (gameClient) {
+            // TODO: correct version
+            Client.LUNAR -> if (gameVersion < GameInfo.Version.V1_16_5) "mcp" else "mojang"
+            Client.FORGE -> "mcp"
+            Client.LABYMOD, Client.VANILLA -> "official"
+            Client.BADLION -> error("We do not know")
         }
     }
 
-    jarsToUse.forEach { it.close() }
+    internal fun classLoaderBytesProvider(expectedNamespace: String): (String) -> ByteArray? {
+        val names = if (expectedNamespace != "official") fullMappings.asASMMapping(
+            from = expectedNamespace,
+            to = environmentNamespace,
+            includeMethods = false,
+            includeFields = false
+        ) else emptyMap()
+
+        val mapper = SimpleRemapper(names)
+        val callback = ClasspathLoaders.fromLoader(WeaveLoader.javaClass.classLoader)
+
+        return { name -> callback(names[name] ?: name)?.remap(mapper) }
+    }
+
+    internal fun jarBytesProvider(jarsToUse: List<JarFile>, expectedNamespace: String): (String) -> ByteArray? {
+        val names = if (expectedNamespace != "official") fullMappings.asASMMapping(
+            from = expectedNamespace,
+            to = "official",
+            includeMethods = false,
+            includeFields = false
+        ) else emptyMap()
+        // flip the namespace to remap the vanilla class to the mod's namespace
+        val mapper = SimpleRemapper(names.entries.associate { (k, v) -> v to k })
+
+        val cache = hashMapOf<String, ByteArray?>()
+        val lookup = jarsToUse.flatMap { j ->
+            j.entries().asSequence().filter { it.name.endsWith(".class") }
+                .map { it.name.dropLast(6) to { j.getInputStream(it).readBytes() } }
+        }.toMap()
+
+        return { name ->
+            val mappedName = names[name] ?: name
+            if (mappedName in lookup) cache.getOrPut(mappedName) { lookup.getValue(mappedName)().remap(mapper) }
+            else null
+        }
+    }
+
+    fun mapper(from: String, to: String) = MappingsRemapper(fullMappings, from, to, loader = classLoaderBytesProvider(from))
+    fun MappingsRemapper.reverseWithBytes() = reverse(classLoaderBytesProvider(to))
+
+    val availableMappers by lazy {
+        (fullMappings.namespaces - environmentNamespace).associateWith { mapper(environmentNamespace, it) }
+    }
+
+    val availableUnmappers by lazy { availableMappers.mapValues { it.value.reverseWithBytes() } }
+
+    fun cachedMapper(to: String) = availableMappers[to] ?: error("Could not find a mapper for $to!")
+    fun cachedUnmapper(to: String) = availableUnmappers[to] ?: error("Could not find an unmapper for $to!")
+
+    val resourceNameMapper by lazy { cachedMapper(resourceNamespace) }
+    val resourceNameUnmapper by lazy { cachedUnmapper(resourceNamespace) }
+    val mappable by lazy {
+        val id = fullMappings.namespace("official")
+        fullMappings.classes.mapTo(hashSetOf()) { it.names[id] }
+    }
+    fun ByteArray.remapToEnvironment(): ByteArray = remap(resourceNameUnmapper)
+    fun ByteArray.remap(remapper: Remapper): ByteArray {
+        val reader = ClassReader(this)
+        if (reader.className !in mappable) return this
+
+        val writer = ClassWriter(reader, 0)
+        reader.accept(LambdaAwareRemapper(writer, remapper), 0)
+
+        return writer.toByteArray()
+    }
+
+    fun remapModJar(
+        mappings: Mappings,
+        input: File,
+        output: File,
+        from: String = "official",
+        to: String = "named",
+        classpath: List<File> = listOf(),
+    ) {
+        val jarsToUse = (classpath + input).map { JarFile(it) }
+        JarFile(input).use { jar ->
+            JarOutputStream(output.outputStream()).use { out ->
+                val (classes, resources) = jar.entries().asSequence().partition { it.name.endsWith(".class") }
+
+                fun write(name: String, bytes: ByteArray) {
+                    out.putNextEntry(JarEntry(name))
+                    out.write(bytes)
+                }
+
+                resources.filterNot { it.name.endsWith(".RSA") || it.name.endsWith(".SF") }
+                    .forEach { write(it.name, jar.getInputStream(it).readBytes()) }
+
+                val remapper = MappingsRemapper(
+                    mappings, from, to,
+                    loader = jarBytesProvider(jarsToUse, from)
+                )
+
+                classes.forEach { entry ->
+                    val reader = ClassReader(jar.getInputStream(entry).readBytes())
+                    val writer = ClassWriter(reader, 0)
+
+                    reader.accept(ModJarRemapper(writer, remapper), 0)
+
+                    write("${remapper.map(reader.className)}.class", writer.toByteArray())
+                }
+            }
+        }
+
+        jarsToUse.forEach { it.close() }
+    }
 }
 class ModJarRemapper(
     parent: ClassVisitor,
