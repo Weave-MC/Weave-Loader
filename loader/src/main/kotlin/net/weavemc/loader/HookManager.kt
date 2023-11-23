@@ -1,10 +1,10 @@
 package net.weavemc.loader
 
-import com.grappenmaker.mappings.LambdaAwareRemapper
 import net.weavemc.loader.bootstrap.SafeTransformer
 import net.weavemc.loader.mapping.*
 import net.weavemc.api.Hook
 import net.weavemc.api.bytecode.dump
+import net.weavemc.loader.mapping.MappingsHandler.remapToEnvironment
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
@@ -71,7 +71,7 @@ class HookClassWriter(
 ) : ClassWriter(reader, flags) {
     private fun getResourceAsByteArray(resourceName: String): ByteArray =
         classLoader.getResourceAsStream("$resourceName.class")?.readBytes()
-            ?: classLoader.getResourceAsStream("${resourceNameMapper.map(resourceName)}.class")
+            ?: classLoader.getResourceAsStream("${MappingsHandler.resourceNameMapper.map(resourceName)}.class")
                 ?.readBytes()?.remapToEnvironment()
             ?: throw ClassNotFoundException("Failed to retrieve class from resources: $resourceName")
 

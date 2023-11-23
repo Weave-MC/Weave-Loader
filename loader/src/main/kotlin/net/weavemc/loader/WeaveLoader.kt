@@ -6,9 +6,7 @@ import net.weavemc.loader.analytics.launchStart
 import net.weavemc.loader.mixins.MixinApplicator
 import net.weavemc.api.Hook
 import net.weavemc.api.ModInitializer
-import net.weavemc.loader.mapping.bytesProvider
-import net.weavemc.loader.mapping.environmentNamespace
-import net.weavemc.loader.mapping.fullMappings
+import net.weavemc.loader.mapping.MappingsHandler
 import java.io.File
 import java.lang.instrument.Instrumentation
 import java.util.jar.JarFile
@@ -91,7 +89,12 @@ object WeaveLoader {
 
             val config = file.fetchModConfig(json)
             val name = config.name ?: file.name.removeSuffix(".jar")
-            val remapper = MappingsRemapper(fullMappings, config.mappings, environmentNamespace, loader = bytesProvider(config.mappings))
+            val remapper = MappingsRemapper(
+                MappingsHandler.fullMappings,
+                config.mappings,
+                MappingsHandler.environmentNamespace,
+                loader = MappingsHandler.classLoaderBytesProvider(config.mappings)
+            )
 
             JarFile(file).use { j -> config.mixinConfigs.forEach { mixins.registerMixin(it, j, remapper) } }
             HookManager.hooks += config.hooks.map { ModHook(instantiate(it)) }
