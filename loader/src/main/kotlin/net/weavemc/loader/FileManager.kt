@@ -3,6 +3,7 @@ package net.weavemc.loader
 import net.weavemc.api.GameInfo
 import net.weavemc.api.gameVersion
 import java.io.File
+import java.nio.file.Paths
 import kotlin.io.path.*
 
 internal object FileManager {
@@ -11,6 +12,20 @@ internal object FileManager {
     val API_DIRECTORY = getOrCreateDirectory("api")
 
     private val apiJarNameRegex = Regex("v\\d+\\.\\d+(\\.\\d+)?\\.jar")
+
+    fun getVanillaMinecraftJar(): File {
+        val os = System.getProperty("os.name").lowercase()
+        val minecraftPath = Paths.get(System.getProperty("user.home"), when {
+            os.contains("win") -> "AppData${File.separator}Roaming${File.separator}.minecraft"
+            os.contains("mac") -> "Library${File.separator}Application Support${File.separator}minecraft"
+            os.contains("nix") || os.contains("nux") || os.contains("aix") -> ".minecraft"
+            else -> error("Failed to retrieve Vanilla Minecraft Jar due to unsupported OS.")
+        })
+
+        return minecraftPath.resolve("versions")
+            .resolve(gameVersion.versionName)
+            .resolve("${gameVersion.versionName}.jar").toFile()
+    }
 
     fun getCommonApi(): File =
         API_DIRECTORY.resolve("common.jar").toFile()
