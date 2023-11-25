@@ -265,7 +265,7 @@ public inline fun <reified T : Any> InsnBuilder.getSingleton() =
 public fun InsnBuilder.callEvent() {
     invokestatic(
         internalNameOf<EventBus>(),
-        "callEvent",
+        "postEvent",
         "(L${internalNameOf<Event>()};)V"
     )
 }
