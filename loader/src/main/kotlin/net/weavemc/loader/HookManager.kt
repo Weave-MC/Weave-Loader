@@ -42,7 +42,7 @@ internal object HookManager : SafeTransformer {
             }
         }
 
-        applyHooks(null, node, config, matchedHooks)
+        applyHooks(MappingsHandler.environmentNamespace, node, config, matchedHooks)
 
         val flags = if (config.computeFrames) ClassWriter.COMPUTE_FRAMES else ClassWriter.COMPUTE_MAXS
         val writer = HookClassWriter(flags, reader)
@@ -59,10 +59,10 @@ internal object HookManager : SafeTransformer {
         return writer.toByteArray()
     }
 
-    private tailrec fun applyHooks(previousNamespace: String?, node: ClassNode, cfg: Hook.AssemblerConfig, hooks: List<ModHook>) {
+    private tailrec fun applyHooks(previousNamespace: String, node: ClassNode, cfg: Hook.AssemblerConfig, hooks: List<ModHook>) {
         if (hooks.isEmpty()) {
             // remap back to environment namespace
-            val remapper = MappingsHandler.mapper(previousNamespace ?: return, MappingsHandler.environmentNamespace)
+            val remapper = MappingsHandler.mapper(previousNamespace, MappingsHandler.environmentNamespace)
             node.accept(ClassRemapper(null, remapper))
 
             return
@@ -72,7 +72,7 @@ internal object HookManager : SafeTransformer {
         if (head.mappings == previousNamespace) {
             head.hook.transform(node, cfg)
         } else {
-            val previous = previousNamespace ?: MappingsHandler.environmentNamespace
+            val previous = previousNamespace
             val remapper = MappingsHandler.mapper(previous, head.mappings)
             node.accept(ClassRemapper(null, remapper))
             head.hook.transform(node, cfg)
