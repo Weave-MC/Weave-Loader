@@ -62,12 +62,10 @@ internal object HookManager : SafeTransformer {
     private tailrec fun applyHooks(previousNamespace: String?, node: ClassNode, cfg: Hook.AssemblerConfig, hooks: List<ModHook>) {
         if (hooks.isEmpty()) {
             // remap back to environment namespace
-            if (previousNamespace != null) {
-                val remapper = MappingsHandler.mapper(hooks.last().mappings, MappingsHandler.environmentNamespace)
-                node.accept(ClassRemapper(null, remapper))
+            val remapper = MappingsHandler.mapper(previousNamespace ?: return, MappingsHandler.environmentNamespace)
+            node.accept(ClassRemapper(null, remapper))
 
-                return
-            }
+            return
         }
 
         val head = hooks.first()
