@@ -1,10 +1,12 @@
 package net.weavemc.loader
 
+import com.grappenmaker.mappings.MappingsRemapper
 import kotlinx.serialization.json.Json
 import net.weavemc.loader.analytics.launchStart
 import net.weavemc.loader.mixins.MixinApplicator
-import net.weavemc.weave.api.Hook
-import net.weavemc.weave.api.ModInitializer
+import net.weavemc.api.Hook
+import net.weavemc.api.ModInitializer
+import net.weavemc.loader.mapping.MappingsHandler
 import java.io.File
 import java.lang.instrument.Instrumentation
 import java.util.jar.JarFile
@@ -12,14 +14,14 @@ import java.util.jar.JarFile
 /**
  * The main class of the Weave Loader.
  */
-public object WeaveLoader {
+object WeaveLoader {
 
     /**
      * Stored list of [WeaveMod]s.
      *
      * @see ModConfig
      */
-    public val mods: MutableList<WeaveMod> = mutableListOf()
+    val mods: MutableList<WeaveMod> = mutableListOf()
     lateinit var mixins: MixinApplicator
 
     /**
@@ -28,7 +30,7 @@ public object WeaveLoader {
      * @see net.weavemc.loader.bootstrap.premain
      */
     @JvmStatic
-    public fun init(inst: Instrumentation, apiJar: File, modJars: List<File>) {
+    fun init(inst: Instrumentation, apiJar: File?, modJars: List<File>) {
         println("[Weave] Initializing Weave")
         launchStart = System.currentTimeMillis()
         inst.addTransformer(HookManager)
@@ -37,17 +39,16 @@ public object WeaveLoader {
             mixins = MixinApplicator()
             inst.addTransformer(mixins.Transformer())
         }.onFailure {
-            System.err.println("Failed to load mixins:")
+            System.err.println("[Weave] Failed to load mixins:")
             it.printStackTrace()
         }
 
         /* Add as a backup search path (mainly used for resources) */
-        modJars.forEach {
-            inst.appendToSystemClassLoaderSearch(JarFile(it))
-        }
+        modJars.forEach { inst.appendToSystemClassLoaderSearch(JarFile(it)) }
 
         addMods(modJars)
-        addApiHooks(apiJar)
+        if (apiJar != null)
+            addApiHooks(apiJar)
 
         // Call preInit() once everything is done.
         mods.forEach { weaveMod ->
@@ -66,12 +67,12 @@ public object WeaveLoader {
         val apiJar = JarFile(apiFile)
         apiJar.entries()
             .toList()
-            .filter { it.name.startsWith("net/weavemc/weave/api/hooks/") && !it.isDirectory }
+            .filter { it.name.startsWith("net/weavemc/api/hooks/") && !it.isDirectory }
             .forEach {
                 runCatching {
                     val clazz = Class.forName(it.name.removeSuffix(".class").replace('/', '.'))
                     if (clazz.superclass == Hook::class.java) {
-                        HookManager.hooks += clazz.getConstructor().newInstance() as Hook
+                        HookManager.hooks += ModHook(clazz.getConstructor().newInstance() as Hook)
                     }
                 }
             }
@@ -81,20 +82,22 @@ public object WeaveLoader {
      * Adds Weave Mod's Hooks to HookManager and adds to mods list for later instantiation
      */
     private fun addMods(modJars: List<File>) {
-        val json = Json { ignoreUnknownKeys = true }
+        val json = JSON
 
         modJars.forEach { file ->
-            val jar = JarFile(file)
-            println("[Weave] Loading ${jar.name}")
+            println("[Weave] Loading ${file.name}")
 
-            val configEntry = jar.getEntry("weave.mod.json")
-                ?: error("${jar.name} does not contain a weave.mod.json!")
+            val config = file.fetchModConfig(json)
+            val name = config.name ?: file.name.removeSuffix(".jar")
+            val remapper = MappingsRemapper(
+                MappingsHandler.fullMappings,
+                config.mappings,
+                MappingsHandler.environmentNamespace,
+                loader = MappingsHandler.classLoaderBytesProvider(config.mappings)
+            )
 
-            val config = json.decodeFromString<ModConfig>(jar.getInputStream(configEntry).readBytes().decodeToString())
-            val name = config.name ?: jar.name.removeSuffix(".jar")
-
-            config.mixinConfigs.forEach { mixins.registerMixin(it, jar) }
-            HookManager.hooks += config.hooks.map(::instantiate)
+            JarFile(file).use { j -> config.mixinConfigs.forEach { mixins.registerMixin(it, j, remapper) } }
+            HookManager.hooks += config.hooks.map { ModHook(instantiate(it)) }
 
             // TODO: Add a name field to the config.
             mods += WeaveMod(name, config)
@@ -108,4 +111,16 @@ public object WeaveLoader {
             .getConstructor()
             .newInstance() as? T
             ?: error("$className does not implement ${T::class.java.simpleName}!")
+}
+
+internal fun File.fetchModConfig(json: Json) = JarFile(this).use {
+    val configEntry = it.getEntry("weave.mod.json")
+        ?: error("${it.name} does not contain a weave.mod.json!")
+
+    json.decodeFromString<ModConfig>(it.getInputStream(configEntry).readBytes().decodeToString())
+}
+
+internal fun JarFile.fetchMixinConfig(path: String, json: Json): MixinConfig {
+    val configEntry = getEntry(path) ?: error("$name does not contain a $path (the mixin config)!")
+    return json.decodeFromString<MixinConfig>(getInputStream(configEntry).readBytes().decodeToString())
 }

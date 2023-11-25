@@ -2,7 +2,8 @@ package net.weavemc.loader
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import net.weavemc.weave.api.ModInitializer
+import net.weavemc.api.Hook
+import net.weavemc.api.ModInitializer
 
 /**
  * The data class containing information about a loaded Weave mod.
@@ -10,7 +11,7 @@ import net.weavemc.weave.api.ModInitializer
  * @property name The loaded name of a mod, see [ModConfig's `name`][ModConfig.name] for more info.
  * @property config The [ModConfig][ModConfig] instance of the mod.
  */
-public data class WeaveMod(
+data class WeaveMod(
     val name: String,
     val config: ModConfig
 )
@@ -31,12 +32,18 @@ public data class ModConfig(
     val hooks: List<String> = listOf(),
     val entrypoints: List<String> = listOf(),
     val name: String? = null,
-    val modId: String? = null
+    val modId: String? = null,
+    val mappings: String
 )
+
+/**
+ * @param hook Hook class
+ */
+data class ModHook(val hook: Hook)
 
 @Serializable
 public data class MixinConfig(
     @SerialName("package")
     val packagePath: String,
-    val mixins: Array<String>
+    val mixins: List<String>
 )

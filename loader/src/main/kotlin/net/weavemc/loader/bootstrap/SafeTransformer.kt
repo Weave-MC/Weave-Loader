@@ -5,20 +5,18 @@ import java.security.ProtectionDomain
 import kotlin.system.exitProcess
 
 internal interface SafeTransformer : ClassFileTransformer {
-
     fun transform(loader: ClassLoader, className: String, originalClass: ByteArray): ByteArray?
 
     override fun transform(
-        loader: ClassLoader,
+        loader: ClassLoader?,
         className: String,
         classBeingRedefined: Class<*>?,
         protectionDomain: ProtectionDomain?,
         classfileBuffer: ByteArray
     ) = try {
-        this.transform(loader, className, classfileBuffer)
+        if (loader != null) transform(loader, className, classfileBuffer) else null
     } catch (e: Throwable) {
         e.printStackTrace()
         exitProcess(1)
     }
-
 }

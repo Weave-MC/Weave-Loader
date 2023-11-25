@@ -31,11 +31,11 @@ while injecting into clients that are somewhat closed-off to developers.
 | 1.7     | :white_check_mark: |
 | 1.8     | :white_check_mark: |
 | 1.12    | :white_check_mark: |
-| 1.16    | :x: |
-| 1.17    | :x: |
-| 1.18    | :x: |
-| 1.19    | :x: |
-| 1.20    | :x: |
+| 1.16    | :white_check_mark: |
+| 1.17    | :white_check_mark: |
+| 1.18    | :white_check_mark: |
+| 1.19    | :white_check_mark: |
+| 1.20    | :white_check_mark: |
 
 </td></tr>
 </table>
@@ -52,6 +52,7 @@ the [releases page](https://github.com/Weave-MC/Weave-Loader/releases), or build
 
 ```bash
 git clone https://github.com/Weave-MC/Weave-Loader.git
+git submodule update --init --recursive
 ```
 
 - **UN*X**

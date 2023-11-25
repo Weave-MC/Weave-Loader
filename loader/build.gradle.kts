@@ -1,18 +1,8 @@
-import org.objectweb.asm.ClassReader
-import org.objectweb.asm.ClassWriter
-import org.objectweb.asm.commons.ClassRemapper
-import org.objectweb.asm.commons.Remapper
-import java.io.FileOutputStream
-import java.util.jar.JarEntry
-import java.util.jar.JarFile
-import java.util.jar.JarOutputStream
-
 plugins {
-    kotlin("jvm")
-    kotlin("plugin.serialization")
-    kotlin("plugin.lombok")
     `maven-publish`
-    id("com.github.johnrengelman.shadow") version "8.1.1"
+    id("kotlin")
+    id("shade")
+    id("relocate")
 }
 
 repositories {
@@ -23,100 +13,33 @@ dependencies {
     implementation(libs.kxSer)
     api(libs.bundles.asm)
     api(project(":api:common"))
+    api(libs.mappingsUtil)
 }
 
 tasks.jar {
-    from(configurations["runtimeClasspath"].map { if (it.isDirectory) it else zipTree(it) }) {
-        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-
-        exclude(
-            "**/module-info.class",
-            "META-INF/*.SF",
-            "META-INF/*.DSA",
-            "META-INF/*.RSA",
-        )
-    }
-
     manifest.attributes(
-        "Premain-Class" to "net.weavemc.loader.bootstrap.AgentKt"
+        "Premain-Class" to "net.weavemc.loader.bootstrap.AgentKt",
+        "Can-Retransform-Classes" to "true"
     )
 }
 
-tasks.assemble {
-    dependsOn(relocate)
-}
-
-val relocate = tasks.register("relocate") {
-    dependsOn("jar")
-
-    doLast {
-        val path = buildDir.resolve("libs").resolve("loader-final.jar")
-
-        val jarOut = JarOutputStream(FileOutputStream(path))
-        val output = JarFile(tasks.jar.get().outputs.files.singleFile)
-        val entries = output.entries()
-
-        while (entries.hasMoreElements()) {
-            val entry = entries.nextElement()
-
-            // only modify classes
-            if (!entry.isDirectory) {
-                when {
-                    entry.name.startsWith("org/objectweb/asm") || (entry.name.startsWith("net/weavemc")) -> {
-                        var entryName = entry.name
-
-                        if (entry.name.startsWith("org/objectweb/asm")) {
-                            entryName = entry.name.replaceFirst("org/objectweb", "net/weavemc")
-                            jarOut.putNextEntry(JarEntry(entry.name))
-                            jarOut.write(output.getInputStream(entry).readBytes())
-                            jarOut.closeEntry()
-                        }
-
-                        val bytes = output.getInputStream(entry).readBytes()
-
-                        val cr = ClassReader(bytes)
-                        val cw = ClassWriter(cr, 0)
-                        cr.accept(ClassRemapper(cw, object : Remapper() {
-                            override fun map(internalName: String): String =
-                                internalName.replaceFirst("org/objectweb", "net/weavemc")
-                        }), 0)
-
-                        jarOut.putNextEntry(JarEntry(entryName))
-                        jarOut.write(cw.toByteArray())
-                        jarOut.closeEntry()
-                    }
-
-                    else -> writeEntryToFile(output, jarOut, entry, entry.name)
-                }
+publishing {
+    repositories {
+        maven {
+            name = "WeaveMC"
+            url = uri("https://repo.weavemc.dev/releases")
+            credentials(PasswordCredentials::class)
+            authentication {
+                create<BasicAuthentication>("basic")
             }
         }
-
-        jarOut.close()
     }
-}
-
-fun writeEntryToFile(
-    file: JarFile,
-    outStream: JarOutputStream,
-    entry: JarEntry,
-    entryName: String
-) {
-    outStream.putNextEntry(JarEntry(entryName))
-    outStream.write(file.getInputStream(entry).readBytes())
-    outStream.closeEntry()
-}
-
-publishing {
     publications {
-        create<MavenPublication>("mavenJava") {
+        create<MavenPublication>("maven") {
             from(components["java"])
             groupId = "net.weavemc"
             artifactId = "loader"
-            version = "1.0"
+            version = "1.0.0"
         }
-    }
-
-    repositories {
-        mavenLocal()
     }
 }
