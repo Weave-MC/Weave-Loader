@@ -1,16 +1,17 @@
 package net.weavemc.loader
 
-import com.grappenmaker.mappings.asASMMapping
-import net.weavemc.loader.bootstrap.SafeTransformer
-import net.weavemc.loader.mapping.*
+import com.grappenmaker.mappings.MappingsRemapper
 import net.weavemc.api.Hook
 import net.weavemc.api.bytecode.dump
+import net.weavemc.api.bytecode.internalNameOf
+import net.weavemc.loader.bootstrap.SafeTransformer
+import net.weavemc.loader.mapping.MappingsHandler
 import net.weavemc.loader.mapping.MappingsHandler.remap
 import net.weavemc.loader.mapping.MappingsHandler.remapToEnvironment
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
-import org.objectweb.asm.commons.Remapper
+import org.objectweb.asm.tree.AnnotationNode
 import org.objectweb.asm.tree.ClassNode
 import java.nio.file.Paths
 
@@ -48,7 +49,7 @@ internal object HookManager : SafeTransformer {
         return classWriter.toByteArray()
     }
 
-    fun applyHooks(classReader: ClassReader, hooks: List<ModHook>): ClassNode {
+    private fun applyHooks(classReader: ClassReader, hooks: List<ModHook>): ClassNode {
         var previousNamespace = MappingsHandler.environmentNamespace
         var classNode = ClassNode().also { classReader.accept(it, 0) }
         var config = AssemblerConfigImpl()
@@ -57,18 +58,103 @@ internal object HookManager : SafeTransformer {
             if (hook.mappings == previousNamespace) {
                 hook.hook.transform(classNode, config)
             } else {
-                val remapper = MappingsHandler.mapper(previousNamespace, hook.mappings)
-                classNode = classNode.remap(remapper, config.classWriterFlags)
+                val remapper = MappingsRemapper(
+                    MappingsHandler.fullMappings,
+                    previousNamespace,
+                    hook.mappings,
+                    loader = MappingsHandler.jarBytesProvider(listOf(), previousNamespace)
+                )
+                val newClassNode = classNode.remap(remapper, config.classWriterFlags)
+
+                // filter methods between old and new class nodes that have the same name and desc
+                for ((index, newMethod) in newClassNode.methods.withIndex()) {
+                    var revert = false
+
+                    fun checkDuplicate() {
+                        // find a method in the new class node that is before newMethod and has the same name and desc
+                        val filteredMethod = newClassNode
+                            .methods
+                            .find { it.name == newMethod.name && it.desc == newMethod.desc }
+                            ?: return
+                        if (filteredMethod == newMethod) {
+                            return
+                        }
+
+                        revert = true
+                    }
+
+                    fun checkSpongePoweredMixinAnnotation() {
+                        if (newMethod.visibleAnnotations?.any { it.desc.startsWith("Lorg/spongepowered/asm/mixin/") } == true) {
+                            revert = true
+                        }
+                    }
+
+                    checkDuplicate()
+                    checkSpongePoweredMixinAnnotation()
+
+                    if (revert) {
+                        // revert the name of the method to the old name
+                        val oldMethod = classNode.methods[index]
+                        newMethod.name = oldMethod.name
+                    }
+                }
+
+                // filter methods that were mapped and add an annotation to them
+                for ((index, oldMethod) in classNode.methods.withIndex()) {
+                    val newMethod = newClassNode.methods[index]
+
+                    if (oldMethod.name != newMethod.name || oldMethod.desc != newMethod.desc) {
+                        if (newMethod.invisibleAnnotations == null) {
+                            newMethod.invisibleAnnotations = mutableListOf()
+                        }
+
+                        if (!newMethod.invisibleAnnotations.any { it.desc == "L${internalNameOf<Mapped>()};" }) {
+                            newMethod.invisibleAnnotations.add(AnnotationNode("L${internalNameOf<Mapped>()};"))
+                        }
+                    }
+                }
+
+                classNode = newClassNode
+
                 config = AssemblerConfigImpl()
                 hook.hook.transform(classNode, config)
+
                 previousNamespace = hook.mappings
             }
         }
 
         // remap back to the environment
         if (previousNamespace != MappingsHandler.environmentNamespace) {
-            val remapper = MappingsHandler.cachedUnmapper(previousNamespace)
-            classNode = classNode.remap(remapper, config.classWriterFlags)
+            val remapper = MappingsRemapper(
+                MappingsHandler.fullMappings,
+                previousNamespace,
+                MappingsHandler.environmentNamespace,
+                loader = MappingsHandler.jarBytesProvider(listOf(), previousNamespace)
+            )
+
+            // 20 a-Z
+            val randomString = (1..20).map { ('Z'..'a').random() }.joinToString("")
+
+            // add a random string to the name of the method ($methodName_$randomString)
+            classNode
+                .methods
+                .filter { method -> method.invisibleAnnotations?.any { it.desc == "L${internalNameOf<Mapped>()};" } != true }
+                .forEach { method -> method.name = "${method.name}_$randomString" }
+
+            val newClassNode = classNode.remap(remapper, config.classWriterFlags)
+
+            // revert the name of the method to the old name
+            newClassNode
+                .methods
+                .filter { method -> method.invisibleAnnotations?.any { it.desc == "L${internalNameOf<Mapped>()};" } != true }
+                .forEach { method -> method.name = method.name.removeSuffix("_$randomString") }
+
+            // remove the Mapped annotation
+            newClassNode
+                .methods
+                .forEach { method -> method.invisibleAnnotations?.removeIf { it.desc == "L${internalNameOf<Mapped>()};" } }
+
+            classNode = newClassNode
         }
 
         return classNode
@@ -82,7 +168,7 @@ internal object HookManager : SafeTransformer {
     private fun getBytecodeDir() = Paths.get(System.getProperty("user.home"), ".weave", ".bytecode.out")
         .toFile().apply { mkdirs() }
 
-    internal class AssemblerConfigImpl : Hook.AssemblerConfig {
+    private class AssemblerConfigImpl : Hook.AssemblerConfig {
         var computeFrames = false
 
         override fun computeFrames() {
@@ -92,6 +178,8 @@ internal object HookManager : SafeTransformer {
         val classWriterFlags: Int
             get() = if (computeFrames) ClassWriter.COMPUTE_FRAMES else ClassWriter.COMPUTE_MAXS
     }
+
+    private annotation class Mapped
 }
 
 class HookClassWriter(
@@ -99,7 +187,7 @@ class HookClassWriter(
     reader: ClassReader? = null,
 ) : ClassWriter(reader, flags) {
     private fun getResourceAsByteArray(resourceName: String): ByteArray =
-        classLoader.getResourceAsStream("${resourceName.also { println("resource name: $it") }}.class")?.readBytes()
+        classLoader.getResourceAsStream("$resourceName.class")?.readBytes()
             ?: classLoader.getResourceAsStream("${MappingsHandler.resourceNameMapper.map(resourceName)}.class")
                 ?.readBytes()?.remapToEnvironment()
             ?: throw ClassNotFoundException("Failed to retrieve class from resources: $resourceName")
