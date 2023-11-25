@@ -4,6 +4,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import net.weavemc.api.Hook
 import net.weavemc.api.ModInitializer
+import net.weavemc.loader.mapping.MappingsHandler
 
 /**
  * The data class containing information about a loaded Weave mod.
@@ -39,7 +40,20 @@ public data class ModConfig(
 /**
  * @param hook Hook class
  */
-data class ModHook(val hook: Hook)
+data class ModHook(
+    val hook: Hook,
+    val mappings: String,
+) {
+    val mappedTarget by lazy {
+        val targets = hook.targets
+
+        if (mappings == MappingsHandler.environmentNamespace) {
+            targets.toList()
+        } else {
+            targets.map(MappingsHandler.cachedUnmapper(mappings)::map)
+        }
+    }
+}
 
 @Serializable
 public data class MixinConfig(

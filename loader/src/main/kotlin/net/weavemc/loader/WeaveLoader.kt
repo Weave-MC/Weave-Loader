@@ -64,6 +64,7 @@ object WeaveLoader {
      * Adds hooks for Weave events, corresponding to the Minecraft version
      */
     private fun addApiHooks(apiFile: File) {
+        val config = apiFile.fetchModConfig(JSON)
         val apiJar = JarFile(apiFile)
         apiJar.entries()
             .toList()
@@ -72,7 +73,7 @@ object WeaveLoader {
                 runCatching {
                     val clazz = Class.forName(it.name.removeSuffix(".class").replace('/', '.'))
                     if (clazz.superclass == Hook::class.java) {
-                        HookManager.hooks += ModHook(clazz.getConstructor().newInstance() as Hook)
+                        HookManager.hooks += ModHook(clazz.getConstructor().newInstance() as Hook, config.mappings)
                     }
                 }
             }
@@ -97,7 +98,7 @@ object WeaveLoader {
             )
 
             JarFile(file).use { j -> config.mixinConfigs.forEach { mixins.registerMixin(it, j, remapper) } }
-            HookManager.hooks += config.hooks.map { ModHook(instantiate(it)) }
+            HookManager.hooks += config.hooks.map { ModHook(instantiate(it), config.mappings) }
 
             // TODO: Add a name field to the config.
             mods += WeaveMod(name, config)

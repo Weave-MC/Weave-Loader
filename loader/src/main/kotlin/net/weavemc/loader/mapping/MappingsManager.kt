@@ -42,6 +42,8 @@ object MappingsManager {
         println("[Weave] Took ${measureTimeMillis {
             val joinedMappings = inputs.map {
                 val baseMappings = MappingsLoader.loadMappings(it.readBytes().decodeToString().trim().lines())
+                println("baseMappings = ${baseMappings.javaClass}")
+                println(baseMappings.namespaces)
                 when {
                     "intermediary" in baseMappings.namespaces -> baseMappings
                         .filterNamespaces("official", "named")
@@ -49,6 +51,7 @@ object MappingsManager {
                         .reorderNamespaces("yarn", "official")
                     baseMappings is ProguardMappings -> baseMappings.renameNamespaces("mojang", "official")
                     else -> baseMappings
+                        .filterNamespaces("official", "named")
                         .reorderNamespaces("named", "official")
                         .renameNamespaces("mcp", "official")
                 }
@@ -93,7 +96,7 @@ object MappingsManager {
 
         val versionEntry = manifest.versions.find { it.id == gameVersion.versionName } ?: return null
         val versionInfo = DownloadUtil.fetch(versionEntry.url).decodeJSON<VersionInfo>() ?: return null
-        val mappings = versionInfo.downloads.mappings
+        val mappings = versionInfo.downloads.mappings ?: return null
 
         if (mappings.size != -1) {
             val path = FileManager.CACHE_DIRECTORY
@@ -125,7 +128,7 @@ object MappingsManager {
     @Serializable
     private data class VersionDownloads(
         val client: VersionDownload,
-        @SerialName("client_mappings") val mappings: ClientMappings // not all versions will have a client_mappings url
+        @SerialName("client_mappings") val mappings: ClientMappings? = null // not all versions will have a client_mappings url
     )
 
     @Serializable

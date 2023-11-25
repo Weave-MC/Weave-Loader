@@ -1,5 +1,6 @@
 package net.weavemc.loader
 
+import com.grappenmaker.mappings.MappingsRemapper
 import net.weavemc.loader.bootstrap.SafeTransformer
 import net.weavemc.loader.mapping.*
 import net.weavemc.api.Hook
@@ -8,6 +9,7 @@ import net.weavemc.loader.mapping.MappingsHandler.remapToEnvironment
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
+import org.objectweb.asm.commons.ClassRemapper
 import org.objectweb.asm.tree.ClassNode
 import java.nio.file.Paths
 
@@ -22,9 +24,10 @@ internal object HookManager : SafeTransformer {
     val hooks = mutableListOf<ModHook>()
 
     override fun transform(loader: ClassLoader, className: String, originalClass: ByteArray): ByteArray? {
-        // TODO: this looks like it will not work: there is no filtering
-        val hooks = this.hooks.map { it.hook }
-        if (hooks.isEmpty()) return null
+        val matchedHooks = hooks.filter { it.mappedTarget.contains(className) }
+        if (matchedHooks.isEmpty()) {
+            return null
+        }
 
         println("[HookManager] Transforming $className")
 
@@ -39,10 +42,10 @@ internal object HookManager : SafeTransformer {
             }
         }
 
+        applyHooks(null, node, config, matchedHooks)
+
         val flags = if (config.computeFrames) ClassWriter.COMPUTE_FRAMES else ClassWriter.COMPUTE_MAXS
         val writer = HookClassWriter(flags, reader)
-
-        // TODO: reimplement hooks
 
         if (dumpBytecode) {
             val bytecodeOut = getBytecodeDir().resolve("$className.class")
@@ -54,6 +57,30 @@ internal object HookManager : SafeTransformer {
 
         node.accept(writer)
         return writer.toByteArray()
+    }
+
+    private tailrec fun applyHooks(previousNamespace: String?, node: ClassNode, cfg: Hook.AssemblerConfig, hooks: List<ModHook>) {
+        if (hooks.isEmpty()) {
+            // remap back to environment namespace
+            if (previousNamespace != null) {
+                val remapper = MappingsHandler.mapper(hooks.last().mappings, MappingsHandler.environmentNamespace)
+                node.accept(ClassRemapper(null, remapper))
+
+                return
+            }
+        }
+
+        val head = hooks.first()
+        if (head.mappings == previousNamespace) {
+            head.hook.transform(node, cfg)
+        } else {
+            val previous = previousNamespace ?: MappingsHandler.environmentNamespace
+            val remapper = MappingsHandler.mapper(previous, head.mappings)
+            node.accept(ClassRemapper(null, remapper))
+            head.hook.transform(node, cfg)
+
+            applyHooks(head.mappings, node, cfg, hooks.drop(1))
+        }
     }
 
     /**
