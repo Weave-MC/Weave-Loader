@@ -26,27 +26,29 @@ internal object HookManager : SafeTransformer {
     val hooks = mutableListOf<ModHook>()
 
     override fun transform(loader: ClassLoader, className: String, originalClass: ByteArray): ByteArray? {
-        val matchedHooks = hooks.filter { it.mappedTarget.contains(className) }
-        if (matchedHooks.isEmpty()) {
-            return null
+        synchronized(hooks) {
+            val matchedHooks = hooks.filter { it.mappedTarget.contains(className) }
+            if (matchedHooks.isEmpty()) {
+                return null
+            }
+
+            println("[HookManager] Transforming $className")
+
+            val classReader = ClassReader(originalClass)
+            val classNode = applyHooks(classReader, matchedHooks)
+            val classWriter = HookClassWriter(ClassWriter.COMPUTE_FRAMES, classReader)
+
+            if (dumpBytecode) {
+                val bytecodeOut = getBytecodeDir().resolve("$className.class")
+                runCatching {
+                    bytecodeOut.parentFile?.mkdirs()
+                    classNode.dump(bytecodeOut.absolutePath)
+                }.onFailure { println("Failed to dump bytecode for $bytecodeOut") }
+            }
+
+            classNode.accept(classWriter)
+            return classWriter.toByteArray()
         }
-
-        println("[HookManager] Transforming $className")
-
-        val classReader = ClassReader(originalClass)
-        val classNode = applyHooks(classReader, matchedHooks)
-        val classWriter = HookClassWriter(ClassWriter.COMPUTE_FRAMES, classReader)
-
-        if (dumpBytecode) {
-            val bytecodeOut = getBytecodeDir().resolve("$className.class")
-            runCatching {
-                bytecodeOut.parentFile?.mkdirs()
-                classNode.dump(bytecodeOut.absolutePath)
-            }.onFailure { println("Failed to dump bytecode for $bytecodeOut") }
-        }
-
-        classNode.accept(classWriter)
-        return classWriter.toByteArray()
     }
 
     private fun applyHooks(classReader: ClassReader, hooks: List<ModHook>): ClassNode {
