@@ -1,14 +1,16 @@
 package net.weavemc.loader
 
+import com.grappenmaker.mappings.asASMMapping
 import net.weavemc.loader.bootstrap.SafeTransformer
 import net.weavemc.loader.mapping.*
 import net.weavemc.api.Hook
 import net.weavemc.api.bytecode.dump
+import net.weavemc.loader.mapping.MappingsHandler.remap
 import net.weavemc.loader.mapping.MappingsHandler.remapToEnvironment
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
-import org.objectweb.asm.commons.ClassRemapper
+import org.objectweb.asm.commons.Remapper
 import org.objectweb.asm.tree.ClassNode
 import java.nio.file.Paths
 
@@ -30,53 +32,46 @@ internal object HookManager : SafeTransformer {
 
         println("[HookManager] Transforming $className")
 
-        val node = ClassNode()
-        val reader = ClassReader(originalClass)
-        reader.accept(node, 0)
-
-        val config = object : Hook.AssemblerConfig {
-            var computeFrames = false
-            override fun computeFrames() {
-                computeFrames = true
-            }
-        }
-
-        applyHooks(MappingsHandler.environmentNamespace, node, config, matchedHooks)
-
-        val flags = if (config.computeFrames) ClassWriter.COMPUTE_FRAMES else ClassWriter.COMPUTE_MAXS
-        val writer = HookClassWriter(flags, reader)
+        val classReader = ClassReader(originalClass)
+        val classNode = applyHooks(classReader, matchedHooks)
+        val classWriter = HookClassWriter(ClassWriter.COMPUTE_FRAMES, classReader)
 
         if (dumpBytecode) {
             val bytecodeOut = getBytecodeDir().resolve("$className.class")
             runCatching {
                 bytecodeOut.parentFile?.mkdirs()
-                node.dump(bytecodeOut.absolutePath)
+                classNode.dump(bytecodeOut.absolutePath)
             }.onFailure { println("Failed to dump bytecode for $bytecodeOut") }
         }
 
-        node.accept(writer)
-        return writer.toByteArray()
+        classNode.accept(classWriter)
+        return classWriter.toByteArray()
     }
 
-    private tailrec fun applyHooks(previousNamespace: String, node: ClassNode, cfg: Hook.AssemblerConfig, hooks: List<ModHook>) {
-        if (hooks.isEmpty()) {
-            // remap back to environment namespace
-            val remapper = MappingsHandler.mapper(previousNamespace, MappingsHandler.environmentNamespace)
-            node.accept(ClassRemapper(null, remapper))
+    fun applyHooks(classReader: ClassReader, hooks: List<ModHook>): ClassNode {
+        var previousNamespace = MappingsHandler.environmentNamespace
+        var classNode = ClassNode().also { classReader.accept(it, 0) }
+        var config = AssemblerConfigImpl()
 
-            return
+        for (hook in hooks) {
+            if (hook.mappings == previousNamespace) {
+                hook.hook.transform(classNode, config)
+            } else {
+                val remapper = MappingsHandler.mapper(previousNamespace, hook.mappings)
+                classNode = classNode.remap(remapper, config.classWriterFlags)
+                config = AssemblerConfigImpl()
+                hook.hook.transform(classNode, config)
+                previousNamespace = hook.mappings
+            }
         }
 
-        val head = hooks.first()
-        if (head.mappings == previousNamespace) {
-            head.hook.transform(node, cfg)
-        } else {
-            val remapper = MappingsHandler.mapper(previousNamespace, head.mappings)
-            node.accept(ClassRemapper(null, remapper))
-            head.hook.transform(node, cfg)
-
-            applyHooks(head.mappings, node, cfg, hooks.drop(1))
+        // remap back to the environment
+        if (previousNamespace != MappingsHandler.environmentNamespace) {
+            val remapper = MappingsHandler.cachedUnmapper(previousNamespace)
+            classNode = classNode.remap(remapper, config.classWriterFlags)
         }
+
+        return classNode
     }
 
     /**
@@ -86,6 +81,17 @@ internal object HookManager : SafeTransformer {
      */
     private fun getBytecodeDir() = Paths.get(System.getProperty("user.home"), ".weave", ".bytecode.out")
         .toFile().apply { mkdirs() }
+
+    internal class AssemblerConfigImpl : Hook.AssemblerConfig {
+        var computeFrames = false
+
+        override fun computeFrames() {
+            computeFrames = true
+        }
+
+        val classWriterFlags: Int
+            get() = if (computeFrames) ClassWriter.COMPUTE_FRAMES else ClassWriter.COMPUTE_MAXS
+    }
 }
 
 class HookClassWriter(
@@ -93,7 +99,7 @@ class HookClassWriter(
     reader: ClassReader? = null,
 ) : ClassWriter(reader, flags) {
     private fun getResourceAsByteArray(resourceName: String): ByteArray =
-        classLoader.getResourceAsStream("$resourceName.class")?.readBytes()
+        classLoader.getResourceAsStream("${resourceName.also { println("resource name: $it") }}.class")?.readBytes()
             ?: classLoader.getResourceAsStream("${MappingsHandler.resourceNameMapper.map(resourceName)}.class")
                 ?.readBytes()?.remapToEnvironment()
             ?: throw ClassNotFoundException("Failed to retrieve class from resources: $resourceName")

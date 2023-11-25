@@ -9,11 +9,13 @@ import net.weavemc.api.bytecode.internalNameOf
 import net.weavemc.api.gameClient
 import net.weavemc.api.gameVersion
 import net.weavemc.api.mixin.Mixin
+import net.weavemc.loader.HookClassWriter
 import org.objectweb.asm.*
 import org.objectweb.asm.commons.AnnotationRemapper
 import org.objectweb.asm.commons.ClassRemapper
 import org.objectweb.asm.commons.Remapper
 import org.objectweb.asm.commons.SimpleRemapper
+import org.objectweb.asm.tree.ClassNode
 import java.io.File
 import java.util.jar.JarEntry
 import java.util.jar.JarFile
@@ -90,14 +92,28 @@ object MappingsHandler {
         fullMappings.classes.mapTo(hashSetOf()) { it.names[id] }
     }
     fun ByteArray.remapToEnvironment(): ByteArray = remap(resourceNameUnmapper)
-    fun ByteArray.remap(remapper: Remapper): ByteArray {
+    fun ByteArray.remap(remapper: Remapper, bypassMappableCheck: Boolean = false): ByteArray {
         val reader = ClassReader(this)
-        if (reader.className !in mappable) return this
+        if (reader.className !in mappable && !bypassMappableCheck) return this
 
         val writer = ClassWriter(reader, 0)
         reader.accept(LambdaAwareRemapper(writer, remapper), 0)
 
         return writer.toByteArray()
+    }
+
+    fun ClassNode.remap(remapper: Remapper, flags: Int = ClassWriter.COMPUTE_MAXS): ClassNode {
+        val classWriter = HookClassWriter(flags)
+        accept(classWriter)
+
+        val bytes = classWriter.toByteArray()
+        val remapped = bytes.remap(remapper, true)
+
+        val classReader = ClassReader(remapped)
+        val classNode = ClassNode()
+        classReader.accept(classNode, 0)
+
+        return classNode
     }
 
     fun remapModJar(
