@@ -1,6 +1,5 @@
 package net.weavemc.loader
 
-import com.grappenmaker.mappings.MappingsRemapper
 import net.weavemc.loader.bootstrap.SafeTransformer
 import net.weavemc.loader.mapping.*
 import net.weavemc.api.Hook
@@ -72,8 +71,7 @@ internal object HookManager : SafeTransformer {
         if (head.mappings == previousNamespace) {
             head.hook.transform(node, cfg)
         } else {
-            val previous = previousNamespace
-            val remapper = MappingsHandler.mapper(previous, head.mappings)
+            val remapper = MappingsHandler.mapper(previousNamespace, head.mappings)
             node.accept(ClassRemapper(null, remapper))
             head.hook.transform(node, cfg)
 
