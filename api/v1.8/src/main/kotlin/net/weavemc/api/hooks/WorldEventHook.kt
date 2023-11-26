@@ -6,19 +6,15 @@ import net.weavemc.api.Hook
 import net.weavemc.api.bytecode.asm
 import net.weavemc.api.bytecode.callEvent
 import net.weavemc.api.bytecode.internalNameOf
-import net.weavemc.api.bytecode.search
-import net.weavemc.weave.api.event.WorldEvent
-import net.weavemc.weave.api.getMappedClass
-import net.weavemc.weave.api.getMappedField
-import net.weavemc.weave.api.getMappedMethod
-import net.weavemc.weave.api.runtimeName
+import net.weavemc.api.bytecode.named
+import net.weavemc.api.event.WorldEvent
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
 
 /**
  * Corresponds to [WorldEvent.Load] and [WorldEvent.Unload].
  */
-internal class WorldEventHook: Hook(getMappedClass("net/minecraft/client/Minecraft")) {
+internal class WorldEventHook: Hook("net/minecraft/client/Minecraft") {
 
     /**
      * Inserts a call in [net.minecraft.client.Minecraft.loadWorld] to [WorldEvent.Load] and later [WorldEvent.Unload].
@@ -26,27 +22,15 @@ internal class WorldEventHook: Hook(getMappedClass("net/minecraft/client/Minecra
      * @see net.minecraft.client.Minecraft.loadWorld
      */
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
-        val minecraftName = getMappedClass("net/minecraft/client/Minecraft")
 
-        val loadWorld = getMappedMethod(
-            "net/minecraft/client/Minecraft",
-            "loadWorld",
-            "(Lnet/minecraft/client/multiplayer/WorldClient;Ljava/lang/String;)V"
-        )
-
-        val theWorld = getMappedField(
-            "net/minecraft/client/Minecraft",
-            "theWorld"
-        )
-
-        node.methods.search(loadWorld.runtimeName, loadWorld.desc).instructions.insert(asm {
+        node.methods.named("loadWorld").instructions.insert(asm {
             val lbl = LabelNode()
 
             aload(0)
             getfield(
-                minecraftName,
-                theWorld.runtimeName,
-                "L${getMappedClass("net/minecraft/client/multiplayer/WorldClient")};"
+                "net/minecraft/client/Minecraft",
+                "theWorld",
+                "Lnet/minecraft/client/multiplayer/WorldClient;"
             )
             ifnull(lbl)
 
@@ -54,14 +38,14 @@ internal class WorldEventHook: Hook(getMappedClass("net/minecraft/client/Minecra
             dup
             aload(0)
             getfield(
-                minecraftName,
-                theWorld.runtimeName,
-                "L${getMappedClass("net/minecraft/client/multiplayer/WorldClient")};"
+                "net/minecraft/client/Minecraft",
+                "theWorld",
+                "Lnet/minecraft/client/multiplayer/WorldClient;"
             )
             invokespecial(
                 internalNameOf<WorldEvent.Unload>(),
                 "<init>",
-                "(L${getMappedClass("net/minecraft/world/World")};)V"
+                "(Lnet/minecraft/world/World;)V"
             )
             callEvent()
 
@@ -78,7 +62,7 @@ internal class WorldEventHook: Hook(getMappedClass("net/minecraft/client/Minecra
             invokespecial(
                 internalNameOf<WorldEvent.Load>(),
                 "<init>",
-                "(L${getMappedClass("net/minecraft/world/World")};)V"
+                "(Lnet/minecraft/world/World;)V"
             )
             callEvent()
 

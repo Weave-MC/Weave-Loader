@@ -35,7 +35,21 @@ fun premain(opt: String?, inst: Instrumentation) {
                     "ClassLoader was not transformed to implement URLClassLoaderAccessor interface. Report to Developers."
                 }
 
-                val versionApi = FileManager.getVersionApi()
+                val versionApiFile = FileManager.getVersionApi()
+                val versionApi = versionApiFile?.fetchModConfig(JSON)?.mappings?.let { target ->
+                    val temp = File.createTempFile("version-api", "weavemod.jar")
+                    MappingsHandler.remapModJar(
+                        MappingsHandler.fullMappings,
+                        versionApiFile,
+                        temp,
+                        target,
+                        MappingsHandler.environmentNamespace,
+                        listOf(FileManager.getVanillaMinecraftJar())
+                    )
+                    temp.deleteOnExit()
+                    temp
+                }
+
                 val modFiles = FileManager.getMods().map { it.file }
                 val mods = modFiles.map { unmappedMod ->
                     unmappedMod.fetchModConfig(JSON).mappings.let { target ->
@@ -54,8 +68,8 @@ fun premain(opt: String?, inst: Instrumentation) {
                 }
 
                 loader.addWeaveURL(FileManager.getCommonApi().toURI().toURL())
-                if (versionApi != null)
-                    loader.addWeaveURL(versionApi.toURI().toURL())
+                if (versionApiFile != null)
+                    loader.addWeaveURL(versionApi!!.toURI().toURL())
 
                 mods.forEach { loader.addWeaveURL(it.toURI().toURL()) }
 

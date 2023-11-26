@@ -3,28 +3,17 @@
 package net.weavemc.api.hooks
 
 import net.weavemc.api.Hook
-import api.bytecode.*
-import net.weavemc.weave.api.bytecode.*
-import net.weavemc.api.event.CancellableEvent
 import net.weavemc.api.bytecode.*
-import net.weavemc.weave.api.event.RenderHandEvent
-import net.weavemc.weave.api.getMappedClass
-import net.weavemc.weave.api.getMappedMethod
-import net.weavemc.weave.api.runtimeName
+import net.weavemc.api.event.CancellableEvent
+import net.weavemc.api.event.RenderHandEvent
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.JumpInsnNode
 import org.objectweb.asm.tree.LdcInsnNode
 
-internal class RenderHandEventHook : Hook(getMappedClass("net/minecraft/client/renderer/EntityRenderer")) {
+internal class RenderHandEventHook : Hook("net/minecraft/client/renderer/EntityRenderer") {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
-        val mappedMethod = getMappedMethod(
-            "net/minecraft/client/renderer/EntityRenderer",
-            "renderWorldPass",
-            "(IFJ)V"
-        )
-
-        val renderWorldPass = node.methods.search(mappedMethod.runtimeName, mappedMethod.desc)
+        val renderWorldPass = node.methods.named("renderWorldPass")
 
         val ifeq = renderWorldPass.instructions.find {
             it is LdcInsnNode && it.cst == "hand"

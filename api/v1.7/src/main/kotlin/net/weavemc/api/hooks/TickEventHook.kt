@@ -6,11 +6,8 @@ import net.weavemc.api.Hook
 import net.weavemc.api.bytecode.asm
 import net.weavemc.api.bytecode.callEvent
 import net.weavemc.api.bytecode.getSingleton
-import net.weavemc.api.bytecode.search
+import net.weavemc.api.bytecode.named
 import net.weavemc.api.event.TickEvent
-import net.weavemc.weave.api.getMappedClass
-import net.weavemc.weave.api.getMappedMethod
-import net.weavemc.weave.api.runtimeName
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.ClassNode
 
@@ -21,7 +18,7 @@ import org.objectweb.asm.tree.ClassNode
  *
  * @see net.minecraft.util.Timer.ticksPerSecond
  */
-class TickEventHook : Hook(getMappedClass("net/minecraft/client/Minecraft")) {
+class TickEventHook : Hook("net/minecraft/client/Minecraft") {
 
     /**
      * Inserts a call to the [net.minecraft.client.Minecraft.runTick] method to post
@@ -30,23 +27,17 @@ class TickEventHook : Hook(getMappedClass("net/minecraft/client/Minecraft")) {
      * @see net.minecraft.client.Minecraft.runTick
      */
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
-        val mappedMethod = getMappedMethod(
-            "net/minecraft/client/Minecraft",
-            "runTick",
-            "()V"
-        )
-
-        val runTick = node.methods.search(mappedMethod.runtimeName, mappedMethod.desc)
+        val runTick = node.methods.named("runTick")
 
         runTick.instructions.insert(asm {
-            getSingleton<net.weavemc.api.event.TickEvent.Pre>()
+            getSingleton<TickEvent.Pre>()
             callEvent()
         })
 
         runTick.instructions.insertBefore(
             runTick.instructions.findLast { it.opcode == Opcodes.RETURN },
             asm {
-                getSingleton<net.weavemc.api.event.TickEvent.Post>()
+                getSingleton<TickEvent.Post>()
                 callEvent()
             }
         )

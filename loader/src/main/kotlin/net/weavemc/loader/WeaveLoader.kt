@@ -64,9 +64,8 @@ object WeaveLoader {
      * Adds hooks for Weave events, corresponding to the Minecraft version
      */
     private fun addApiHooks(apiFile: File) {
-        // TODO get a mappings type from api jar
-//        val config = apiFile.fetchModConfig(JSON)
-        val config = ModConfig(mappings = "mcp")
+        println("[Weave] Loading API hooks")
+        val config = apiFile.fetchModConfig(JSON)
         val apiJar = JarFile(apiFile)
         apiJar.entries()
             .toList()

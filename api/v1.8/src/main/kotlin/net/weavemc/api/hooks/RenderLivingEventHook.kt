@@ -6,13 +6,9 @@ import net.weavemc.api.Hook
 import net.weavemc.api.bytecode.asm
 import net.weavemc.api.bytecode.callEvent
 import net.weavemc.api.bytecode.internalNameOf
-import net.weavemc.api.bytecode.search
-import net.weavemc.weave.api.bytecode.*
+import net.weavemc.api.bytecode.named
 import net.weavemc.api.event.CancellableEvent
-import net.weavemc.weave.api.event.RenderLivingEvent
-import net.weavemc.weave.api.getMappedClass
-import net.weavemc.weave.api.getMappedMethod
-import net.weavemc.weave.api.runtimeName
+import net.weavemc.api.event.RenderLivingEvent
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
@@ -20,7 +16,7 @@ import org.objectweb.asm.tree.LabelNode
 /**
  * Corresponds to [RenderLivingEvent.Pre] and [RenderLivingEvent.Post].
  */
-internal class RenderLivingEventHook : Hook(getMappedClass("net/minecraft/client/renderer/entity/RendererLivingEntity")) {
+internal class RenderLivingEventHook : Hook("net/minecraft/client/renderer/entity/RendererLivingEntity") {
 
     /**
      * Inserts a call to [RenderLivingEvent.Pre]'s constructor at the head of
@@ -28,13 +24,7 @@ internal class RenderLivingEventHook : Hook(getMappedClass("net/minecraft/client
      * is called in the event of any entity render.
      */
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
-        val mappedMethod = getMappedMethod(
-            "net/minecraft/client/renderer/entity/RendererLivingEntity",
-            "doRender",
-            "(Lnet/minecraft/entity/EntityLivingBase;DDDFF)V"
-        )
-
-        val mn = node.methods.search(mappedMethod.runtimeName, mappedMethod.desc)
+        val mn = node.methods.named("doRender")
         mn.instructions.insert(asm {
             new(internalNameOf<RenderLivingEvent.Pre>())
             dup
@@ -48,12 +38,7 @@ internal class RenderLivingEventHook : Hook(getMappedClass("net/minecraft/client
             invokespecial(
                 internalNameOf<RenderLivingEvent.Pre>(),
                 "<init>",
-                "(L${getMappedClass("net/minecraft/client/renderer/entity/RendererLivingEntity")};" +
-                    "L${getMappedClass("net/minecraft/entity/EntityLivingBase")};" +
-                    "D" +
-                    "D" +
-                    "D" +
-                    "F)V"
+                "(Lnet/minecraft/client/renderer/entity/RendererLivingEntity;Lnet/minecraft/entity/EntityLivingBase;DDDF)V"
             )
             callEvent()
 
@@ -80,12 +65,7 @@ internal class RenderLivingEventHook : Hook(getMappedClass("net/minecraft/client
             invokespecial(
                 internalNameOf<RenderLivingEvent.Post>(),
                 "<init>",
-                "(L${getMappedClass("net/minecraft/client/renderer/entity/RendererLivingEntity")};" +
-                    "L${getMappedClass("net/minecraft/entity/EntityLivingBase")};" +
-                    "D" +
-                    "D" +
-                    "D" +
-                    "F)V"
+                "(Lnet/minecraft/client/renderer/entity/RendererLivingEntity;Lnet/minecraft/entity/EntityLivingBase;DDDF)V"
             )
             callEvent()
         })

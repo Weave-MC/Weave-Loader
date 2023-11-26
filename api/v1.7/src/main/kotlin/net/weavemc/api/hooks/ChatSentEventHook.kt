@@ -3,10 +3,9 @@
 package net.weavemc.api.hooks
 
 import net.weavemc.api.Hook
-import net.weavemc.weave.api.getMappedClass
 import org.objectweb.asm.tree.ClassNode
 
-class ChatSentEventHook : Hook(getMappedClass("net/minecraft/client/entity/EntityPlayerSP")) {
+class ChatSentEventHook : Hook("net/minecraft/client/entity/EntityPlayerSP") {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
 //        node.methods.named("sendChatMessage").instructions.insert(asm {
 //            new(internalNameOf<ChatSentEvent>())

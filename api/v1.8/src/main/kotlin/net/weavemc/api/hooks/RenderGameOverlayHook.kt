@@ -6,26 +6,14 @@ import net.weavemc.api.Hook
 import net.weavemc.api.bytecode.asm
 import net.weavemc.api.bytecode.callEvent
 import net.weavemc.api.bytecode.internalNameOf
-import net.weavemc.api.bytecode.search
-import net.weavemc.weave.api.bytecode.*
-import net.weavemc.weave.api.event.RenderGameOverlayEvent
-import net.weavemc.weave.api.getMappedClass
-import net.weavemc.weave.api.getMappedMethod
-import net.weavemc.weave.api.runtimeName
+import net.weavemc.api.bytecode.named
+import net.weavemc.api.event.RenderGameOverlayEvent
 import org.objectweb.asm.Opcodes.RETURN
 import org.objectweb.asm.tree.ClassNode
 
-internal class RenderGameOverlayHook : Hook(
-    getMappedClass("net/minecraft/client/gui/GuiIngame")
-) {
+internal class RenderGameOverlayHook : Hook("net/minecraft/client/gui/GuiIngame") {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
-        val mappedMethod = getMappedMethod(
-            "net/minecraft/client/gui/GuiIngame",
-            "renderGameOverlay",
-            "(F)V"
-        )
-
-        val mn = node.methods.search(mappedMethod.runtimeName, mappedMethod.desc)
+        val mn = node.methods.named("renderGameOverlay")
         mn.instructions.insert(asm {
             new(internalNameOf<RenderGameOverlayEvent.Pre>())
             dup
