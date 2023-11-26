@@ -41,4 +41,10 @@ data class GameInfo(
                     ?: entries.find { it.aliases.any { alias -> alias.equals(clientName, ignoreCase = true) } }
         }
     }
+
+    enum class Launcher {
+        OTHER,
+        MULTIMC,
+        PRISM,
+    }
 }
