@@ -1,9 +1,6 @@
 package net.weavemc.api
 
-data class GameInfo(
-    val version: Version,
-    val client: Client,
-) {
+class GameInfo private constructor() {
     enum class Version(
         val protocol: Int,
         val versionName: String,
@@ -14,7 +11,7 @@ data class GameInfo(
         V1_8_9(47, "1.8.9", "1.8", "1.8"),
         V1_12_2(340, "1.12.2", "1.12", "1.12"),
         V1_16_5(754, "1.16.5", "1.16", "1.16"),
-        V1_20_2(763, "1.20.2", "1.20","1.20");
+        V1_20_2(764, "1.20.2", "1.20","1.20");
 
         companion object {
             fun fromProtocol(protocol: Int): Version? = entries.find { it.protocol == protocol }
