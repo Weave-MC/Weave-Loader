@@ -14,14 +14,12 @@ data class GameInfo(
         V1_8_9(47, "1.8.9", "1.8", "1.8"),
         V1_12_2(340, "1.12.2", "1.12", "1.12"),
         V1_16_5(754, "1.16.5", "1.16", "1.16"),
-        V1_20_1(763, "1.20.1", "1.20","1.20");
+        V1_20_2(763, "1.20.2", "1.20","1.20");
 
         companion object {
             fun fromProtocol(protocol: Int): Version? = entries.find { it.protocol == protocol }
             fun fromVersionName(versionName: String): Version? =
                 entries.find { it.versionName == versionName } ?: entries.find { it.aliases.contains(versionName) }
-
-            fun fromAlias(alias: String): Version? = entries.find { it.aliases.contains(alias) }
         }
     }
 

@@ -4,7 +4,6 @@ package net.weavemc.api
 
 import net.weavemc.api.GameInfo.Client.*
 
-val gameInfo by lazy { GameInfo(gameVersion, gameClient) }
 val command: String = System.getProperty("sun.java.command") ?: error("Could not find command")
 
 val gameVersion: GameInfo.Version by lazy {
