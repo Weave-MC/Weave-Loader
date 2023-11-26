@@ -30,9 +30,8 @@ object MappingsHandler {
         when (gameClient) {
             // TODO: correct version
             Client.LUNAR -> if (gameVersion < GameInfo.Version.V1_16_5) "mcp" else "mojang"
-            Client.FORGE -> "mcp"
-            Client.LABYMOD, Client.VANILLA -> "official"
-            Client.BADLION -> error("We do not know")
+            Client.FORGE -> "srg"
+            Client.VANILLA, Client.LABYMOD, Client.BADLION -> "official"
         }
     }
 

@@ -42,23 +42,25 @@ object MappingsManager {
         println("[Weave] Took ${measureTimeMillis {
             val joinedMappings = inputs.map {
                 val baseMappings = MappingsLoader.loadMappings(it.readBytes().decodeToString().trim().lines())
-                println("baseMappings = ${baseMappings.javaClass}")
-                println(baseMappings.namespaces)
+                
+                println("Building mappings with namespaces: ${baseMappings.namespaces.joinToString(", ")}")
+                
                 when {
                     "intermediary" in baseMappings.namespaces -> baseMappings
                         .filterNamespaces("official", "named")
                         .renameNamespaces("official", "yarn")
                         .reorderNamespaces("yarn", "official")
+                    
                     baseMappings is ProguardMappings -> baseMappings.renameNamespaces("mojang", "official")
+                    
                     else -> baseMappings
-                        .filterNamespaces("official", "named")
-                        .reorderNamespaces("named", "official")
-                        .renameNamespaces("mcp", "official")
+                        .filterNamespaces("official", "srg", "named")
+                        .renameNamespaces("official", "srg", "mcp")
                 }
             }.join(intermediateNamespace = "official")
             
             val ordered = joinedMappings.reorderNamespaces(
-                listOf("official", "yarn", "mcp", "mojang").filter { it in joinedMappings.namespaces }
+                listOf("official", "srg", "yarn", "mcp", "mojang").filter { it in joinedMappings.namespaces }
             )
 
             bundledFile.writeText(ordered.asTinyMappings(v2 = true).write().joinToString("\n"))
