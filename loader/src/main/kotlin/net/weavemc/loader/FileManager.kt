@@ -8,7 +8,7 @@ import kotlin.io.path.*
 
 internal object FileManager {
     val MODS_DIRECTORY = getOrCreateDirectory("mods")
-    val CACHE_DIRECTORY = getOrCreateDirectory(".cache")
+    val CACHE_DIRECTORY = getOrCreateDirectory("cache")
     val API_DIRECTORY = getOrCreateDirectory("api")
 
     private val apiJarNameRegex = Regex("v\\d+\\.\\d+(\\.\\d+)?\\.jar")
