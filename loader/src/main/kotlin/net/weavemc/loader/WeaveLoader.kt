@@ -84,12 +84,10 @@ object WeaveLoader {
      * Adds Weave Mod's Hooks to HookManager and adds to mods list for later instantiation
      */
     private fun addMods(modJars: List<File>) {
-        val json = JSON
-
         modJars.forEach { file ->
             println("[Weave] Loading ${file.name}")
 
-            val config = file.fetchModConfig(json)
+            val config = file.fetchModConfig(JSON)
             val name = config.name ?: file.name.removeSuffix(".jar")
             val remapper = MappingsRemapper(
                 MappingsHandler.fullMappings,

@@ -22,8 +22,6 @@ class MixinApplicator {
             field = true
         }
 
-    private val json = JSON
-
     private fun registerMixin(remapper: MappingsRemapper, classBytes: ByteArray) {
         if (frozen) error("Mixin registration is already frozen!")
 
@@ -45,7 +43,7 @@ class MixinApplicator {
     fun registerMixin(mixinConfigPath: String, modJar: JarFile, remapper: MappingsRemapper) {
         if (frozen) error("Mixin registration is already frozen!")
 
-        val mixinConfig = modJar.fetchMixinConfig(mixinConfigPath, json)
+        val mixinConfig = modJar.fetchMixinConfig(mixinConfigPath, JSON)
         mixinConfig.mixins.forEach { mixinClasspath ->
             val mixinClassBytes = modJar.getInputStream(
                 modJar.getEntry("${mixinConfig.packagePath.replace(".", "/")}/$mixinClasspath.class")
