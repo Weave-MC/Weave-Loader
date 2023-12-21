@@ -23,12 +23,12 @@ sealed class TickEvent : Event() {
     /**
      * Pre Tick Events are called at the start of a tick.
      */
-    data object Pre : net.weavemc.api.event.TickEvent()
+    data object Pre : TickEvent()
 
     /**
      * Post Tick Events are called at the end of a tick.
      */
-    data object Post: net.weavemc.api.event.TickEvent()
+    data object Post: TickEvent()
 }
 
 /**
@@ -147,13 +147,13 @@ sealed class RenderGameOverlayEvent(val partialTicks: Float) : Event() {
      * This is called **before** the game overlay renders, and should be used if you want to
      * draw to the screen without drawing over the HUD.
      */
-    class Pre(partialTicks: Float) : net.weavemc.api.event.RenderGameOverlayEvent(partialTicks)
+    class Pre(partialTicks: Float) : RenderGameOverlayEvent(partialTicks)
 
     /**
      * This is called **after** the game overlay renders, and should be used to draw whatever
      * HUD components your mod needs.
      */
-    class Post(partialTicks: Float) : net.weavemc.api.event.RenderGameOverlayEvent(partialTicks)
+    class Post(partialTicks: Float) : RenderGameOverlayEvent(partialTicks)
 
 }
 
@@ -169,12 +169,12 @@ sealed class EntityListEvent(val entity: Entity) : Event() {
     /**
      * This is called when an entity is added to the world.
      */
-    class Add(entity: Entity) : net.weavemc.api.event.EntityListEvent(entity)
+    class Add(entity: Entity) : EntityListEvent(entity)
 
     /**
      * This is called when an entity is removed from the world.
      */
-    class Remove(entity: Entity) : net.weavemc.api.event.EntityListEvent(entity)
+    class Remove(entity: Entity) : EntityListEvent(entity)
 
 }
 
@@ -189,12 +189,12 @@ sealed class PlayerListEvent(val playerData: GuiPlayerInfo) : Event() {
     /**
      * This is called when a player is added to the player list.
      */
-    class Add(playerData: GuiPlayerInfo) : net.weavemc.api.event.PlayerListEvent(playerData)
+    class Add(playerData: GuiPlayerInfo) : PlayerListEvent(playerData)
 
     /**
      * This is called when a player is removed from the player list.
      */
-    class Remove(playerData: GuiPlayerInfo) : net.weavemc.api.event.PlayerListEvent(playerData)
+    class Remove(playerData: GuiPlayerInfo) : PlayerListEvent(playerData)
 
 }
 
@@ -229,7 +229,7 @@ sealed class RenderLivingEvent(
         y: Double,
         z: Double,
         partialTicks: Float
-    ) : net.weavemc.api.event.RenderLivingEvent(renderer, entity, x, y, z, partialTicks)
+    ) : RenderLivingEvent(renderer, entity, x, y, z, partialTicks)
 
     /**
      * This is called after an entity is rendered.
@@ -241,7 +241,7 @@ sealed class RenderLivingEvent(
         y: Double,
         z: Double,
         partialTicks: Float
-    ) : net.weavemc.api.event.RenderLivingEvent(renderer, entity, x, y, z, partialTicks)
+    ) : RenderLivingEvent(renderer, entity, x, y, z, partialTicks)
 
 }
 
@@ -284,12 +284,12 @@ sealed class StartGameEvent : Event() {
     /**
      * This is called before the game starts, at the beginning of [startGame][Minecraft.startGame].
      */
-    data object Pre : net.weavemc.api.event.StartGameEvent()
+    data object Pre : StartGameEvent()
 
     /**
      * This is called after the game starts, at the end of [startGame][Minecraft.startGame].
      */
-    data object Post : net.weavemc.api.event.StartGameEvent()
+    data object Post : StartGameEvent()
 
 }
 
@@ -309,12 +309,12 @@ sealed class WorldEvent(val world: World) : Event() {
     /**
      * Called on the event of a world loading, i.e. a server connection, or a singleplayer world.
      */
-    class Load(world: World) : net.weavemc.api.event.WorldEvent(world)
+    class Load(world: World) : WorldEvent(world)
 
     /**
      * Called on the event of a world unloading, i.e. a server disconnect, or leaving a singleplayer world.
      */
-    class Unload(world: World) : net.weavemc.api.event.WorldEvent(world)
+    class Unload(world: World) : WorldEvent(world)
 }
 
 /**
@@ -332,12 +332,12 @@ sealed class PacketEvent(val packet: Packet) : CancellableEvent() {
      *
      * If cancelled, the packet is not sent.
      */
-    class Send(packet: Packet) : net.weavemc.api.event.PacketEvent(packet)
+    class Send(packet: Packet) : PacketEvent(packet)
 
     /**
      * This is called when a packet is being received by the client, from the server.
      *
      * If cancelled, the packet will not be processed, but instead ignored.
      */
-    class Receive(packet: Packet) : net.weavemc.api.event.PacketEvent(packet)
+    class Receive(packet: Packet) : PacketEvent(packet)
 }
