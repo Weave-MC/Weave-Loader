@@ -38,43 +38,31 @@ class WeaveBootstrapEntryPoint(val inst: Instrumentation) : SafeTransformer {
                     error("ClassLoader was not transformed to implement URLClassLoaderAccessor interface and neither MultiMC nor Prism were detected. Report to Developers.")
                 }
 
-            val versionApiFile = FileManager.getVersionApi()
-            val versionApi = versionApiFile?.fetchModConfig(JSON)?.mappings?.let { target ->
-                val temp = File.createTempFile("version-api", "weavemod.jar")
+            fun File.createRemappedTemp(name: String): File {
+                val temp = File.createTempFile(name, "weavemod.jar")
                 MappingsHandler.remapModJar(
                     MappingsHandler.fullMappings,
-                    versionApiFile,
+                    this,
                     temp,
-                    target,
+                    "official",
                     MappingsHandler.environmentNamespace,
                     listOf(FileManager.getVanillaMinecraftJar())
                 )
                 temp.deleteOnExit()
-                temp
+                return temp
             }
 
-            val modFiles = FileManager.getMods().map { it.file }
-            val mods = modFiles.map { unmappedMod ->
-                unmappedMod.fetchModConfig(JSON).mappings.let { target ->
-                    val temp = File.createTempFile(unmappedMod.nameWithoutExtension, "weavemod.jar")
-                    MappingsHandler.remapModJar(
-                        MappingsHandler.fullMappings,
-                        unmappedMod,
-                        temp,
-                        target,
-                        MappingsHandler.environmentNamespace,
-                        listOf(FileManager.getVanillaMinecraftJar())
-                    )
-                    temp.deleteOnExit()
-                    temp
-                }
-            }
+            val versionApi = FileManager.getVersionApi()
+            val mods = FileManager.getMods().map { it.file }
+
+            val mappedVersionApi = versionApi?.createRemappedTemp("version-api")
+            val mappedMods = mods.map { it.createRemappedTemp(it.nameWithoutExtension) }
 
             urlClassLoaderAccessor.addWeaveURL(FileManager.getCommonApi().toURI().toURL())
-            if (versionApi != null)
-                urlClassLoaderAccessor.addWeaveURL(versionApi.toURI().toURL())
+            if (mappedVersionApi != null)
+                urlClassLoaderAccessor.addWeaveURL(mappedVersionApi.toURI().toURL())
 
-            mods.forEach { urlClassLoaderAccessor.addWeaveURL(it.toURI().toURL()) }
+            mappedMods.forEach { urlClassLoaderAccessor.addWeaveURL(it.toURI().toURL()) }
 
             /*
             Load the rest of the loader using Minecraft's class loader.
@@ -82,7 +70,7 @@ class WeaveBootstrapEntryPoint(val inst: Instrumentation) : SafeTransformer {
             */
             loader.loadClass("net.weavemc.loader.WeaveLoader")
                 .getDeclaredMethod("init", Instrumentation::class.java, File::class.java, List::class.java)
-                .invoke(null, inst, versionApi, mods)
+                .invoke(null, inst, mappedVersionApi, mappedMods)
         }
 
         return null

@@ -1,6 +1,8 @@
 package net.weavemc.loader
 
 import kotlinx.serialization.json.Json
+import org.objectweb.asm.ClassReader
+import org.objectweb.asm.tree.ClassNode
 import java.io.File
 import java.io.IOException
 import java.net.URL
@@ -28,6 +30,9 @@ internal fun getOrCreateDirectory(directory: String): Path {
     if (!dir.exists()) dir.createDirectories()
     return dir
 }
+
+internal fun ByteArray.asClassReader(): ClassReader = ClassReader(this)
+internal fun ClassReader.asClassNode(): ClassNode = ClassNode().also { this.accept(it, 0) }
 
 internal fun String.splitAround(c: Char): Pair<String,String> = substringBefore(c) to substringAfter(c)
 

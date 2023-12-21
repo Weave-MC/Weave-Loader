@@ -28,13 +28,12 @@ data class WeaveMod(
  *           a random placeholder value upon loading. **This value is not persistent between launches!**
  */
 @Serializable
-public data class ModConfig(
+data class ModConfig(
     val mixinConfigs: List<String> = listOf(),
     val hooks: List<String> = listOf(),
     val entrypoints: List<String> = listOf(),
     val name: String? = null,
-    val modId: String? = null,
-    val mappings: String
+    val modId: String? = null
 )
 
 /**
@@ -42,18 +41,7 @@ public data class ModConfig(
  */
 data class ModHook(
     val hook: Hook,
-    val mappings: String,
-) {
-    val mappedTarget by lazy {
-        val targets = hook.targets
-
-        if (mappings == MappingsHandler.environmentNamespace) {
-            targets.toList()
-        } else {
-            targets.map(MappingsHandler.cachedUnmapper(mappings)::map)
-        }
-    }
-}
+)
 
 @Serializable
 public data class MixinConfig(

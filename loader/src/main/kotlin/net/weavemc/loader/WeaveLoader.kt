@@ -1,6 +1,5 @@
 package net.weavemc.loader
 
-import com.grappenmaker.mappings.MappingsRemapper
 import kotlinx.serialization.json.Json
 import net.weavemc.loader.analytics.launchStart
 import net.weavemc.loader.mixins.MixinApplicator
@@ -46,9 +45,9 @@ object WeaveLoader {
         /* Add as a backup search path (mainly used for resources) */
         modJars.forEach { inst.appendToSystemClassLoaderSearch(JarFile(it)) }
 
-        addMods(modJars)
         if (apiJar != null)
             addApiHooks(apiJar)
+        addMods(modJars)
 
         // Call preInit() once everything is done.
         mods.forEach { weaveMod ->
@@ -65,7 +64,6 @@ object WeaveLoader {
      */
     private fun addApiHooks(apiFile: File) {
         println("[Weave] Loading API hooks")
-        val config = apiFile.fetchModConfig(JSON)
         val apiJar = JarFile(apiFile)
         apiJar.entries()
             .toList()
@@ -74,7 +72,7 @@ object WeaveLoader {
                 runCatching {
                     val clazz = Class.forName(it.name.removeSuffix(".class").replace('/', '.'))
                     if (clazz.superclass == Hook::class.java) {
-                        HookManager.hooks += ModHook(clazz.getConstructor().newInstance() as Hook, config.mappings)
+                        HookManager.hooks += ModHook(clazz.getConstructor().newInstance() as Hook)
                     }
                 }
             }
@@ -89,15 +87,11 @@ object WeaveLoader {
 
             val config = file.fetchModConfig(JSON)
             val name = config.name ?: file.name.removeSuffix(".jar")
-            val remapper = MappingsRemapper(
-                MappingsHandler.fullMappings,
-                config.mappings,
-                MappingsHandler.environmentNamespace,
-                loader = MappingsHandler.classLoaderBytesProvider(config.mappings)
-            )
 
-            JarFile(file).use { j -> config.mixinConfigs.forEach { mixins.registerMixin(it, j, remapper) } }
-            HookManager.hooks += config.hooks.map { ModHook(instantiate(it), config.mappings) }
+            JarFile(file).use { jar ->
+                config.mixinConfigs.forEach { mixins.registerMixin(it, jar, MappingsHandler.environmentRemapper) }
+            }
+            HookManager.hooks += config.hooks.map { ModHook(instantiate(it)) }
 
             // TODO: Add a name field to the config.
             mods += WeaveMod(name, config)
