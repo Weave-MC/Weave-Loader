@@ -1,12 +1,12 @@
 plugins {
-    id("com.github.weave-mc.weave-gradle")
+    id("net.weavemc.gradle")
     `java-library`
     `maven-publish`
     id("relocate")
     id("kotlin")
 }
 
-minecraft.version("1.7.10")
+weavecraft.version("1.7.10")
 
 dependencies {
     api(project(":api:common"))
@@ -14,16 +14,22 @@ dependencies {
 }
 
 publishing {
+    repositories {
+        maven {
+            name = "WeaveMC"
+            url = uri("https://repo.weavemc.dev/releases")
+            credentials(PasswordCredentials::class)
+            authentication {
+                create<BasicAuthentication>("basic")
+            }
+        }
+    }
     publications {
-        create<MavenPublication>("mavenJava") {
+        create<MavenPublication>("maven") {
             from(components["java"])
             groupId = "net.weavemc.api"
             artifactId = "1.7"
-            version = "1.0"
+            version = "1.0.0"
         }
-    }
-
-    repositories {
-        mavenLocal()
     }
 }
