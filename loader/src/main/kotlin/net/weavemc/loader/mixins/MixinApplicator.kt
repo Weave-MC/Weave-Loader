@@ -2,7 +2,7 @@ package net.weavemc.loader.mixins
 
 import com.grappenmaker.mappings.MappingsRemapper
 import net.weavemc.loader.*
-import net.weavemc.loader.bootstrap.SafeTransformer
+import net.weavemc.loader.bootstrap.transformer.SafeTransformer
 import net.weavemc.api.bytecode.asm
 import net.weavemc.api.bytecode.internalNameOf
 import net.weavemc.api.mixin.*

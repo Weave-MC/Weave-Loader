@@ -1,4 +1,4 @@
-package net.weavemc.loader.bootstrap
+package net.weavemc.loader.bootstrap.transformer
 
 import java.lang.instrument.ClassFileTransformer
 import java.security.ProtectionDomain

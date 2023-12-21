@@ -1,15 +1,15 @@
-package net.weavemc.loader.bootstrap
+package net.weavemc.loader.bootstrap.transformer
 
 import net.weavemc.api.bytecode.asm
 import net.weavemc.api.bytecode.named
 import net.weavemc.api.bytecode.next
-import org.objectweb.asm.ClassReader
+import net.weavemc.loader.asClassNode
+import net.weavemc.loader.asClassReader
 import org.objectweb.asm.ClassWriter
-import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LdcInsnNode
 import org.objectweb.asm.tree.MethodInsnNode
 
-object AntiLunarCache : SafeTransformer {
+object AntiCacheTransformer : SafeTransformer {
     override fun transform(
         loader: ClassLoader,
         className: String,
@@ -17,8 +17,8 @@ object AntiLunarCache : SafeTransformer {
     ): ByteArray? {
         if (className != "com/moonsworth/lunar/genesis/Genesis") return null
 
-        val reader = ClassReader(originalClass)
-        val node = ClassNode().also { reader.accept(it, 0) }
+        val reader = originalClass.asClassReader()
+        val node = reader.asClassNode()
 
         with(node.methods.named("prebake")) {
             instructions = asm { _return }
