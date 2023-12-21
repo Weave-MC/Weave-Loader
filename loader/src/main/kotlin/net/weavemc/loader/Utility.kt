@@ -34,8 +34,6 @@ internal fun getOrCreateDirectory(directory: String): Path {
 internal fun ByteArray.asClassReader(): ClassReader = ClassReader(this)
 internal fun ClassReader.asClassNode(): ClassNode = ClassNode().also { this.accept(it, 0) }
 
-internal fun String.splitAround(c: Char): Pair<String,String> = substringBefore(c) to substringAfter(c)
-
 internal fun File.toSha256(): String {
     val bytes = Files.readAllBytes(toPath())
     val messageDigest = MessageDigest.getInstance("SHA-256")
