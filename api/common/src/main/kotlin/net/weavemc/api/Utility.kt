@@ -2,48 +2,33 @@
 
 package net.weavemc.api
 
-import net.weavemc.api.GameInfo.Client.*
+val args: Map<String, String>
+    get() = System.getProperties()["weave.main.args"] as? Map<String, String>
+        ?: error("Failed to retrieve Minecraft arguments")
 
-val gameInfo by lazy { GameInfo(gameVersion, gameClient) }
-val command: String = System.getProperty("sun.java.command") ?: error("Could not find command")
-val realCommand: String
-    get() = with(System.getProperties()["weave.extra.launch.params"] as? MutableMap<String, List<String>>) {
-        if (this != null) {
-            (this["param"] as List<String>).joinToString(" ")
-        } else {
-            command
-        }
-    }
+private val versionString: String by lazy {
+    args["version"]?.lowercase() ?: error("Could not parse version from arguments")
+}
 
-val gameVersion: GameInfo.Version by lazy {
-    val versionRegex = Regex("""--version\s+(?:\S*?)?(\d+\.\d+(?:\.\d+)?)""")
-
-    versionRegex
-        .find(realCommand)
-        ?.groupValues
-        ?.get(1)
-        ?.let(GameInfo.Version::fromVersionName)
+val gameVersion: MinecraftVersion by lazy {
+    versionString.let(MinecraftVersion::fromVersionName)
         ?: error("Could not find game version")
 }
-
-val gameClient: GameInfo.Client by lazy {
-    val isLunar = "Genesis" in command
-    val version = realCommand.lowercase()
-
+val gameClient: MinecraftClient by lazy {
     when {
-        isLunar -> LUNAR
-        "forge" in version -> FORGE
-        "labymod" in version -> LABYMOD
-        else -> VANILLA
+        classExists("com.moonsworth.lunar.genesis.Genesis") -> MinecraftClient.LUNAR
+        versionString.contains("forge") -> MinecraftClient.FORGE
+        versionString.contains("labymod") -> MinecraftClient.LABYMOD
+        else -> MinecraftClient.VANILLA
+    }
+}
+val gameLauncher: MinecraftLauncher by lazy {
+    when {
+        classExists("org.multimc.EntryPoint") -> MinecraftLauncher.MULTIMC
+        classExists("org.prismlauncher.EntryPoint") -> MinecraftLauncher.PRISM
+        else -> MinecraftLauncher.OTHER
     }
 }
 
-val gameLauncher: GameInfo.Launcher by lazy {
-    fun classExists(name: String): Boolean = GameInfo::class.java.classLoader.getResourceAsStream("${name.replace('.', '/')}.class") != null
-
-    when {
-        classExists("org.multimc.EntryPoint") -> GameInfo.Launcher.MULTIMC
-        classExists("org.prismlauncher.EntryPoint") -> GameInfo.Launcher.PRISM
-        else -> GameInfo.Launcher.OTHER
-    }
-}
+private fun classExists(name: String): Boolean =
+    MinecraftLauncher::class.java.classLoader.getResourceAsStream("${name.replace('.', '/')}.class") != null
