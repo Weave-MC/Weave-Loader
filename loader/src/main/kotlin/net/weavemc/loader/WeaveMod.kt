@@ -41,6 +41,8 @@ data class ModConfig(
  */
 data class ModHook(
     val hook: Hook,
+
+    val mappedTargets: List<String> = hook.targets.map { MappingsHandler.environmentRemapper.map(it) }
 )
 
 @Serializable
