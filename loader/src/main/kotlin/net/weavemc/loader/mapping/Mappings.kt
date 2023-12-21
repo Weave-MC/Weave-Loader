@@ -1,9 +1,9 @@
 package net.weavemc.loader.mapping
 
 import com.grappenmaker.mappings.*
+import net.weavemc.api.MinecraftClient
+import net.weavemc.api.MinecraftVersion
 import net.weavemc.loader.WeaveLoader
-import net.weavemc.api.GameInfo
-import net.weavemc.api.GameInfo.Client
 import net.weavemc.api.gameClient
 import net.weavemc.api.gameVersion
 import net.weavemc.loader.HookClassWriter
@@ -22,9 +22,9 @@ object MappingsHandler {
     val environmentNamespace by lazy {
         when (gameClient) {
             // TODO: correct version
-            Client.LUNAR -> if (gameVersion < GameInfo.Version.V1_16_5) "mcp" else "mojang"
-            Client.FORGE -> "srg"
-            Client.VANILLA, Client.LABYMOD, Client.BADLION -> "official"
+            MinecraftClient.LUNAR -> if (gameVersion < MinecraftVersion.V1_16_5) "mcp" else "mojang"
+            MinecraftClient.FORGE -> "srg"
+            MinecraftClient.VANILLA, MinecraftClient.LABYMOD, MinecraftClient.BADLION -> "official"
         }
     }
 

@@ -1,6 +1,6 @@
 package net.weavemc.loader
 
-import net.weavemc.api.GameInfo
+import net.weavemc.api.MinecraftVersion
 import net.weavemc.api.gameVersion
 import java.io.File
 import java.nio.file.Paths
@@ -34,7 +34,7 @@ internal object FileManager {
         API_DIRECTORY.listDirectoryEntries()
             .filter { it.name.matches(apiJarNameRegex) }
             .filter { it.isRegularFile() }
-            .find { gameVersion == (GameInfo.Version.fromVersionName(it.nameWithoutExtension.removePrefix("v"))
+            .find { gameVersion == (MinecraftVersion.fromVersionName(it.nameWithoutExtension.removePrefix("v"))
                 ?: error("Invalid API version: ${it.nameWithoutExtension}")) }
             ?.toFile()
 
@@ -68,7 +68,7 @@ internal object FileManager {
     data class ModJar(
         val file: File,
         val sha256: String,
-        val version: GameInfo.Version? = gameVersion,
+        val version: MinecraftVersion? = gameVersion,
     ) {
         infix fun sha256Equals(other: ModJar): Boolean = sha256 == other.sha256
 
@@ -78,7 +78,7 @@ internal object FileManager {
              */
             fun fromFile(file: File): ModJar {
                 val sha256 = file.toSha256()
-                val version = runCatching { GameInfo.Version.fromVersionName(file.nameWithoutExtension) }.getOrNull()
+                val version = runCatching { MinecraftVersion.fromVersionName(file.nameWithoutExtension) }.getOrNull()
                 return ModJar(file, sha256, version)
             }
         }
