@@ -1,9 +1,8 @@
 package net.weavemc.loader
 
-import com.grappenmaker.mappings.MappingsRemapper
 import net.weavemc.api.Hook
 import net.weavemc.api.bytecode.dump
-import net.weavemc.loader.bootstrap.SafeTransformer
+import net.weavemc.loader.bootstrap.transformer.SafeTransformer
 import net.weavemc.loader.mapping.MappingsHandler
 import net.weavemc.loader.mapping.MappingsHandler.classLoaderBytesProvider
 import net.weavemc.loader.mapping.MappingsHandler.remap
@@ -24,7 +23,7 @@ internal object HookManager : SafeTransformer {
     val hooks = mutableListOf<ModHook>()
 
     override fun transform(loader: ClassLoader, className: String, originalClass: ByteArray): ByteArray? {
-        val matchedHooks = hooks.toList().filter { it.hook.targets.contains(className) }
+        val matchedHooks = hooks.toList().filter { it.mappedTargets.contains(className) }
         if (matchedHooks.isEmpty()) return null
 
         println("[Weave] Hooking $className")
@@ -35,7 +34,7 @@ internal object HookManager : SafeTransformer {
         val classWriter = HookClassWriter(config.classWriterFlags, classReader)
 
         if (dumpBytecode) {
-            val bytecodeOut = getBytecodeDir().resolve("$className.class")
+            val bytecodeOut = getBytecodeDir().resolve("$${className.replace("/", "_")}.class")
             runCatching {
                 bytecodeOut.parentFile?.mkdirs()
                 classNode.dump(bytecodeOut.absolutePath)
@@ -47,17 +46,10 @@ internal object HookManager : SafeTransformer {
     }
 
     private fun applyHooks(classReader: ClassReader, hooks: List<ModHook>, config: AssemblerConfigImpl): ClassNode {
-        val environmentNamespace = MappingsHandler.environmentNamespace
-        val remapper = MappingsRemapper(
-            MappingsHandler.fullMappings,
-            environmentNamespace,
-            "official",
-            loader = MappingsHandler.jarBytesProvider(listOf(), environmentNamespace)
-        )
-
         val classNode = classReader.asClassNode()
 
-        if (environmentNamespace == "official") {
+        // skip remapping, the environment namespace matches with the mods
+        if (MappingsHandler.environmentNamespace == "official") {
             hooks.forEach { it.hook.transform(classNode, config) }
             return classNode
         }
