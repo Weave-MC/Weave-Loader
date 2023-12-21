@@ -5,10 +5,6 @@ plugins {
     id("relocate")
 }
 
-repositories {
-    maven("https://repo.spongepowered.org/repository/maven-public/")
-}
-
 dependencies {
     implementation(libs.kxSer)
     api(libs.bundles.asm)
