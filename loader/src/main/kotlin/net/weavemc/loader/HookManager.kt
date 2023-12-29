@@ -85,7 +85,7 @@ class HookClassWriter(
     reader: ClassReader? = null,
 ) : ClassWriter(reader, flags) {
     // Mods are always mapped to vanilla by Weave-Gradle
-    val bytesProvider = classLoaderBytesProvider("official")
+    val bytesProvider = classLoaderBytesProvider("named")
     private fun ClassNode.isInterface(): Boolean = (this.access and Opcodes.ACC_INTERFACE) != 0
     private fun ClassReader.isAssignableFrom(target: ClassReader): Boolean {
         val classes = ArrayDeque(listOf(target))
@@ -103,8 +103,8 @@ class HookClassWriter(
     }
 
     override fun getCommonSuperClass(type1: String, type2: String): String {
-        var class1 = bytesProvider(type1)!!.asClassReader()
-        val class2 = bytesProvider(type2)!!.asClassReader()
+        var class1 = bytesProvider(type1)?.asClassReader() ?: error("Failed to find type1 $type1")
+        val class2 = bytesProvider(type2)?.asClassReader() ?: error("Failed to find type2 $type2")
 
         return when {
             class1.isAssignableFrom(class2) -> type1
