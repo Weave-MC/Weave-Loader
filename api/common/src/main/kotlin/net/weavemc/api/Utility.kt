@@ -6,6 +6,9 @@ val args: Map<String, String>
     get() = System.getProperties()["weave.main.args"] as? Map<String, String>
         ?: error("Failed to retrieve Minecraft arguments")
 
+val sunArgs = System.getProperty("sun.java.command")
+    ?: error("Failed to retrieve command line arguments, this should never happen.")
+
 private val versionString: String by lazy {
     args["version"]?.lowercase() ?: error("Could not parse version from arguments")
 }
