@@ -6,6 +6,7 @@ import net.weavemc.api.MinecraftVersion
 import net.weavemc.loader.WeaveLoader
 import net.weavemc.api.gameClient
 import net.weavemc.api.gameVersion
+import net.weavemc.loader.FileManager
 import net.weavemc.loader.HookClassWriter
 import org.objectweb.asm.*
 import org.objectweb.asm.commons.ClassRemapper
@@ -16,34 +17,36 @@ import java.io.File
 import java.util.jar.JarFile
 
 object MappingsHandler {
-    val fullMappings by lazy {
-        MappingsLoader.loadMappings(MappingsManager.getOrCreateBundledMappings().readLines())
+    val environmentMappings by lazy {
+        loadWeaveMappings(environmentNamespace, gameVersion.versionName, FileManager.getVanillaMinecraftJar())
+            ?: error("Failed to load weave mappings for $environmentNamespace on version ${gameVersion.versionName}")
     }
+
     val environmentNamespace by lazy {
         when (gameClient) {
             // TODO: correct version
-            MinecraftClient.LUNAR -> if (gameVersion < MinecraftVersion.V1_16_5) "mcp" else "mojang"
-            MinecraftClient.FORGE -> "srg"
-            MinecraftClient.VANILLA, MinecraftClient.LABYMOD, MinecraftClient.BADLION -> "official"
+            MinecraftClient.LUNAR -> if (gameVersion < MinecraftVersion.V1_16_5) "mcp" else "mojmap"
+            MinecraftClient.FORGE, MinecraftClient.VANILLA,
+            MinecraftClient.LABYMOD, MinecraftClient.BADLION -> "official"
         }
     }
 
     internal fun classLoaderBytesProvider(expectedNamespace: String): (String) -> ByteArray? {
-        val names = if (expectedNamespace != "official") fullMappings.asASMMapping(
+        val names = if (expectedNamespace != "official") environmentMappings.mappings.asASMMapping(
             from = expectedNamespace,
-            to = environmentNamespace,
+            to = "official",
             includeMethods = false,
             includeFields = false
         ) else emptyMap()
 
-        val mapper = SimpleRemapper(names)
+        val mapper = SimpleRemapper(names.toList().associate { (k, v) -> v to k })
         val callback = ClasspathLoaders.fromLoader(WeaveLoader.javaClass.classLoader)
 
         return { name -> callback(names[name] ?: name)?.remap(mapper) }
     }
 
     internal fun jarBytesProvider(jarsToUse: List<JarFile>, expectedNamespace: String): (String) -> ByteArray? {
-        val names = if (expectedNamespace != "official") fullMappings.asASMMapping(
+        val names = if (expectedNamespace != "official") environmentMappings.mappings.asASMMapping(
             from = expectedNamespace,
             to = "official",
             includeMethods = false,
@@ -66,14 +69,14 @@ object MappingsHandler {
     }
 
     fun mapper(from: String, to: String, loader: (name: String) -> ByteArray? = classLoaderBytesProvider(from)) =
-        MappingsRemapper(fullMappings, from, to, loader = loader)
+        MappingsRemapper(environmentMappings.mappings, from, to, loader = loader)
 
-    internal val environmentRemapper = mapper("official", environmentNamespace)
+    internal val environmentRemapper = mapper("official", "named")
     internal val environmentUnmapper = environmentRemapper.reverse()
 
     private val mappable by lazy {
-        val id = fullMappings.namespace("official")
-        fullMappings.classes.mapTo(hashSetOf()) { it.names[id] }
+        val id = environmentMappings.mappings.namespace("official")
+        environmentMappings.mappings.classes.mapTo(hashSetOf()) { it.names[id] }
     }
 
     internal fun ByteArray.remap(remapper: Remapper, bypassMappableCheck: Boolean = false): ByteArray {
