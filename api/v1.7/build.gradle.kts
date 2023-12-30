@@ -6,7 +6,7 @@ plugins {
     id("kotlin")
 }
 
-weavecraft.version("1.7.10")
+minecraft.version("1.7.10")
 
 dependencies {
     api(project(":api:common"))

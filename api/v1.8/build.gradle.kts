@@ -6,7 +6,10 @@ plugins {
     id("kotlin")
 }
 
-weavecraft.version("1.8.9")
+minecraft {
+    version("1.8.9")
+    mappings("mcp")
+}
 
 dependencies {
     api(project(":api:common"))
