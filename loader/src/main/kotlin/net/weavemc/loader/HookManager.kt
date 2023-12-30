@@ -55,6 +55,7 @@ internal object HookManager : SafeTransformer {
         }
 
         val vanillaClassNode = classNode.remap(MappingsHandler.environmentUnmapper, config.classWriterFlags)
+        // hooks.forEach { it.hook.transform(classNode, config); } TODO fix hooks :)
         val environmentClassNode = vanillaClassNode.remap(MappingsHandler.environmentRemapper, config.classWriterFlags)
 
         return environmentClassNode
