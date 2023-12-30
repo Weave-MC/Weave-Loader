@@ -8,6 +8,7 @@ import net.weavemc.api.bytecode.internalNameOf
 import net.weavemc.api.mixin.*
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
+import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Opcodes.ACC_INTERFACE
 import org.objectweb.asm.Type
@@ -64,7 +65,6 @@ class MixinApplicator {
         private val callbackInfoType: Type = Type.getType(CallbackInfo::class.java)
 
         fun applyMixin(node: ClassNode) {
-            val mixedMethods = mutableListOf<MethodNode>()
             val shadowed = mutableListOf<Pair<String, String>>()
 
             mixinNode.fields.forEach { f -> f.useAnnotation<Shadow> { shadowed += f.name to f.desc } }
@@ -95,13 +95,33 @@ class MixinApplicator {
                 method.useAnnotation<Shadow> { shadowed += method.name to method.desc }
             }
 
-            mixedMethods.forEach { it.remapShadowed() }
+            node.methods.forEach { it.remapShadow(node.name, shadowed) }
         }
 
-        // TODO probably move this to a utility class to reduce size of this file
+        private fun MethodNode.remapShadow(to: String, shadows: List<Pair<String, String>>) {
+            val shadowRemapper = object : MethodVisitor(Opcodes.ASM9, this) {
+                override fun visitFieldInsn(opcode: Int, owner: String, name: String, descriptor: String) {
+                    shadows.find { it.first == name && it.second == descriptor }
+                        ?: super.visitFieldInsn(opcode, owner, name, descriptor)
 
-        fun MethodNode.remapShadowed() {
+                    super.visitFieldInsn(opcode, to, name, descriptor)
+                }
 
+                override fun visitMethodInsn(
+                    opcode: Int,
+                    owner: String?,
+                    name: String?,
+                    descriptor: String?,
+                    isInterface: Boolean
+                ) {
+                    shadows.find { it.first == name && it.second == descriptor }
+                        ?: super.visitMethodInsn(opcode, owner, name, descriptor, isInterface)
+
+                    super.visitMethodInsn(opcode, to, name, descriptor, isInterface)
+                }
+            }
+
+            this.accept(shadowRemapper)
         }
 
         private fun applyInjection(
