@@ -15,7 +15,8 @@ enum class MinecraftVersion(
     companion object {
         fun fromProtocol(protocol: Int): MinecraftVersion? = entries.find { it.protocol == protocol }
         fun fromVersionName(versionName: String): MinecraftVersion? =
-            entries.find { it.versionName == versionName } ?: entries.find { it.aliases.contains(versionName) }
+            entries.find { versionName.contains(it.versionName) }
+                ?: entries.find { it.aliases.any { alias -> versionName.contains(alias) } }
 
         fun fromAlias(alias: String): MinecraftVersion? = entries.find { it.aliases.contains(alias) }
     }
