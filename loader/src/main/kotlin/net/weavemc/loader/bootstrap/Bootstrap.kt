@@ -14,14 +14,15 @@ object BootstrapContainer {
     lateinit var bootstrap: Bootstrap
 
     @JvmStatic
-    fun bootstrap(caller: String, loader: ClassLoader, args: Array<String>) =
+    fun bootstrap(caller: String, loader: ClassLoader, args: Array<String>) {
         bootstrap.bootstrap(caller, loader, args)
+    }
 
     @JvmStatic
-    fun bootstrapCallback(caller: String, args: Array<String>) {
-        Class.forName("net.weavemc.loader.bootstrap.BootstrapContainer", false, ClassLoader.getSystemClassLoader())
+    fun bootstrapCallback(caller: String, loader: ClassLoader, args: Array<String>) {
+        ClassLoader.getSystemClassLoader().loadClass("net.weavemc.loader.bootstrap.BootstrapContainer")
             .getMethod("bootstrap", String::class.java, ClassLoader::class.java, Array<String>::class.java)
-            .invoke(null, caller, javaClass.classLoader, args)
+            .invoke(null, caller, loader, args)
     }
 }
 
@@ -33,8 +34,8 @@ class Bootstrap(val inst: Instrumentation) {
 
         println("[Weave] Bootstrapping...\n" +
                 "    -Caller: $caller\n" +
-                "    -Version: $gameVersion\n" +
-                "    -Client: $gameClient")
+                "    -Version: ${gameVersion.versionName}\n" +
+                "    -Client: ${gameClient.clientName}")
 
         val urlClassLoaderAccessor = if (loader is URLClassLoaderAccessor)
             loader
@@ -50,15 +51,12 @@ class Bootstrap(val inst: Instrumentation) {
         fun File.createRemappedTemp(name: String): File {
             val temp = File.createTempFile(name, "weavemod.jar")
             MappingsHandler.remapModJar(
-                MappingsHandler.environmentMappings.mappings,
-                this,
-                temp,
-                "official",
-                "named",
-                listOf(FileManager.getVanillaMinecraftJar())
+                mappings = MappingsHandler.mergedMappings.mappings,
+                input = this,
+                output = temp,
+                classpath = listOf(FileManager.getVanillaMinecraftJar())
             )
-            println(temp.path)
-//            temp.deleteOnExit()
+            temp.deleteOnExit()
             return temp
         }
 
