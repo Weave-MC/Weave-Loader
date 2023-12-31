@@ -5,6 +5,7 @@ import net.weavemc.api.bytecode.dump
 import net.weavemc.loader.bootstrap.transformer.SafeTransformer
 import net.weavemc.loader.mapping.MappingsHandler
 import net.weavemc.loader.mapping.MappingsHandler.classLoaderBytesProvider
+import net.weavemc.loader.mapping.MappingsHandler.environmentNamespace
 import net.weavemc.loader.mapping.MappingsHandler.remap
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
@@ -54,9 +55,13 @@ internal object HookManager : SafeTransformer {
             return classNode
         }
 
-        val vanillaClassNode = classNode.remap(MappingsHandler.environmentUnmapper, config.classWriterFlags)
-        // hooks.forEach { it.hook.transform(classNode, config); } TODO fix hooks :)
-        val environmentClassNode = vanillaClassNode.remap(MappingsHandler.environmentRemapper, config.classWriterFlags)
+        // TODO obviously remove this with an actual fix for hook application
+        val hardcodedApiRemapper = MappingsHandler.mapper(environmentNamespace, "mcp-named")
+        val hardcodedApiUnmapper = hardcodedApiRemapper.reverse()
+
+        val vanillaClassNode = classNode.remap(hardcodedApiUnmapper, config.classWriterFlags)
+        hooks.forEach { it.hook.transform(classNode, config); }
+        val environmentClassNode = vanillaClassNode.remap(hardcodedApiRemapper, config.classWriterFlags)
 
         return environmentClassNode
     }
@@ -86,7 +91,7 @@ class HookClassWriter(
     reader: ClassReader? = null,
 ) : ClassWriter(reader, flags) {
     // Mods are always mapped to vanilla by Weave-Gradle
-    val bytesProvider = classLoaderBytesProvider("named")
+    val bytesProvider = classLoaderBytesProvider(MappingsHandler.environmentNamespace)
     private fun ClassNode.isInterface(): Boolean = (this.access and Opcodes.ACC_INTERFACE) != 0
     private fun ClassReader.isAssignableFrom(target: ClassReader): Boolean {
         val classes = ArrayDeque(listOf(target))

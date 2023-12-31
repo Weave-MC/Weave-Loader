@@ -9,7 +9,7 @@ dependencies {
     implementation(libs.kxSer)
     api(libs.bundles.asm)
     api(project(":api:common"))
-    api(libs.mappingsUtil)
+    api(libs.weaveIntermediary)
 }
 
 tasks.jar {

@@ -3,6 +3,7 @@ asm = "9.5"      # https://asm.ow2.io/versions.html
 mixin = "0.8.5"
 kxSer = "1.5.1"
 mappingsUtil = "0.2.0"
+weaveIntermediary = "1.0.0"
 
 [libraries]
 asm = { module = "org.ow2.asm:asm", version.ref = "asm" }
@@ -12,6 +13,7 @@ asmutil = { module = "org.ow2.asm:asm-util", version.ref = "asm" }
 mixin = { module = "org.spongepowered:mixin", version.ref = "mixin" }
 kxSer = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kxSer" }
 mappingsUtil = { module = "com.grappenmaker:mappings-util", version.ref = "mappingsUtil" }
+weaveIntermediary = { module = "net.weavemc:intermediary", version.ref = "weaveIntermediary" }
 
 [bundles]
 asm = ["asm", "asmtree", "asmcommons", "asmutil"]

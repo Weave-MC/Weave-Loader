@@ -6,6 +6,7 @@ import net.weavemc.api.MinecraftVersion
 import net.weavemc.loader.WeaveLoader
 import net.weavemc.api.gameClient
 import net.weavemc.api.gameVersion
+import net.weavemc.intermediary.MappingsRetrieval
 import net.weavemc.loader.FileManager
 import net.weavemc.loader.HookClassWriter
 import org.objectweb.asm.*
@@ -16,23 +17,26 @@ import org.objectweb.asm.tree.ClassNode
 import java.io.File
 import java.util.jar.JarFile
 
+
+
 object MappingsHandler {
-    val environmentMappings by lazy {
-        loadWeaveMappings(environmentNamespace, gameVersion.versionName, FileManager.getVanillaMinecraftJar())
-            ?: error("Failed to load weave mappings for $environmentNamespace on version ${gameVersion.versionName}")
+    private val vanillaJar = FileManager.getVanillaMinecraftJar()
+
+    val mergedMappings by lazy {
+        MappingsRetrieval.loadMergedWeaveMappings(gameVersion.versionName, vanillaJar)
     }
 
     val environmentNamespace by lazy {
         when (gameClient) {
             // TODO: correct version
-            MinecraftClient.LUNAR -> if (gameVersion < MinecraftVersion.V1_16_5) "mcp" else "mojmap"
+            MinecraftClient.LUNAR -> if (gameVersion < MinecraftVersion.V1_16_5) "mcp-named" else "mojmap-named"
             MinecraftClient.FORGE, MinecraftClient.VANILLA,
             MinecraftClient.LABYMOD, MinecraftClient.BADLION -> "official"
         }
     }
 
     internal fun classLoaderBytesProvider(expectedNamespace: String): (String) -> ByteArray? {
-        val names = if (expectedNamespace != "official") environmentMappings.mappings.asASMMapping(
+        val names = if (expectedNamespace != "official") mergedMappings.mappings.asASMMapping(
             from = expectedNamespace,
             to = "official",
             includeMethods = false,
@@ -46,7 +50,7 @@ object MappingsHandler {
     }
 
     internal fun jarBytesProvider(jarsToUse: List<JarFile>, expectedNamespace: String): (String) -> ByteArray? {
-        val names = if (expectedNamespace != "official") environmentMappings.mappings.asASMMapping(
+        val names = if (expectedNamespace != "official") mergedMappings.mappings.asASMMapping(
             from = expectedNamespace,
             to = "official",
             includeMethods = false,
@@ -69,14 +73,14 @@ object MappingsHandler {
     }
 
     fun mapper(from: String, to: String, loader: (name: String) -> ByteArray? = classLoaderBytesProvider(from)) =
-        MappingsRemapper(environmentMappings.mappings, from, to, loader = loader)
+            MappingsRemapper(mergedMappings.mappings, from, to, loader = loader)
 
-    internal val environmentRemapper = mapper("official", "named")
+    internal val environmentRemapper = mapper("official", environmentNamespace)
     internal val environmentUnmapper = environmentRemapper.reverse()
 
     private val mappable by lazy {
-        val id = environmentMappings.mappings.namespace("official")
-        environmentMappings.mappings.classes.mapTo(hashSetOf()) { it.names[id] }
+        val id = mergedMappings.mappings.namespace("official")
+        mergedMappings.mappings.classes.mapTo(hashSetOf()) { it.names[id] }
     }
 
     internal fun ByteArray.remap(remapper: Remapper, bypassMappableCheck: Boolean = false): ByteArray {
@@ -142,10 +146,12 @@ object MappingsHandler {
         input: File,
         output: File,
         from: String = "official",
-        to: String = "named",
+        to: String = environmentNamespace,
         classpath: List<File> = listOf(),
     ) {
         val jarsToUse = (classpath + input).map { JarFile(it) }
+
+        println(environmentNamespace)
 
         com.grappenmaker.mappings.remapModJar(
             mappings,
