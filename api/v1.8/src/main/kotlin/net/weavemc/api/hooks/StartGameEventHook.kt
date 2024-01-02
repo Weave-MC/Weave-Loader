@@ -3,10 +3,10 @@
 package net.weavemc.api.hooks
 
 import net.weavemc.api.Hook
-import net.weavemc.api.bytecode.asm
+import net.weavemc.internals.asm
 import net.weavemc.api.bytecode.callEvent
-import net.weavemc.api.bytecode.getSingleton
-import net.weavemc.api.bytecode.named
+import net.weavemc.internals.getSingleton
+import net.weavemc.internals.named
 import net.weavemc.api.event.StartGameEvent
 import org.objectweb.asm.Opcodes.RETURN
 import org.objectweb.asm.tree.ClassNode

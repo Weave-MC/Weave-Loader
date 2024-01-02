@@ -3,10 +3,10 @@
 package net.weavemc.api.hooks
 
 import net.weavemc.api.Hook
-import net.weavemc.api.bytecode.asm
+import net.weavemc.internals.asm
 import net.weavemc.api.bytecode.callEvent
-import net.weavemc.api.bytecode.internalNameOf
-import net.weavemc.api.bytecode.named
+import net.weavemc.internals.internalNameOf
+import net.weavemc.internals.named
 import net.weavemc.api.event.RenderWorldEvent
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LdcInsnNode

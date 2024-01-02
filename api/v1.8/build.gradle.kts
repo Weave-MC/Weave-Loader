@@ -14,6 +14,7 @@ minecraft {
 dependencies {
     api(project(":api:common"))
     api(libs.bundles.asm)
+    compileOnly(libs.weaveInternals)
 }
 
 publishing {

@@ -1,7 +1,7 @@
-package net.weavemc.loader
+package net.weavemc.loader.util
 
-import net.weavemc.api.MinecraftVersion
-import net.weavemc.api.gameVersion
+import net.weavemc.internals.GameInfo.MinecraftVersion
+import net.weavemc.internals.GameInfo.gameVersion
 import java.io.File
 import java.nio.file.Paths
 import kotlin.io.path.*

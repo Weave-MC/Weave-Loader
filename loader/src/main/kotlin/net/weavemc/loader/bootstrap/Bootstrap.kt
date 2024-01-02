@@ -1,11 +1,8 @@
 package net.weavemc.loader.bootstrap
 
-import net.weavemc.api.gameClient
-import net.weavemc.api.gameVersion
-import net.weavemc.loader.FileManager
+import net.weavemc.internals.GameInfo.gameClient
+import net.weavemc.internals.GameInfo.gameVersion
 import net.weavemc.loader.bootstrap.transformer.*
-import net.weavemc.loader.mapping.MappingsHandler
-import java.io.File
 import java.lang.instrument.Instrumentation
 import java.net.URL
 import java.util.jar.JarFile
@@ -14,15 +11,8 @@ object BootstrapContainer {
     lateinit var bootstrap: Bootstrap
 
     @JvmStatic
-    fun bootstrap(caller: String, loader: ClassLoader, args: Array<String>) {
+    fun finishBootstrap(caller: String, loader: ClassLoader, args: Array<String>) {
         bootstrap.bootstrap(caller, loader, args)
-    }
-
-    @JvmStatic
-    fun bootstrapCallback(caller: String, loader: ClassLoader, args: Array<String>) {
-        ClassLoader.getSystemClassLoader().loadClass("net.weavemc.loader.bootstrap.BootstrapContainer")
-            .getMethod("bootstrap", String::class.java, ClassLoader::class.java, Array<String>::class.java)
-            .invoke(null, caller, loader, args)
     }
 }
 
@@ -48,30 +38,6 @@ class Bootstrap(val inst: Instrumentation) {
             }
         }
 
-        fun File.createRemappedTemp(name: String): File {
-            val temp = File.createTempFile(name, "weavemod.jar")
-            MappingsHandler.remapModJar(
-                mappings = MappingsHandler.mergedMappings.mappings,
-                input = this,
-                output = temp,
-                classpath = listOf(FileManager.getVanillaMinecraftJar())
-            )
-            temp.deleteOnExit()
-            return temp
-        }
-
-        val versionApi = FileManager.getVersionApi()
-        val mods = FileManager.getMods().map { it.file }
-
-        val mappedVersionApi = versionApi?.createRemappedTemp("version-api")
-        val mappedMods = mods.map { it.createRemappedTemp(it.nameWithoutExtension) }
-
-        urlClassLoaderAccessor.addWeaveURL(FileManager.getCommonApi().toURI().toURL())
-        if (mappedVersionApi != null)
-            urlClassLoaderAccessor.addWeaveURL(mappedVersionApi.toURI().toURL())
-
-        mappedMods.forEach { urlClassLoaderAccessor.addWeaveURL(it.toURI().toURL()) }
-
         removeTransformers()
 
         println("[Weave] Bootstrapping complete.")
@@ -80,8 +46,8 @@ class Bootstrap(val inst: Instrumentation) {
         This allows us to access Minecraft's classes throughout the project.
         */
         loader.loadClass("net.weavemc.loader.WeaveLoader")
-            .getDeclaredMethod("init", Instrumentation::class.java, File::class.java, List::class.java)
-            .invoke(null, inst, mappedVersionApi, mappedMods)
+            .getDeclaredMethod("init", Instrumentation::class.java, URLClassLoaderAccessor::class.java)
+            .invoke(null, inst, urlClassLoaderAccessor)
     }
 
     private fun removeTransformers() {

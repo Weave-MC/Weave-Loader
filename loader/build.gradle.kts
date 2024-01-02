@@ -8,8 +8,8 @@ plugins {
 dependencies {
     implementation(libs.kxSer)
     api(libs.bundles.asm)
-    api(project(":api:common"))
-    api(libs.weaveIntermediary)
+    compileOnly(project(":api:common"))
+    api(libs.weaveInternals)
 }
 
 tasks.jar {

@@ -1,12 +1,13 @@
 package net.weavemc.loader
 
 import net.weavemc.api.Hook
-import net.weavemc.api.bytecode.dump
+import net.weavemc.internals.dump
 import net.weavemc.loader.bootstrap.transformer.SafeTransformer
 import net.weavemc.loader.mapping.MappingsHandler
-import net.weavemc.loader.mapping.MappingsHandler.classLoaderBytesProvider
-import net.weavemc.loader.mapping.MappingsHandler.environmentNamespace
 import net.weavemc.loader.mapping.MappingsHandler.remap
+import net.weavemc.loader.util.ModHook
+import net.weavemc.loader.util.asClassNode
+import net.weavemc.loader.util.asClassReader
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
@@ -20,7 +21,7 @@ internal object HookManager : SafeTransformer {
      *
      * Defaults to `false`.
      */
-    val dumpBytecode = System.getProperty("dumpBytecode")?.toBoolean() ?: false
+    val dumpBytecode = System.getProperty("dumpBytecode")?.toBoolean() ?: true
     val hooks = mutableListOf<ModHook>()
 
     override fun transform(loader: ClassLoader, className: String, originalClass: ByteArray): ByteArray? {
@@ -49,19 +50,22 @@ internal object HookManager : SafeTransformer {
     private fun applyHooks(classReader: ClassReader, hooks: List<ModHook>, config: AssemblerConfigImpl): ClassNode {
         val classNode = classReader.asClassNode()
 
-        // skip remapping, the environment namespace matches with the mods
-        if (MappingsHandler.environmentNamespace == "official") {
+        // TODO remove this when fixed hooking
+        if (MappingsHandler.environmentNamespace == "mcp-named") {
             hooks.forEach { it.hook.transform(classNode, config) }
             return classNode
         }
 
         // TODO obviously remove this with an actual fix for hook application
-        val hardcodedApiRemapper = MappingsHandler.mapper(environmentNamespace, "mcp-named")
+        val hardcodedApiRemapper = MappingsHandler.mapper(MappingsHandler.environmentNamespace, "mcp-named")
         val hardcodedApiUnmapper = hardcodedApiRemapper.reverse()
 
-        val vanillaClassNode = classNode.remap(hardcodedApiUnmapper, config.classWriterFlags)
-        hooks.forEach { it.hook.transform(classNode, config); }
-        val environmentClassNode = vanillaClassNode.remap(hardcodedApiRemapper, config.classWriterFlags)
+        val mcpClassNode = classNode.remap(hardcodedApiRemapper, config.classWriterFlags)
+
+        mcpClassNode.dump(getBytecodeDir().resolve("${mcpClassNode.name.replace("/", "_")}.class").absolutePath)
+
+        hooks.forEach { it.hook.transform(mcpClassNode, config); }
+        val environmentClassNode = mcpClassNode.remap(hardcodedApiUnmapper, config.classWriterFlags)
 
         return environmentClassNode
     }
@@ -91,7 +95,7 @@ class HookClassWriter(
     reader: ClassReader? = null,
 ) : ClassWriter(reader, flags) {
     // Mods are always mapped to vanilla by Weave-Gradle
-    val bytesProvider = classLoaderBytesProvider(MappingsHandler.environmentNamespace)
+    val bytesProvider = MappingsHandler.classLoaderBytesProvider(MappingsHandler.environmentNamespace)
     private fun ClassNode.isInterface(): Boolean = (this.access and Opcodes.ACC_INTERFACE) != 0
     private fun ClassReader.isAssignableFrom(target: ClassReader): Boolean {
         val classes = ArrayDeque(listOf(target))

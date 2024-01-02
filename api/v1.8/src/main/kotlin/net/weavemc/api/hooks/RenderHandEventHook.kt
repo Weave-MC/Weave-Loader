@@ -6,6 +6,10 @@ import net.weavemc.api.Hook
 import net.weavemc.api.bytecode.*
 import net.weavemc.api.event.CancellableEvent
 import net.weavemc.api.event.RenderHandEvent
+import net.weavemc.internals.asm
+import net.weavemc.internals.internalNameOf
+import net.weavemc.internals.named
+import net.weavemc.internals.next
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.JumpInsnNode

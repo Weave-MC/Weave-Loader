@@ -1,11 +1,13 @@
 plugins {
     id("kotlin")
     `maven-publish`
+    relocate
 }
 
 dependencies {
     api(libs.bundles.asm)
     api(libs.mappingsUtil)
+    compileOnly(libs.weaveInternals)
 }
 
 publishing {

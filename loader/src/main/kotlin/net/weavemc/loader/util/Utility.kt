@@ -1,4 +1,4 @@
-package net.weavemc.loader
+package net.weavemc.loader.util
 
 import kotlinx.serialization.json.Json
 import org.objectweb.asm.ClassReader

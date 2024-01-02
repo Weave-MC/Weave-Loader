@@ -1,10 +1,10 @@
 package net.weavemc.loader.bootstrap.transformer
 
-import net.weavemc.api.bytecode.asm
-import net.weavemc.api.bytecode.named
-import net.weavemc.api.bytecode.next
-import net.weavemc.loader.asClassNode
-import net.weavemc.loader.asClassReader
+import net.weavemc.internals.asm
+import net.weavemc.internals.named
+import net.weavemc.internals.next
+import net.weavemc.loader.util.asClassNode
+import net.weavemc.loader.util.asClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.tree.LdcInsnNode
 import org.objectweb.asm.tree.MethodInsnNode

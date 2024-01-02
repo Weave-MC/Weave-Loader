@@ -31,7 +31,7 @@ val relocate = tasks.register("relocate") {
 
         fun remap(name: String) = findMapping(name)?.let { (k, v) -> name.replaceFirst(k, v) } ?: name
         fun shouldKeepOriginal(name: String) =
-            name.startsWith("org/objectweb/asm/") || name.startsWith("com/google/common/io")
+            name.startsWith("com/google/common/io")
 
         JarOutputStream(FileOutputStream(path)).use { output ->
             val artifact = JarFile(originalOutputFile)

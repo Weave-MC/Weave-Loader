@@ -1,13 +1,17 @@
 package net.weavemc.loader.bootstrap.transformer
 
-import net.weavemc.api.bytecode.internalNameOf
-import net.weavemc.api.bytecode.visitAsm
+import net.weavemc.internals.asm
+import net.weavemc.internals.internalNameOf
+import net.weavemc.internals.visitAsm
+import net.weavemc.loader.util.getOrCreateDirectory
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.ClassNode
+import org.objectweb.asm.tree.LabelNode
 import java.net.URL
 import java.net.URLClassLoader
+import kotlin.io.path.absolutePathString
 
 interface URLClassLoaderAccessor {
     fun addWeaveURL(url: URL)
@@ -52,6 +56,36 @@ object URLClassLoaderTransformer : SafeTransformer {
             _return
         }
 
-        return ClassWriter(reader, ClassWriter.COMPUTE_MAXS).also { node.accept(it) }.toByteArray()
+        var loadClass = node.methods.find { it.name == "loadClass" }
+
+        val loadClassInject = asm {
+            aload(1)
+            ldc("net.weavemc.loader.bootstrap")
+            invokevirtual("java/lang/String", "startsWith", "(Ljava/lang/String;)Z")
+
+            val failed = LabelNode()
+            ifeq(failed)
+
+            invokestatic("java/lang/ClassLoader", "getSystemClassLoader", "()Ljava/lang/ClassLoader;")
+            aload(1)
+            invokevirtual("java/lang/ClassLoader", "loadClass", "(Ljava/lang/String;)Ljava/lang/Class;")
+            areturn
+
+            +failed
+        }
+
+        if (loadClass == null) {
+            node.visitMethod(Opcodes.ACC_PUBLIC, "loadClass", "(Ljava/lang/String;)Ljava/lang/Class;", null, null).visitAsm {
+                +loadClassInject
+
+                aload(0)
+                aload(1)
+                invokespecial("java/lang/ClassLoader", "loadClass", "(Ljava/lang/String;)Ljava/lang/Class;")
+                areturn
+            }
+        } else
+            loadClass.instructions.insert(loadClassInject)
+
+        return ClassWriter(reader, ClassWriter.COMPUTE_FRAMES).also { node.accept(it) }.toByteArray()
     }
 }

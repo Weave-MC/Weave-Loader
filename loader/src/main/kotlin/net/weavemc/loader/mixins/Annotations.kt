@@ -1,6 +1,6 @@
 package net.weavemc.loader.mixins
 
-import net.weavemc.api.bytecode.visitAsm
+import net.weavemc.internals.visitAsm
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.MethodVisitor

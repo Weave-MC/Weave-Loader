@@ -3,9 +3,10 @@ package net.weavemc.loader.mixins
 import com.grappenmaker.mappings.MappingsRemapper
 import net.weavemc.loader.*
 import net.weavemc.loader.bootstrap.transformer.SafeTransformer
-import net.weavemc.api.bytecode.asm
-import net.weavemc.api.bytecode.internalNameOf
+import net.weavemc.internals.asm
+import net.weavemc.internals.internalNameOf
 import net.weavemc.api.mixin.*
+import net.weavemc.loader.util.JSON
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.MethodVisitor
@@ -95,16 +96,17 @@ class MixinApplicator {
                 method.useAnnotation<Shadow> { shadowed += method.name to method.desc }
             }
 
-            node.methods.forEach { it.remapShadow(node.name, shadowed) }
+//            node.methods.forEachIndexed { idx, t -> node.methods[idx] = t.remapShadow(node.name, shadowed) }
         }
 
-        private fun MethodNode.remapShadow(to: String, shadows: List<Pair<String, String>>) {
-            val shadowRemapper = object : MethodVisitor(Opcodes.ASM9, this) {
+        private fun MethodNode.remapShadow(to: String, shadows: List<Pair<String, String>>): MethodNode {
+            val node = MethodNode()
+            val shadowRemapper = object : MethodVisitor(Opcodes.ASM9, node) {
                 override fun visitFieldInsn(opcode: Int, owner: String, name: String, descriptor: String) {
                     shadows.find { it.first == name && it.second == descriptor }
-                        ?: super.visitFieldInsn(opcode, owner, name, descriptor)
+                        ?: return super.visitFieldInsn(opcode, owner, name, descriptor)
 
-                    super.visitFieldInsn(opcode, to, name, descriptor)
+                    return super.visitFieldInsn(opcode, to, name, descriptor)
                 }
 
                 override fun visitMethodInsn(
@@ -115,13 +117,15 @@ class MixinApplicator {
                     isInterface: Boolean
                 ) {
                     shadows.find { it.first == name && it.second == descriptor }
-                        ?: super.visitMethodInsn(opcode, owner, name, descriptor, isInterface)
+                        ?: return super.visitMethodInsn(opcode, owner, name, descriptor, isInterface)
 
-                    super.visitMethodInsn(opcode, to, name, descriptor, isInterface)
+                    return super.visitMethodInsn(opcode, to, name, descriptor, isInterface)
                 }
             }
 
             this.accept(shadowRemapper)
+
+            return node
         }
 
         private fun applyInjection(

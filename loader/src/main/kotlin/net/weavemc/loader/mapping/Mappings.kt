@@ -1,13 +1,13 @@
 package net.weavemc.loader.mapping
 
 import com.grappenmaker.mappings.*
-import net.weavemc.api.MinecraftClient
-import net.weavemc.api.MinecraftVersion
+import net.weavemc.internals.GameInfo.MinecraftClient
+import net.weavemc.internals.GameInfo.MinecraftVersion
 import net.weavemc.loader.WeaveLoader
-import net.weavemc.api.gameClient
-import net.weavemc.api.gameVersion
-import net.weavemc.intermediary.MappingsRetrieval
-import net.weavemc.loader.FileManager
+import net.weavemc.internals.GameInfo.gameClient
+import net.weavemc.internals.GameInfo.gameVersion
+import net.weavemc.internals.MappingsRetrieval
+import net.weavemc.loader.util.FileManager
 import net.weavemc.loader.HookClassWriter
 import org.objectweb.asm.*
 import org.objectweb.asm.commons.ClassRemapper
@@ -30,8 +30,8 @@ object MappingsHandler {
         when (gameClient) {
             // TODO: correct version
             MinecraftClient.LUNAR -> if (gameVersion < MinecraftVersion.V1_16_5) "mcp-named" else "mojmap-named"
-            MinecraftClient.FORGE, MinecraftClient.VANILLA,
-            MinecraftClient.LABYMOD, MinecraftClient.BADLION -> "official"
+            MinecraftClient.FORGE -> "mcp-srg"
+            MinecraftClient.VANILLA, MinecraftClient.LABYMOD, MinecraftClient.BADLION -> "official"
         }
     }
 
