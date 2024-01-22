@@ -1,6 +1,6 @@
 <img
     align="right" alt="title" width="200px"
-    src="https://raw.githubusercontent.com/Weave-MC/.github/master/assets/icon.png"
+    src="https://avatars.githubusercontent.com/u/126124815?s=400&u=c274f4ff6a9ff62698476de6bf66cacf1d6bed8e"
 />
 
 # Weave Loader, A Universal Minecraft Mod Loader
