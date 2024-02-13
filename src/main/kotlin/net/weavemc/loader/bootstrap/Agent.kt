@@ -82,17 +82,16 @@ public fun premain(opt: String?, inst: Instrumentation) {
         }
     }, true)
     inst.retransformClasses(Class.forName("sun.management.RuntimeImpl", false, ClassLoader.getSystemClassLoader()))
+    inst.addTransformer(URLClassLoaderTransformer)
 
     inst.addTransformer(object : SafeTransformer {
         override fun transform(loader: ClassLoader, className: String, originalClass: ByteArray): ByteArray? {
             // net/minecraft/ false flags on launchwrapper which gets loaded earlier
             if (className.startsWith("net/minecraft/client/")) {
+                inst.removeTransformer(URLClassLoaderTransformer)
                 inst.removeTransformer(this)
 
-                /*
-                Load the rest of the loader using Genesis class loader.
-                This allows us to access Minecraft's classes throughout the project.
-                */
+                (loader as URLClassLoaderAccessor).addWeaveURL(javaClass.protectionDomain.codeSource.location)
                 loader.loadClass("net.weavemc.loader.WeaveLoader")
                     .getDeclaredMethod("init", Instrumentation::class.java)
                     .invoke(null, inst)

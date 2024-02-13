@@ -147,8 +147,7 @@ public class WeaveMixinService : IMixinService, IClassProvider, IClassBytecodePr
      *         This is delegated via the service to choose the correct
      *         class loader to obtain a resource to stream.
      */
-    override fun getResourceAsStream(name: String?): InputStream? =
-        ClassLoader.getSystemResourceAsStream(name)
+    override fun getResourceAsStream(name: String): InputStream? = javaClass.classLoader.getResourceAsStream(name)
 
     /**
      * @return The detected side for the current environment.

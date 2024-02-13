@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromStream
 import net.weavemc.loader.api.ModInitializer
+import net.weavemc.loader.bootstrap.URLClassLoaderAccessor
 import net.weavemc.loader.mixins.WeaveMixinService
 import net.weavemc.loader.mixins.WeaveMixinTransformer
 import org.spongepowered.asm.launch.MixinBootstrap
@@ -44,11 +45,12 @@ public object WeaveLoader {
         inst.addTransformer(WeaveMixinTransformer)
         inst.addTransformer(HookManager)
 
+        val loader = javaClass.classLoader as URLClassLoaderAccessor
         val json = Json { ignoreUnknownKeys = true }
         getOrCreateModDirectory()
             .listDirectoryEntries("*.jar")
             .filter { it.isRegularFile() }
-            .map { JarFile(it.toFile()).also(inst::appendToSystemClassLoaderSearch) }
+            .map { JarFile(it.toFile().also { file -> loader.addWeaveURL(file.toURI().toURL()) }) }
             .forEach { jar ->
                 println("[Weave] Loading ${jar.name}")
 
