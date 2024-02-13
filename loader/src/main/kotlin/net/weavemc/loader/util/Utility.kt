@@ -43,6 +43,11 @@ internal fun File.toSha256(): String {
 
 internal val JSON = Json { ignoreUnknownKeys = true }
 
+internal inline fun <reified T> Set<T>.pushToFirst(element: T): MutableList<T> =
+    if (element in this)
+        mutableListOf(element).also { it.addAll(this) }
+    else this.toMutableList()
+
 // Copied from Weave-Gradle
 object DownloadUtil {
     /**

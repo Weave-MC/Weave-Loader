@@ -2,6 +2,7 @@ package net.weavemc.loader.bootstrap
 
 import net.weavemc.internals.GameInfo.gameClient
 import net.weavemc.internals.GameInfo.gameVersion
+import net.weavemc.loader.WeaveLoader
 import net.weavemc.loader.bootstrap.transformer.*
 import java.lang.instrument.Instrumentation
 import java.net.URL
@@ -38,22 +39,13 @@ class Bootstrap(val inst: Instrumentation) {
             }
         }
 
-        removeTransformers()
+        inst.removeTransformer(URLClassLoaderTransformer)
 
         println("[Weave] Bootstrapping complete.")
-        /*
-        Load the rest of the loader using Minecraft's class loader.
-        This allows us to access Minecraft's classes throughout the project.
-        */
-        loader.loadClass("net.weavemc.loader.WeaveLoader")
-            .getDeclaredMethod("init", Instrumentation::class.java, URLClassLoaderAccessor::class.java)
-            .invoke(null, inst, urlClassLoaderAccessor)
-    }
 
-    private fun removeTransformers() {
-        println("[Weave] Removing Bootstrapping Transformers")
-        inst.removeTransformer(AntiCacheTransformer)
-        inst.removeTransformer(URLClassLoaderTransformer)
-        println("[Weave] Removed Bootstrapping Transformers")
+        /**
+         * Start the Weave Loader initialization phase
+         */
+        WeaveLoader(urlClassLoaderAccessor, inst)
     }
 }

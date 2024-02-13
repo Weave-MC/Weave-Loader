@@ -10,6 +10,7 @@ internal object FileManager {
     val MODS_DIRECTORY = getOrCreateDirectory("mods")
     val CACHE_DIRECTORY = getOrCreateDirectory("cache")
     val API_DIRECTORY = getOrCreateDirectory("api")
+    val DUMP_DIRECTORY = getOrCreateDirectory(".bytecode.out")
 
     private val apiJarNameRegex = Regex("v\\d+\\.\\d+(\\.\\d+)?\\.jar")
 

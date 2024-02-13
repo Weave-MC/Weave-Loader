@@ -8,7 +8,7 @@ import net.weavemc.internals.GameInfo.gameClient
 import net.weavemc.internals.GameInfo.gameVersion
 import net.weavemc.internals.MappingsRetrieval
 import net.weavemc.loader.util.FileManager
-import net.weavemc.loader.HookClassWriter
+import net.weavemc.loader.injection.InjectionClassWriter
 import org.objectweb.asm.*
 import org.objectweb.asm.commons.ClassRemapper
 import org.objectweb.asm.commons.Remapper
@@ -16,8 +16,6 @@ import org.objectweb.asm.commons.SimpleRemapper
 import org.objectweb.asm.tree.ClassNode
 import java.io.File
 import java.util.jar.JarFile
-
-
 
 object MappingsHandler {
     private val vanillaJar = FileManager.getVanillaMinecraftJar()
@@ -44,7 +42,7 @@ object MappingsHandler {
         ) else emptyMap()
 
         val mapper = SimpleRemapper(names.toList().associate { (k, v) -> v to k })
-        val callback = ClasspathLoaders.fromLoader(WeaveLoader.javaClass.classLoader)
+        val callback = ClasspathLoaders.fromLoader(WeaveLoader::class.java.classLoader)
 
         return { name -> callback(names[name] ?: name)?.remap(mapper) }
     }
@@ -94,7 +92,7 @@ object MappingsHandler {
     }
 
     internal fun ClassNode.remap(remapper: Remapper, flags: Int = ClassWriter.COMPUTE_MAXS): ClassNode {
-        val classWriter = HookClassWriter(flags)
+        val classWriter = InjectionClassWriter(flags)
         accept(classWriter)
 
         val bytes = classWriter.toByteArray()

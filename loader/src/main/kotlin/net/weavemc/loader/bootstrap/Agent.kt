@@ -4,14 +4,11 @@ import net.weavemc.internals.asm
 import net.weavemc.loader.*
 import net.weavemc.loader.util.asClassNode
 import net.weavemc.loader.util.asClassReader
-import net.weavemc.loader.bootstrap.transformer.AntiCacheTransformer
 import net.weavemc.loader.bootstrap.transformer.SafeTransformer
 import net.weavemc.loader.bootstrap.transformer.URLClassLoaderTransformer
-import net.weavemc.loader.util.getOrCreateDirectory
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Type
 import java.lang.instrument.Instrumentation
-import kotlin.io.path.absolutePathString
 
 /**
  * The JavaAgent's `premain()` method, this is where initialization of Weave Loader begins.
@@ -22,7 +19,6 @@ fun premain(opt: String?, inst: Instrumentation) {
     println("[Weave] Bootstrapping Weave")
 
     inst.addTransformer(URLClassLoaderTransformer)
-    inst.addTransformer(AntiCacheTransformer)
 
     inst.addTransformer(object: SafeTransformer {
         override fun transform(loader: ClassLoader, className: String, originalClass: ByteArray): ByteArray? {
