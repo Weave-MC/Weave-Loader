@@ -194,6 +194,8 @@ public class SandboxedMixinState(
         validate()
         gotoDefault()
 
+        require(this::transformer.isInitialized) { "Why did I not get a transformer?" }
+
         initialized = true
     }
 

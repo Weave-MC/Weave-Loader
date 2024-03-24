@@ -16,9 +16,15 @@ import net.weavemc.loader.util.FileManager
 import net.weavemc.loader.util.JSON
 import net.weavemc.loader.util.ModConfig
 import net.weavemc.loader.util.WeaveMod
+import org.spongepowered.asm.mixin.Mixin
+import org.spongepowered.asm.mixin.injection.At
+import org.spongepowered.asm.mixin.injection.Inject
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo
 import java.io.File
 import java.lang.instrument.Instrumentation
 import java.util.jar.JarFile
+import javax.swing.JOptionPane
+import kotlin.system.exitProcess
 
 /**
  * The main class of the Weave Loader.
@@ -33,21 +39,32 @@ open class WeaveLoader(
      * @see ModConfig
      */
     private val mods: MutableList<WeaveMod> = mutableListOf()
-    private val mixinState = SandboxedMixinState(SandboxedMixinLoader(), fixupConflicts = true)
+    private val mixinLoader = SandboxedMixinLoader()
+    private val mixinState = mixinLoader.state
 
     init {
         println("[Weave] Initializing Weave")
         launchStart = System.currentTimeMillis()
         instrumentation.addTransformer(InjectionHandler)
-        instrumentation.addTransformer(SandboxedMixinTransformer(mixinState))
 
         loadAndInitMods()
+    }
+
+    private fun fatalError(message: String): Nothing {
+        JOptionPane.showMessageDialog(
+            /* parentComponent = */ null,
+            /* message = */ "An error occurred: $message",
+            /* title = */ "Weave Loader error",
+            /* messageType = */ JOptionPane.ERROR_MESSAGE
+        )
+
+        exitProcess(-1)
     }
 
     private fun verifyDependencies() {
         // TODO: jank
         val duplicates = mods.groupingBy { it.modId }.eachCount().filterValues { it > 1 }.keys
-        require(duplicates.isEmpty()) { "Duplicate mods ${duplicates.joinToString()} were found" }
+        if(duplicates.isNotEmpty()) fatalError("Duplicate mods ${duplicates.joinToString()} were found")
 
         val dependencyGraph = mods.associate { it.modId to it.config.dependencies }
         val seen = hashSetOf<String>()
@@ -55,17 +72,25 @@ open class WeaveLoader(
             // soFar = List to keep order
             // Supposedly the list will be small enough such that a linear search is efficient enough
             fun verify(curr: String, soFar: List<String>) {
-                if (curr in soFar) error(
+                if (curr in soFar) fatalError(
                     "Circular dependency: $toDetermine's dependency graph eventually " +
                             "meets $curr again through ${(soFar + curr).joinToString(" -> ")}"
                 )
 
                 if (!seen.add(curr)) return
-                val deps = dependencyGraph[curr] ?: error("Dependency $curr for mod $toDetermine is not available")
+                val deps = dependencyGraph[curr] ?: fatalError("Dependency $curr for mod $toDetermine is not available")
                 deps.forEach { verify(it, soFar + curr) }
             }
 
             verify(toDetermine, emptyList())
+        }
+    }
+
+    @Mixin(SomeTest::class)
+    class MixinTest {
+        @Inject(at = [At("HEAD")], method = ["test"])
+        fun test(ci: CallbackInfo) {
+            println("Hello mixin poc!")
         }
     }
 
@@ -83,8 +108,10 @@ open class WeaveLoader(
 
         mixinState.initialize()
         mappedMods.forEach { it.registerAsMod() }
-
         verifyDependencies()
+
+        mixinState.registerSpoofedMixin("net/weavemc/loader/WeaveLoader\$MixinTest")
+        instrumentation.addTransformer(SandboxedMixinTransformer(mixinState))
 
         // Invoke preInit() once everything is done.
         mods.forEach { weaveMod ->
@@ -180,7 +207,8 @@ private fun JarFile.fetchModConfig(json: Json): ModConfig {
     val configEntry = this.getEntry("weave.mod.json")
         ?: error("${this.name} does not contain a weave.mod.json!")
 
-    return json.decodeFromString<ModConfig>(this.getInputStream(configEntry).readBytes().decodeToString())
+    // TODO: rethrow errors
+    return json.decodeFromString<ModConfig>(getInputStream(configEntry).readBytes().decodeToString())
 }
 
 private fun File.createRemappedTemp(name: String, config: ModConfig): File {
