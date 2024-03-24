@@ -15,6 +15,7 @@ dependencies {
     api(libs.bundles.asm)
     compileOnly(project(":api:common"))
     api(libs.weaveInternals)
+    api(libs.mappingsUtil)
 
     // TODO: as libs.toml
     api("org.spongepowered:mixin:0.8.5")
