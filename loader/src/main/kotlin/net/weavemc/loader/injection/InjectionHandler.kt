@@ -86,20 +86,6 @@ data class ModHook(
     override fun apply(node: ClassNode) = hook.transform(node, TODO())
 }
 
-//data class ModMixin(
-//    override val namespace: String,
-//    val mixin: Mixin,
-//    val target: String = MappingsHandler.environmentRemapper.map(mixin.target)
-//): Modifier {
-//    override val targets = listOf(target)
-//    override fun apply(node: ClassNode) = mixin.transform(node)
-//}
-//
-//interface Mixin {
-//    fun transform(classNode: ClassNode)
-//    val target: String
-//}
-
 class AssemblerConfigImpl : Hook.AssemblerConfig {
     var computeFrames = false
 

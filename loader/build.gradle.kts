@@ -5,11 +5,21 @@ plugins {
     id("relocate")
 }
 
+repositories {
+    // TODO: standardize help this is such a mess
+    maven("https://repo.spongepowered.org/repository/maven-public/")
+}
+
 dependencies {
     implementation(libs.kxSer)
     api(libs.bundles.asm)
     compileOnly(project(":api:common"))
     api(libs.weaveInternals)
+
+    // TODO: as libs.toml
+    api("org.spongepowered:mixin:0.8.5")
+    implementation("com.google.guava:guava:21.0")
+    implementation("com.google.code.gson:gson:2.2.4")
 }
 
 tasks.jar {

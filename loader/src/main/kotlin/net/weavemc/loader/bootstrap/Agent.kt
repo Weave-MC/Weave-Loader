@@ -24,19 +24,13 @@ fun premain(opt: String?, inst: Instrumentation) {
         override fun transform(loader: ClassLoader, className: String, originalClass: ByteArray): ByteArray? {
             val usingLaunchwrapper = className == "net/minecraft/launchwrapper/Launch"
             val usingMinecraftMain = className == "net/minecraft/client/main/Main"
-            if (!usingMinecraftMain && !usingLaunchwrapper)
-                return null
+            if (!usingMinecraftMain && !usingLaunchwrapper) return null
 
             val reader = originalClass.asClassReader()
             val node = reader.asClassNode()
 
-            val methodNode = if (usingLaunchwrapper)
-                node.methods.find { it.name == "launch" }
-            else
-                node.methods.find { it.name == "main" }
-
-            if (methodNode == null)
-                return null
+            val targetMethod = if (usingLaunchwrapper) "launch" else "main"
+            val methodNode = node.methods.find { it.name == targetMethod } ?: return null
 
             with(methodNode) {
                 instructions.insert(asm {
@@ -59,7 +53,6 @@ fun premain(opt: String?, inst: Instrumentation) {
             }
 
             inst.removeTransformer(this)
-
             return ClassWriter(reader, ClassWriter.COMPUTE_MAXS).also { node.accept(it) }.toByteArray()
         }
     })

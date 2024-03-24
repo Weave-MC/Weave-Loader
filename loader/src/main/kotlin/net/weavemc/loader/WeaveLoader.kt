@@ -1,17 +1,21 @@
 package net.weavemc.loader
 
 import kotlinx.serialization.json.Json
-import net.weavemc.loader.analytics.launchStart
 import net.weavemc.api.Hook
 import net.weavemc.api.ModInitializer
 import net.weavemc.internals.GameInfo
+import net.weavemc.loader.analytics.launchStart
 import net.weavemc.loader.bootstrap.transformer.URLClassLoaderAccessor
 import net.weavemc.loader.injection.InjectionHandler
 import net.weavemc.loader.injection.ModHook
 import net.weavemc.loader.mapping.MappingsHandler
-import net.weavemc.loader.util.*
+import net.weavemc.loader.mixin.SandboxedMixinLoader
+import net.weavemc.loader.mixin.SandboxedMixinState
+import net.weavemc.loader.mixin.SandboxedMixinTransformer
 import net.weavemc.loader.util.FileManager
 import net.weavemc.loader.util.JSON
+import net.weavemc.loader.util.ModConfig
+import net.weavemc.loader.util.WeaveMod
 import java.io.File
 import java.lang.instrument.Instrumentation
 import java.util.jar.JarFile
@@ -29,13 +33,40 @@ open class WeaveLoader(
      * @see ModConfig
      */
     private val mods: MutableList<WeaveMod> = mutableListOf()
+    private val mixinState = SandboxedMixinState(SandboxedMixinLoader(), fixupConflicts = true)
 
     init {
         println("[Weave] Initializing Weave")
         launchStart = System.currentTimeMillis()
         instrumentation.addTransformer(InjectionHandler)
+        instrumentation.addTransformer(SandboxedMixinTransformer(mixinState))
 
         loadAndInitMods()
+    }
+
+    private fun verifyDependencies() {
+        // TODO: jank
+        val duplicates = mods.groupingBy { it.modId }.eachCount().filterValues { it > 1 }.keys
+        require(duplicates.isEmpty()) { "Duplicate mods ${duplicates.joinToString()} were found" }
+
+        val dependencyGraph = mods.associate { it.modId to it.config.dependencies }
+        val seen = hashSetOf<String>()
+        dependencyGraph.keys.forEach { toDetermine ->
+            // soFar = List to keep order
+            // Supposedly the list will be small enough such that a linear search is efficient enough
+            fun verify(curr: String, soFar: List<String>) {
+                if (curr in soFar) error(
+                    "Circular dependency: $toDetermine's dependency graph eventually " +
+                            "meets $curr again through ${(soFar + curr).joinToString(" -> ")}"
+                )
+
+                if (!seen.add(curr)) return
+                val deps = dependencyGraph[curr] ?: error("Dependency $curr for mod $toDetermine is not available")
+                deps.forEach { verify(it, soFar + curr) }
+            }
+
+            verify(toDetermine, emptyList())
+        }
     }
 
     /**
@@ -48,12 +79,12 @@ open class WeaveLoader(
         classLoader.addWeaveURL(FileManager.getCommonApi().toURI().toURL())
 
         val (mappedMods, mappedApi) = retrieveModsAndApi()
-
         mappedApi?.registerAsAPI()
 
-        mappedMods.forEach { mod ->
-            mod.registerAsMod()
-        }
+        mixinState.initialize()
+        mappedMods.forEach { it.registerAsMod() }
+
+        verifyDependencies()
 
         // Invoke preInit() once everything is done.
         mods.forEach { weaveMod ->
@@ -74,17 +105,17 @@ open class WeaveLoader(
         classLoader.addWeaveURL(this.toURI().toURL())
 
         JarFile(this).use { jar ->
-            jar.entries()
-                .toList()
+            jar.entries().asSequence()
                 .filter { it.name.startsWith("net/weavemc/api/hooks/") && !it.isDirectory }
                 .forEach {
                     runCatching {
                         val hookClass = Class.forName(it.name.removeSuffix(".class").replace('/', '.'))
                         if (hookClass.superclass == Hook::class.java) {
-                            val namespace = if (GameInfo.gameVersion.protocol >= GameInfo.MinecraftVersion.V1_16_5.protocol)
-                                "mojmap"
-                            else
-                                "mcp"
+                            val namespace =
+                                if (GameInfo.gameVersion.protocol >= GameInfo.MinecraftVersion.V1_16_5.protocol)
+                                    "mojmap"
+                                else
+                                    "mcp"
 
                             InjectionHandler.registerModifier(
                                 ModHook(namespace, hookClass.getConstructor().newInstance() as Hook)
@@ -111,7 +142,8 @@ open class WeaveLoader(
             config.hooks.forEach { hook ->
                 InjectionHandler.registerModifier(ModHook(config.namespace, instantiate(hook)))
             }
-            // TODO register the mixins
+
+            config.mixinConfigs.forEach { mixinState.registerMixin(it) }
 
             mods += WeaveMod(modId, config)
             println("[Weave] Registered ${this.name}")
@@ -151,11 +183,6 @@ private fun JarFile.fetchModConfig(json: Json): ModConfig {
     return json.decodeFromString<ModConfig>(this.getInputStream(configEntry).readBytes().decodeToString())
 }
 
-private fun JarFile.fetchMixinConfig(path: String, json: Json): MixinConfig {
-    val configEntry = getEntry(path) ?: error("$name does not contain a $path (the mixin config)!")
-    return json.decodeFromString<MixinConfig>(getInputStream(configEntry).readBytes().decodeToString())
-}
-
 private fun File.createRemappedTemp(name: String, config: ModConfig): File {
     val temp = File.createTempFile(name, "-weavemod.jar")
     MappingsHandler.remapModJar(
@@ -165,6 +192,7 @@ private fun File.createRemappedTemp(name: String, config: ModConfig): File {
         classpath = listOf(FileManager.getVanillaMinecraftJar()),
         from = config.namespace
     )
+
     temp.deleteOnExit()
     return temp
 }

@@ -3,12 +3,12 @@ package net.weavemc.loader.mapping
 import com.grappenmaker.mappings.*
 import net.weavemc.internals.GameInfo.MinecraftClient
 import net.weavemc.internals.GameInfo.MinecraftVersion
-import net.weavemc.loader.WeaveLoader
 import net.weavemc.internals.GameInfo.gameClient
 import net.weavemc.internals.GameInfo.gameVersion
 import net.weavemc.internals.MappingsRetrieval
-import net.weavemc.loader.util.FileManager
+import net.weavemc.loader.WeaveLoader
 import net.weavemc.loader.injection.InjectionClassWriter
+import net.weavemc.loader.util.FileManager
 import org.objectweb.asm.*
 import org.objectweb.asm.commons.ClassRemapper
 import org.objectweb.asm.commons.Remapper
@@ -47,31 +47,8 @@ object MappingsHandler {
         return { name -> callback(names[name] ?: name)?.remap(mapper) }
     }
 
-    internal fun jarBytesProvider(jarsToUse: List<JarFile>, expectedNamespace: String): (String) -> ByteArray? {
-        val names = if (expectedNamespace != "official") mergedMappings.mappings.asASMMapping(
-            from = expectedNamespace,
-            to = "official",
-            includeMethods = false,
-            includeFields = false
-        ) else emptyMap()
-        // flip the namespace to remap the vanilla class to the mod's namespace
-        val mapper = SimpleRemapper(names.entries.associate { (k, v) -> v to k })
-
-        val cache = hashMapOf<String, ByteArray?>()
-        val lookup = jarsToUse.flatMap { j ->
-            j.entries().asSequence().filter { it.name.endsWith(".class") }
-                .map { it.name.dropLast(6) to { j.getInputStream(it).readBytes() } }
-        }.toMap()
-
-        return { name ->
-            val mappedName = names[name] ?: name
-            if (mappedName in lookup) cache.getOrPut(mappedName) { lookup.getValue(mappedName)().remap(mapper) }
-            else null
-        }
-    }
-
     fun mapper(from: String, to: String, loader: (name: String) -> ByteArray? = classLoaderBytesProvider(from)) =
-            MappingsRemapper(mergedMappings.mappings, from, to, loader = loader)
+        MappingsRemapper(mergedMappings.mappings, from, to, loader = loader)
 
     internal val environmentRemapper = mapper("official", environmentNamespace)
     internal val environmentUnmapper = environmentRemapper.reverse()
@@ -105,12 +82,24 @@ object MappingsHandler {
         return classNode
     }
 
+    class SimpleAnnotationNode(
+        parent: AnnotationVisitor?,
+        val descriptor: String?
+    ) : AnnotationVisitor(Opcodes.ASM9, parent) {
+        private val values: MutableList<Pair<String?, Any?>> = mutableListOf()
+
+        override fun visit(name: String?, value: Any?) {
+            values += name to value
+            super.visit(name, value)
+        }
+    }
+
     // Remapper meant to be used with loaded Minecraft classes.
     // It will ignore MixinMerged methods (an issue with LabyMod)
     private class MinecraftRemapper(
         parent: ClassVisitor,
         remapper: Remapper
-    ): ClassRemapper(Opcodes.ASM9, parent, remapper) {
+    ) : ClassRemapper(Opcodes.ASM9, parent, remapper) {
         private val annotationNodes: MutableList<SimpleAnnotationNode> = mutableListOf()
 
         override fun createAnnotationRemapper(
@@ -126,11 +115,12 @@ object MappingsHandler {
             return MinecraftMethodRemapper(annotationNodes.map { it.descriptor ?: "" }, parent, remapper)
         }
     }
+
     private class MinecraftMethodRemapper(
         private val annotations: List<String>,
         private val parent: MethodVisitor,
         remapper: Remapper
-    ): LambdaAwareMethodRemapper(parent, remapper) {
+    ) : LambdaAwareMethodRemapper(parent, remapper) {
         override fun visitInvokeDynamicInsn(name: String, descriptor: String, handle: Handle, vararg args: Any) {
             if (annotations.contains("org/spongepowered/asm/mixin/transformer/meta/MixinMerged"))
                 parent.visitInvokeDynamicInsn(name, descriptor, handle, args)
@@ -149,16 +139,11 @@ object MappingsHandler {
     ) {
         val jarsToUse = (classpath + input).map { JarFile(it) }
 
-        println(environmentNamespace)
-
-        com.grappenmaker.mappings.remapModJar(
-            mappings,
-            input,
-            output,
-            from,
-            to,
-            jarBytesProvider(jarsToUse, from)
-        )
+        remapJar(mappings, input, output, from, to, ClasspathLoaders.fromJars(jarsToUse).remappingNames(
+            mappings = mergedMappings.mappings,
+            from = "official",
+            to = from,
+        ))
 
         jarsToUse.forEach { it.close() }
     }

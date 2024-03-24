@@ -24,20 +24,15 @@ data class WeaveMod(
  * @property hooks The loaded hooks of the mod.
  * @property entryPoints The loaded [ModInitializer] entry points of the mod.
  * @property namespace The mappings namespace this mod was created with.
+ * @property dependencies The dependencies this mod requires, at a list of [modId]s.
  */
 @Serializable
 data class ModConfig(
     val name: String,
     val modId: String,
-    val entryPoints: List<String> = listOf(),
-    val mixinConfigs: List<String> = listOf(),
-    val hooks: List<String> = listOf(),
-    val namespace: String
-)
-
-@Serializable
-data class MixinConfig(
-    @SerialName("package")
-    val packagePath: String,
-    val mixins: List<String>
+    val entryPoints: List<String> = emptyList(),
+    val mixinConfigs: List<String> = emptyList(),
+    val hooks: List<String> = emptyList(),
+    val namespace: String,
+    val dependencies: List<String> = emptyList()
 )
