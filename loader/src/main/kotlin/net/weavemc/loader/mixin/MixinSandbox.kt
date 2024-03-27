@@ -195,7 +195,6 @@ public class SandboxedMixinState(
         gotoDefault()
 
         require(this::transformer.isInitialized) { "Why did I not get a transformer?" }
-
         initialized = true
     }
 
@@ -365,6 +364,7 @@ private data object MixinAccessImpl : MixinAccess {
     override fun addMixin(name: String) = Mixins.addConfiguration(name)
     override fun transform(transformer: Any, internalName: String, bytes: ByteArray): ByteArray =
         (transformer as IMixinTransformer).transformClass(MixinEnvironment.getDefaultEnvironment(), internalName, bytes)
+
 }
 
 private fun <R> counter() = object : ReadOnlyProperty<R, Int> {

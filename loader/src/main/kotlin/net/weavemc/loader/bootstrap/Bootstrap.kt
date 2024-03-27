@@ -23,13 +23,16 @@ class Bootstrap(val inst: Instrumentation) {
         System.getProperties()["weave.main.args"] = args.toList().chunked(2)
             .associate { (a, b) -> a.removePrefix("--") to b }
 
-        println("[Weave] Bootstrapping...\n" +
-                "    -Caller: $caller\n" +
-                "    -Version: ${gameVersion.versionName}\n" +
-                "    -Client: ${gameClient.clientName}")
+        println(
+"""
+[Weave] Bootstrapping...
+    -Caller: $caller
+    -Version: ${gameVersion.versionName}
+    -Client: ${gameClient.clientName}
+""".trim()
+        )
 
-        val urlClassLoaderAccessor = if (loader is URLClassLoaderAccessor)
-            loader
+        val urlClassLoaderAccessor = if (loader is URLClassLoaderAccessor) loader
         else {
             println("[Weave] Failed to transform URLClassLoader to implement URLClassLoaderAccessor. Defaulting to SCL Search")
             object : URLClassLoaderAccessor {

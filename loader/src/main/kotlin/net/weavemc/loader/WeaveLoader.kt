@@ -4,6 +4,7 @@ import kotlinx.serialization.json.Json
 import net.weavemc.api.Hook
 import net.weavemc.api.ModInitializer
 import net.weavemc.internals.GameInfo
+import net.weavemc.internals.MinecraftVersion
 import net.weavemc.loader.analytics.launchStart
 import net.weavemc.loader.bootstrap.transformer.URLClassLoaderAccessor
 import net.weavemc.loader.injection.InjectionHandler
@@ -39,7 +40,7 @@ open class WeaveLoader(
      * @see ModConfig
      */
     private val mods: MutableList<WeaveMod> = mutableListOf()
-    private val mixinLoader = SandboxedMixinLoader()
+    private val mixinLoader = SandboxedMixinLoader(classLoader as ClassLoader)
     private val mixinState = mixinLoader.state
 
     init {
@@ -86,14 +87,6 @@ open class WeaveLoader(
         }
     }
 
-    @Mixin(SomeTest::class)
-    class MixinTest {
-        @Inject(at = [At("HEAD")], method = ["test"])
-        fun test(ci: CallbackInfo) {
-            println("Hello mixin poc!")
-        }
-    }
-
     /**
      * This is where Weave loads mods, api(s), and [ModInitializer.preInit] is called.
      *
@@ -110,7 +103,6 @@ open class WeaveLoader(
         mappedMods.forEach { it.registerAsMod() }
         verifyDependencies()
 
-        mixinState.registerSpoofedMixin("net/weavemc/loader/WeaveLoader\$MixinTest")
         instrumentation.addTransformer(SandboxedMixinTransformer(mixinState))
 
         // Invoke preInit() once everything is done.
@@ -139,7 +131,7 @@ open class WeaveLoader(
                         val hookClass = Class.forName(it.name.removeSuffix(".class").replace('/', '.'))
                         if (hookClass.superclass == Hook::class.java) {
                             val namespace =
-                                if (GameInfo.gameVersion.protocol >= GameInfo.MinecraftVersion.V1_16_5.protocol)
+                                if (GameInfo.gameVersion.protocol >= MinecraftVersion.V1_16_5.protocol)
                                     "mojmap"
                                 else
                                     "mcp"

@@ -1,11 +1,12 @@
 package net.weavemc.loader.mapping
 
 import com.grappenmaker.mappings.*
-import net.weavemc.internals.GameInfo.MinecraftClient
-import net.weavemc.internals.GameInfo.MinecraftVersion
 import net.weavemc.internals.GameInfo.gameClient
 import net.weavemc.internals.GameInfo.gameVersion
 import net.weavemc.internals.MappingsRetrieval
+import net.weavemc.internals.MappingsType.*
+import net.weavemc.internals.MinecraftClient
+import net.weavemc.internals.MinecraftVersion
 import net.weavemc.loader.WeaveLoader
 import net.weavemc.loader.injection.InjectionClassWriter
 import net.weavemc.loader.util.FileManager
@@ -27,8 +28,8 @@ object MappingsHandler {
     val environmentNamespace by lazy {
         when (gameClient) {
             // TODO: correct version
-            MinecraftClient.LUNAR -> if (gameVersion < MinecraftVersion.V1_16_5) "mcp-named" else "mojmap-named"
-            MinecraftClient.FORGE -> "mcp-srg"
+            MinecraftClient.LUNAR -> if (gameVersion < MinecraftVersion.V1_16_5) MCP.named else MOJANG.named
+            MinecraftClient.FORGE -> MCP.srg
             MinecraftClient.VANILLA, MinecraftClient.LABYMOD, MinecraftClient.BADLION -> "official"
         }
     }
