@@ -1,4 +1,4 @@
-package net.weavemc.loader.analytics
+package net.weavemc.loader
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

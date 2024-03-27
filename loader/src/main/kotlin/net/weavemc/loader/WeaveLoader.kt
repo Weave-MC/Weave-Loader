@@ -1,25 +1,18 @@
 package net.weavemc.loader
 
+import com.grappenmaker.mappings.ClasspathLoaders
+import com.grappenmaker.mappings.remappingNames
 import kotlinx.serialization.json.Json
 import net.weavemc.api.Hook
 import net.weavemc.api.ModInitializer
-import net.weavemc.internals.GameInfo
-import net.weavemc.loader.analytics.launchStart
+import net.weavemc.internals.GameInfo.gameVersion
+import net.weavemc.internals.MinecraftVersion
+import net.weavemc.internals.ModConfig
 import net.weavemc.loader.bootstrap.transformer.URLClassLoaderAccessor
-import net.weavemc.loader.injection.InjectionHandler
-import net.weavemc.loader.injection.ModHook
-import net.weavemc.loader.mapping.MappingsHandler
 import net.weavemc.loader.mixin.SandboxedMixinLoader
-import net.weavemc.loader.mixin.SandboxedMixinState
-import net.weavemc.loader.mixin.SandboxedMixinTransformer
 import net.weavemc.loader.util.FileManager
 import net.weavemc.loader.util.JSON
-import net.weavemc.loader.util.ModConfig
-import net.weavemc.loader.util.WeaveMod
-import org.spongepowered.asm.mixin.Mixin
-import org.spongepowered.asm.mixin.injection.At
-import org.spongepowered.asm.mixin.injection.Inject
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo
+import org.objectweb.asm.tree.ClassNode
 import java.io.File
 import java.lang.instrument.Instrumentation
 import java.util.jar.JarFile
@@ -30,8 +23,8 @@ import kotlin.system.exitProcess
  * The main class of the Weave Loader.
  */
 open class WeaveLoader(
-    val classLoader: URLClassLoaderAccessor,
-    val instrumentation: Instrumentation
+    private val classLoader: URLClassLoaderAccessor,
+    private val instrumentation: Instrumentation
 ) {
     /**
      * Stored list of [WeaveMod]s.
@@ -39,8 +32,16 @@ open class WeaveLoader(
      * @see ModConfig
      */
     private val mods: MutableList<WeaveMod> = mutableListOf()
-    private val mixinLoader = SandboxedMixinLoader()
-    private val mixinState = mixinLoader.state
+    private val mixinInstances = mutableMapOf<String, SandboxedMixinLoader>()
+
+    private fun mixinForNamespace(namespace: String) = mixinInstances.getOrPut(namespace) {
+        val parent = classLoader.backing
+        SandboxedMixinLoader(
+            parent = parent,
+            loader = ClasspathLoaders.fromLoader(parent)
+                .remappingNames(MappingsHandler.mergedMappings.mappings, "official", namespace),
+        ).apply { state.initialize() }
+    }
 
     init {
         println("[Weave] Initializing Weave")
@@ -62,9 +63,8 @@ open class WeaveLoader(
     }
 
     private fun verifyDependencies() {
-        // TODO: jank
         val duplicates = mods.groupingBy { it.modId }.eachCount().filterValues { it > 1 }.keys
-        if(duplicates.isNotEmpty()) fatalError("Duplicate mods ${duplicates.joinToString()} were found")
+        if (duplicates.isNotEmpty()) fatalError("Duplicate mods ${duplicates.joinToString()} were found")
 
         val dependencyGraph = mods.associate { it.modId to it.config.dependencies }
         val seen = hashSetOf<String>()
@@ -86,32 +86,10 @@ open class WeaveLoader(
         }
     }
 
-    @Mixin(SomeTest::class)
-    class MixinTest {
-        @Inject(at = [At("HEAD")], method = ["test"])
-        fun test(ci: CallbackInfo) {
-            println("Hello mixin poc!")
-        }
-    }
-
-    /**
-     * This is where Weave loads mods, api(s), and [ModInitializer.preInit] is called.
-     *
-     * @see net.weavemc.loader.bootstrap.premain
-     */
     private fun loadAndInitMods() {
-        // Add common api
-        classLoader.addWeaveURL(FileManager.getCommonApi().toURI().toURL())
-
-        val (mappedMods, mappedApi) = retrieveModsAndApi()
-        mappedApi?.registerAsAPI()
-
-        mixinState.initialize()
-        mappedMods.forEach { it.registerAsMod() }
+        retrieveMods().forEach { it.registerAsMod() }
         verifyDependencies()
-
-        mixinState.registerSpoofedMixin("net/weavemc/loader/WeaveLoader\$MixinTest")
-        instrumentation.addTransformer(SandboxedMixinTransformer(mixinState))
+        populateMixinModifiers()
 
         // Invoke preInit() once everything is done.
         mods.forEach { weaveMod ->
@@ -121,35 +99,28 @@ open class WeaveLoader(
         }
 
         println("[Weave] Initialized Weave")
+        updateLaunchTimes()
     }
 
+    private fun populateMixinModifiers() {
+        val modsById = mods.associateBy { it.modId }
 
-    /**
-     * Adds hooks for Weave events, corresponding to the Minecraft version
-     */
-    private fun File.registerAsAPI() {
-        println("[Weave] Loading API hooks")
-        classLoader.addWeaveURL(this.toURI().toURL())
+        MappingsHandler.mergedMappings.mappings.namespaces.forEach { ns ->
+            val state = mixinForNamespace(ns).state
 
-        JarFile(this).use { jar ->
-            jar.entries().asSequence()
-                .filter { it.name.startsWith("net/weavemc/api/hooks/") && !it.isDirectory }
-                .forEach {
-                    runCatching {
-                        val hookClass = Class.forName(it.name.removeSuffix(".class").replace('/', '.'))
-                        if (hookClass.superclass == Hook::class.java) {
-                            val namespace =
-                                if (GameInfo.gameVersion.protocol >= GameInfo.MinecraftVersion.V1_16_5.protocol)
-                                    "mojmap"
-                                else
-                                    "mcp"
+            for ((k, v) in state.findTargetsPerMod(state.transformer)) {
+                if (v.isEmpty()) continue
+                val mapper = MappingsHandler.mapper(ns, MappingsHandler.environmentNamespace)
 
-                            InjectionHandler.registerModifier(
-                                ModHook(namespace, hookClass.getConstructor().newInstance() as Hook)
-                            )
-                        }
+                InjectionHandler.registerModifier(object : Modifier {
+                    override val namespace = modsById.getValue(k).config.namespace
+                    override val targets = v.mapTo(hashSetOf()) { mapper.map(it.replace('.', '/')) }
+                    override fun apply(node: ClassNode, cfg: Hook.AssemblerConfig): ClassNode {
+                        cfg.computeFrames()
+                        return state.transform(node.name, node)
                     }
-                }
+                })
+            }
         }
     }
 
@@ -161,40 +132,58 @@ open class WeaveLoader(
         classLoader.addWeaveURL(this.toURI().toURL())
 
         JarFile(this).use { jar ->
-            val config = jar.fetchModConfig(JSON)
+            val config = jar.configOrFatal()
             val modId = config.modId
+
             // Added a backup classloader search for precautionary measures
             instrumentation.appendToSystemClassLoaderSearch(jar)
 
             config.hooks.forEach { hook ->
+                println("Registering hook $hook")
                 InjectionHandler.registerModifier(ModHook(config.namespace, instantiate(hook)))
             }
 
-            config.mixinConfigs.forEach { mixinState.registerMixin(it) }
+            val state = mixinForNamespace(config.namespace).state
+            config.mixinConfigs.forEach { state.registerMixin(modId, it) }
 
             mods += WeaveMod(modId, config)
             println("[Weave] Registered ${this.name}")
         }
     }
 
-    private fun File.parseAndMap(): File {
-        val fileName = this.name.substringBeforeLast('.')
+    private fun FileManager.ModJar.parseAndMap(): File {
+        val fileName = file.name.substringBeforeLast('.')
 
-        JarFile(this).use {
-            val config = it.fetchModConfig(JSON)
-            return createRemappedTemp(fileName, config)
+        return JarFile(file).use {
+            val config = it.configOrFatal()
+            val compiledFor = config.compiledFor
+
+            if (compiledFor != null && gameVersion != MinecraftVersion.fromVersionName(compiledFor)) {
+                val extra = if (!isSpecific) {
+                    " Hint: this mod was placed in the general mods folder. Consider putting mods in a version-specific mods folder"
+                } else ""
+
+                fatalError(
+                    "Mod ${config.modId} was compiled for version $compiledFor, current version is $gameVersion.$extra"
+                )
+            }
+
+            if (!MappingsHandler.isNamespaceAvailable(config.namespace)) {
+                fatalError("Mod ${config.modId} was mapped in namespace ${config.namespace}, which is not available!")
+            }
+
+            file.createRemappedTemp(fileName, config)
         }
     }
 
-    private fun retrieveModsAndApi(): Pair<List<File>, File?> {
-        val versionApi = FileManager.getVersionApi()
-        val mods = FileManager.getMods().map { it.file }
+    private fun JarFile.configOrFatal() = runCatching { fetchModConfig(JSON) }.onFailure {
+        println("Possibly non-weave mod failed to load:")
+        it.printStackTrace()
 
-        val mappedVersionApi = versionApi?.parseAndMap()
-        val mappedMods = mods.map { it.parseAndMap() }
+        fatalError("Mod file $this is possibly not a Weave mod!")
+    }.getOrThrow()
 
-        return mappedMods to mappedVersionApi
-    }
+    private fun retrieveMods() = FileManager.getMods().map { it.parseAndMap() }
 
     private inline fun <reified T> instantiate(className: String): T =
         Class.forName(className)
@@ -204,10 +193,7 @@ open class WeaveLoader(
 }
 
 private fun JarFile.fetchModConfig(json: Json): ModConfig {
-    val configEntry = this.getEntry("weave.mod.json")
-        ?: error("${this.name} does not contain a weave.mod.json!")
-
-    // TODO: rethrow errors
+    val configEntry = getEntry("weave.mod.json") ?: error("${this.name} does not contain a weave.mod.json!")
     return json.decodeFromString<ModConfig>(getInputStream(configEntry).readBytes().decodeToString())
 }
 
@@ -218,9 +204,11 @@ private fun File.createRemappedTemp(name: String, config: ModConfig): File {
         input = this,
         output = temp,
         classpath = listOf(FileManager.getVanillaMinecraftJar()),
-        from = config.namespace
+        to = config.namespace
     )
 
     temp.deleteOnExit()
     return temp
 }
+
+private data class WeaveMod(val modId: String, val config: ModConfig)

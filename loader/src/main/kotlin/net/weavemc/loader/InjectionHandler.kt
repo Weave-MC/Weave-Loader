@@ -1,10 +1,11 @@
-package net.weavemc.loader.injection
+package net.weavemc.loader
 
+import com.grappenmaker.mappings.LambdaAwareRemapper
 import net.weavemc.api.Hook
 import net.weavemc.internals.dump
 import net.weavemc.loader.bootstrap.transformer.SafeTransformer
-import net.weavemc.loader.mapping.MappingsHandler
-import net.weavemc.loader.mapping.MappingsHandler.remap
+import net.weavemc.loader.MappingsHandler.remap
+import net.weavemc.loader.util.*
 import net.weavemc.loader.util.FileManager
 import net.weavemc.loader.util.asClassNode
 import net.weavemc.loader.util.asClassReader
@@ -12,7 +13,11 @@ import net.weavemc.loader.util.pushToFirst
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
+import org.objectweb.asm.commons.SimpleRemapper
 import org.objectweb.asm.tree.ClassNode
+import kotlin.io.path.createDirectories
+import kotlin.random.Random
+import kotlin.random.nextUInt
 
 object InjectionHandler : SafeTransformer {
     /**
@@ -21,7 +26,7 @@ object InjectionHandler : SafeTransformer {
      *
      * Defaults to `false`.
      */
-    val dumpBytecode = System.getProperty("dumpBytecode")?.toBoolean() ?: true
+    val dumpBytecode = System.getProperty("dumpBytecode")?.toBoolean() ?: false
 
     private val modifiers = mutableListOf<Modifier>()
 
@@ -42,7 +47,21 @@ object InjectionHandler : SafeTransformer {
 
         with(MappingsHandler) {
             val classReader = originalClass.asClassReader()
-            val classNode = classReader.asClassNode()
+            val originalNode = classReader.asClassNode()
+
+            // Hack: temporarily preserve already @MixinMerged methods, such that collisions will never occur
+            val potentialConflicts = originalNode.methods.filter { it.hasMixinAnnotation("MixinMerged") }
+            val conflictsMapping = hashMapOf<String, String>()
+            val inverseConflictsMapping = hashMapOf<String, String>()
+
+            for (m in potentialConflicts) {
+                val tempName = "potentialConflict${Random.nextUInt()}"
+                conflictsMapping["${originalNode.name}.${m.name}${m.desc}"] = tempName
+                inverseConflictsMapping["${originalNode.name}.${tempName}${m.desc}"] = m.name
+            }
+
+            val classNode = ClassNode()
+            originalNode.accept(LambdaAwareRemapper(classNode, SimpleRemapper(conflictsMapping)))
 
             val hookConfig = AssemblerConfigImpl()
 
@@ -51,15 +70,20 @@ object InjectionHandler : SafeTransformer {
 
             val (finalNode, lastNamespace) = modifierNamespaces.fold(start) { (modifiedNode, lastNamespace), currentNamespace ->
                 val mappedNode = modifiedNode.remap(lastNamespace, currentNamespace)
-                groupedModifiers.getValue(currentNamespace).forEach { it.apply(mappedNode) }
-                mappedNode to currentNamespace
+                val nextNode = groupedModifiers.getValue(currentNamespace)
+                    .fold(mappedNode) { acc, curr -> curr.apply(acc, hookConfig) }
+
+                nextNode to currentNamespace
             }
 
             val classWriter = InjectionClassWriter(hookConfig.classWriterFlags, classReader)
-            finalNode.remap(lastNamespace, environmentNamespace).accept(classWriter)
+            finalNode.remap(lastNamespace, environmentNamespace)
+                .accept(LambdaAwareRemapper(classWriter, SimpleRemapper(inverseConflictsMapping)))
 
             if (dumpBytecode) {
-                val bytecodeOut = FileManager.DUMP_DIRECTORY.resolve("$className.class").toFile()
+                val bytecodeOut = FileManager.DUMP_DIRECTORY.resolve("$className.class")
+                    .also { it.parent.createDirectories() }.toFile()
+
                 runCatching {
                     classWriter.toByteArray().dump(bytecodeOut.absolutePath)
                 }.onFailure { println("Failed to dump bytecode for $bytecodeOut") }
@@ -72,18 +96,25 @@ object InjectionHandler : SafeTransformer {
 
 interface Modifier {
     val namespace: String
-    val targets: List<String>
-    fun apply(node: ClassNode)
+    val targets: Set<String>
+    fun apply(node: ClassNode, cfg: Hook.AssemblerConfig): ClassNode
 }
+
 /**
  * @param hook Hook class
  */
 data class ModHook(
     override val namespace: String,
     val hook: Hook,
-    override val targets: List<String> = hook.targets.map { MappingsHandler.environmentRemapper.map(it) }
+    // TODO: jank
+    override val targets: Set<String> = hook.targets.mapTo(hashSetOf()) {
+        MappingsHandler.mapper(namespace, MappingsHandler.environmentNamespace).map(it)
+    }
 ): Modifier {
-    override fun apply(node: ClassNode) = hook.transform(node, TODO())
+    override fun apply(node: ClassNode, cfg: Hook.AssemblerConfig): ClassNode {
+        hook.transform(node, cfg)
+        return node
+    }
 }
 
 class AssemblerConfigImpl : Hook.AssemblerConfig {
@@ -103,6 +134,7 @@ class InjectionClassWriter(
 ) : ClassWriter(reader, flags) {
     // Mods are always mapped to vanilla by Weave-Gradle
     val bytesProvider = MappingsHandler.classLoaderBytesProvider(MappingsHandler.environmentNamespace)
+
     private fun ClassNode.isInterface(): Boolean = (this.access and Opcodes.ACC_INTERFACE) != 0
     private fun ClassReader.isAssignableFrom(target: ClassReader): Boolean {
         val classes = ArrayDeque(listOf(target))

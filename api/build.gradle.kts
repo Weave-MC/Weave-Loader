@@ -1,16 +1,13 @@
 plugins {
-    id("net.weavemc.gradle")
-    `java-library`
-    `maven-publish`
-    id("relocate")
     id("kotlin")
+    `maven-publish`
+    relocate
 }
 
-minecraft.version("1.7.10")
-
 dependencies {
-    api(project(":api:common"))
     api(libs.bundles.asm)
+    api(libs.mappingsUtil)
+    compileOnly(libs.weaveInternals)
 }
 
 publishing {
@@ -24,12 +21,12 @@ publishing {
             }
         }
     }
+
     publications {
         create<MavenPublication>("maven") {
             from(components["java"])
             groupId = "net.weavemc.api"
-            artifactId = "1.7"
-            version = "1.0.0"
+            artifactId = "common"
         }
     }
 }

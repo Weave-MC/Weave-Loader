@@ -7,6 +7,8 @@ import net.weavemc.internals.internalNameOf
 import net.weavemc.internals.named
 import net.weavemc.loader.util.asClassNode
 import net.weavemc.loader.util.asClassReader
+import net.weavemc.loader.util.hasMixinAnnotation
+import net.weavemc.loader.util.illegalToReload
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes.ACC_INTERFACE
@@ -18,6 +20,7 @@ import org.spongepowered.asm.launch.MixinBootstrap
 import org.spongepowered.asm.mixin.MixinEnvironment
 import org.spongepowered.asm.mixin.MixinEnvironment.Phase
 import org.spongepowered.asm.mixin.Mixins
+import org.spongepowered.asm.mixin.extensibility.IMixinConfig
 import org.spongepowered.asm.mixin.transformer.IMixinTransformer
 import org.spongepowered.asm.service.MixinService
 import java.io.ByteArrayInputStream
@@ -32,6 +35,7 @@ import kotlin.properties.ReadOnlyProperty
 import kotlin.random.Random
 import kotlin.random.nextUInt
 import kotlin.reflect.KProperty
+
 
 /**
  * Implements a [ClassFileTransformer] that passes all loaded classes through the wrapped [mixin] state
@@ -58,25 +62,23 @@ public class SandboxedMixinTransformer(
 public class SandboxedMixinLoader(
     private val parent: ClassLoader = getSystemClassLoader(),
     private val loader: (name: String) -> ByteArray? = ClasspathLoaders.fromLoader(parent),
-    fixupConflicts: Boolean = true,
 ) : ClassLoader(parent) {
     private val injectedResources = mutableMapOf<String, ByteArray>()
     private val tempFiles = mutableMapOf<String, URL>()
     private val loaderExclusions = hashSetOf("net.weavemc.loader.mixin.MixinAccess")
 
-    private val systemClasses = setOf(
-        "java.", "javax.", "org.xml.", "org.w3c.", "sun.", "jdk.",
-        "com.sun.management.", "kotlin.", "kotlinx.", "org.objectweb.",
+    private val systemClasses = illegalToReload + setOf(
+        "kotlin.", "kotlinx.", "net.weavemc.relocate.asm.",
         "net.weavemc.loader.mixin.SandboxedMixinState"
     )
 
     /**
      * Responsible for managing the state of the sandboxed mixin environment
      */
-    public val state: SandboxedMixinState = SandboxedMixinState(this, fixupConflicts)
+    public val state: SandboxedMixinState = SandboxedMixinState(this)
 
     private fun transform(internalName: String, bytes: ByteArray): ByteArray? {
-        if (internalName != "org/spongepowered/asm/util/Constants") return null
+        if (internalName != "net/weavemc/relocate/spongepowered/asm/util/Constants") return null
 
         val reader = bytes.asClassReader()
         val node = reader.asClassNode()
@@ -88,7 +90,7 @@ public class SandboxedMixinLoader(
 
         target.instructions.insert(call, asm {
             pop
-            ldc("org.spongepowered.asm.mixin")
+            ldc("net.weavemc.relocate.spongepowered.asm.mixin")
         })
 
         target.instructions.remove(call)
@@ -147,9 +149,21 @@ public class SandboxedMixinLoader(
     internal fun getClassBytes(name: String) = loader(name) ?: getResourceAsStream("$name.class")?.readBytes()
 }
 
-private fun createMixinAccessor(loader: ClassLoader) = loader
-    .loadClass("net.weavemc.loader.mixin.MixinAccessImpl")
-    .getField("INSTANCE").also { it.isAccessible = true }[null] as MixinAccess
+private fun createMixinAccessor(loader: ClassLoader) = runCatching {
+    loader
+        .loadClass("net.weavemc.loader.mixin.MixinAccessImpl")
+        .getField("INSTANCE").also { it.isAccessible = true }[null] as MixinAccess
+}.onFailure {
+    println("Failed to create a mixin access instance:")
+    it.printStackTrace()
+
+    val dummy = object {}
+    println(
+        "Creating accessor within $loader, which is nested within ${loader.parent}, " +
+                "while this method is called within ${dummy.javaClass.classLoader}, " +
+                "and MixinAccess is accessed from within ${MixinAccess::class.java.classLoader}"
+    )
+}.getOrThrow()
 
 /**
  * Keeps track of the state of the mixin environment. Allows you to interact with the sandbox.
@@ -157,8 +171,7 @@ private fun createMixinAccessor(loader: ClassLoader) = loader
  * [initialize] must be invoked before calling any other method
  */
 public class SandboxedMixinState(
-    private val loader: SandboxedMixinLoader,
-    private val fixupConflicts: Boolean,
+    private val loader: SandboxedMixinLoader
 ) : MixinAccess by createMixinAccessor(loader) {
     // be careful to not load classes in the wrong context
     internal lateinit var transformer: Any
@@ -176,17 +189,17 @@ public class SandboxedMixinState(
         if (initialized) return
 
         injectService(
-            "org.spongepowered.asm.service.IMixinService",
+            "net.weavemc.relocate.spongepowered.asm.service.IMixinService",
             "net.weavemc.loader.mixin.SandboxedMixinService"
         )
 
         injectService(
-            "org.spongepowered.asm.service.IMixinServiceBootstrap",
+            "net.weavemc.relocate.spongepowered.asm.service.IMixinServiceBootstrap",
             "net.weavemc.loader.mixin.DummyServiceBootstrap"
         )
 
         injectService(
-            "org.spongepowered.asm.service.IGlobalPropertyService",
+            "net.weavemc.relocate.spongepowered.asm.service.IGlobalPropertyService",
             "net.weavemc.loader.mixin.DummyPropertyService"
         )
 
@@ -195,58 +208,20 @@ public class SandboxedMixinState(
         gotoDefault()
 
         require(this::transformer.isInitialized) { "Why did I not get a transformer?" }
-
         initialized = true
     }
 
     /**
      * Registers a mixin configuration, available on the classpath of the parent loader with a given [resourceName]
      */
-    public fun registerMixin(resourceName: String) {
-        if (loader.getResourceAsStream(resourceName)?.close() == null)
-            error("Mixin config $resourceName does not exist!")
+    public fun registerMixin(modId: String, resourceName: String) {
+        val resource = loader.getResourceAsStream(resourceName) ?: error("Mixin config $resourceName does not exist!")
 
-        addMixin(resourceName)
-    }
+        // This is quite jank: we relocate the resources such that we can later find out what mod it was from
+        val relocatedName = "weave-mod-mixin/$modId/${resourceName}"
+        loader.injectResource(relocatedName, resource.use { it.readBytes() })
 
-    private fun isInherited(node: ClassNode, method: MethodNode): Boolean {
-        val initial = listOfNotNull(node.superName) + node.interfaces
-        val queue = ArrayDeque<String>()
-        val seen = initial.toHashSet()
-        queue += initial
-
-        while (queue.isNotEmpty()) {
-            val curr = queue.removeLast()
-            val cn = loader.getClassBytes(curr)?.asClassReader()?.asClassNode() ?: continue
-            if (cn.methods.any { it.desc == method.desc && it.name == method.name }) return true
-
-            (listOfNotNull(cn.superName) + cn.interfaces).forEach { if (seen.add(it)) queue += it }
-        }
-
-        return false
-    }
-
-    private fun ByteArray.fixupConflicts(original: ByteArray): ByteArray {
-        if (this === original) return this
-
-        val reader = ClassReader(this)
-        val writer = LoaderClassWriter(loader, reader, 0)
-        val node = ClassNode().also { reader.accept(it, 0) }
-
-        val annotation = "Lorg/spongepowered/asm/mixin/transformer/meta/MixinMerged;"
-        val merged = node.methods
-            .filter { m -> m.visibleAnnotations?.any { it.desc == annotation } == true && !isInherited(node, m) }
-
-        if (merged.isEmpty()) return this
-
-        val mergedCounter by counter()
-        val id = Random.nextUInt()
-        val mapping = merged.associate {
-            "${reader.className}.${it.name}${it.desc}" to "$\$mixin${id}Handler$mergedCounter"
-        }
-
-        node.accept(LambdaAwareRemapper(writer, SimpleRemapper(mapping)))
-        return writer.toByteArray()
+        addMixin(relocatedName)
     }
 
     /**
@@ -254,7 +229,6 @@ public class SandboxedMixinState(
      */
     public fun transform(internalName: String, bytes: ByteArray): ByteArray =
         transform(transformer, internalName.replace('/', '.'), bytes)
-            .let { if (fixupConflicts) it.fixupConflicts(bytes) else it }
 
     /**
      * Transforms a class represented by given [bytes] with a certain [internalName] using the mixin environment.
@@ -264,75 +238,12 @@ public class SandboxedMixinState(
     public fun transformOrNull(internalName: String, bytes: ByteArray): ByteArray? =
         transform(internalName, bytes).takeIf { it !== bytes }
 
-    private val dynamicMixinCounter by counter()
-
     /**
-     * Registers a dynamically/programatically defined mixin configuration represented by [config]
+     * Transforms a class represented by given [node] with a certain [internalName] using the mixin environment
      */
-    public fun registerDynamicMixin(config: ByteArray) {
-        val name = "dynamic-mixin$dynamicMixinCounter.json"
-        loader.injectResource(name, config)
-        registerMixin(name)
-    }
-
-    /**
-     * Registers a dynamically/programatically defined mixin configuration represented by [config]
-     */
-    public fun registerDynamicMixin(config: String) {
-        registerDynamicMixin(config.encodeToByteArray())
-    }
-
-    private val spoofedMixinCounter by counter()
-
-    /**
-     * Allows you to register a mixin class given by a type [T]. Note that the class will be moved into a fake package,
-     * which means that reflective class references to [T] might not result in exactly the expected results.
-     *
-     * Contrary to default mixin limitations, the class given by [T] does not have to be located inside a package
-     * containing only mixin classes. [T] also can be a nested class.
-     */
-    public inline fun <reified T : Any> registerSpoofedMixin() {
-        registerSpoofedMixin(internalNameOf<T>())
-    }
-
-    /**
-     * Allows you to register mixin classes given by [internalNames].
-     * Note that the classes will be moved into a fake package,
-     * which means that reflective class references to the class might not result in exactly the expected results.
-     *
-     * Contrary to default mixin limitations, the given classes do not have to be located inside a package
-     * containing only mixin classes. It also can be a nested class.
-     */
-    public fun registerSpoofedMixin(vararg internalNames: String) {
-        val prefix = "net/weavemc/loader/mixin/spoofed$spoofedMixinCounter"
-        val resources = internalNames.map { internalName ->
-            val bytes = loader.getResourceAsStream("$internalName.class")?.readBytes()
-                ?: error("Could not find class for $internalName")
-
-            val reader = ClassReader(bytes)
-            val baseName = reader.className.substringAfterLast('/')
-            val fullName = "$prefix/$baseName"
-            val writer = LoaderClassWriter(loader, reader, ClassWriter.COMPUTE_FRAMES)
-
-            reader.accept(LambdaAwareRemapper(writer, SimpleRemapper(reader.className, fullName)), 0)
-            loader.injectResource("$fullName.class", writer.toByteArray())
-
-            baseName
-        }
-
-        registerDynamicMixin(
-            """
-            {
-                "required": true,
-                "package": "${prefix.replace('/', '.')}",
-                "minVersion": "0.8.5",
-                "mixins": [${resources.joinToString(", ") { "\"$it\"" }}],
-                "injectors": {
-                    "defaultRequire": 1
-                }
-            }
-            """.trimIndent()
-        )
+    public fun transform(internalName: String, node: ClassNode): ClassNode {
+        transform(transformer, internalName.replace('/', '.'), node)
+        return node
     }
 
     private fun injectService(name: String, value: String) =
@@ -345,10 +256,15 @@ internal sealed interface MixinAccess {
     fun gotoDefault()
     fun addMixin(name: String)
     fun transform(transformer: Any, internalName: String, bytes: ByteArray): ByteArray
+    fun transform(transformer: Any, internalName: String, node: ClassNode): Boolean
+    fun findTargetsPerMod(transformer: Any): Map<String, Set<String>>
 }
 
 @Suppress("unused")
 private data object MixinAccessImpl : MixinAccess {
+    private val env get() = MixinEnvironment.getDefaultEnvironment()
+    private var hasForcedSelect = false
+
     override fun bootstrap() = MixinBootstrap.init()
     override fun validate() {
         val service = MixinService.getService()
@@ -364,7 +280,37 @@ private data object MixinAccessImpl : MixinAccess {
 
     override fun addMixin(name: String) = Mixins.addConfiguration(name)
     override fun transform(transformer: Any, internalName: String, bytes: ByteArray): ByteArray =
-        (transformer as IMixinTransformer).transformClass(MixinEnvironment.getDefaultEnvironment(), internalName, bytes)
+        (transformer as IMixinTransformer).transformClass(env, internalName, bytes)
+
+    override fun transform(transformer: Any, internalName: String, node: ClassNode): Boolean =
+        (transformer as IMixinTransformer).transformClass(env, internalName, node)
+
+    private fun checkForcedSelect(transformer: Any) {
+        if (hasForcedSelect) return
+
+        val processor = retrieveProcessor(transformer)
+        processor.javaClass.getDeclaredMethod("checkSelect", MixinEnvironment::class.java)
+            .also { it.isAccessible = true }(processor, env)
+
+        hasForcedSelect = true
+    }
+
+    private fun retrieveProcessor(transformer: Any) =
+        transformer.javaClass.getDeclaredField("processor").also { it.isAccessible = true }[transformer]
+
+    override fun findTargetsPerMod(transformer: Any): Map<String, Set<String>> {
+        checkForcedSelect(transformer)
+
+        val processor = retrieveProcessor(transformer)
+        val configs = (processor.javaClass.getDeclaredField("configs")
+            .also { it.isAccessible = true }[processor] as List<*>)
+            .filterIsInstance<IMixinConfig>()
+
+        return configs
+            .filter { it.name.startsWith("weave-mod-mixin/") }
+            .groupBy { it.name.drop(16).substringBefore('/') }
+            .mapValues { it.value.flatMapTo(hashSetOf()) { c -> c.targets } }
+    }
 }
 
 private fun <R> counter() = object : ReadOnlyProperty<R, Int> {

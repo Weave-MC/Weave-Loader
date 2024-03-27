@@ -17,9 +17,11 @@ val relocate = tasks.register("relocate") {
         path.parentFile.mkdirs()
         path.delete()
 
+        val relocatePrefix = "net/weavemc/relocate"
         val mapping = mapOf(
-            "org/objectweb/asm/" to "net/weavemc/asm/",
-            "com/google/" to "net/weavemc/google/"
+            "org/objectweb/asm/" to "$relocatePrefix/asm/",
+            "com/google/" to "$relocatePrefix/google/",
+            "org/spongepowered/" to "$relocatePrefix/spongepowered/"
         )
 
         val remapPackages = setOf("net/weavemc/", "com/grappenmaker/mappings/")

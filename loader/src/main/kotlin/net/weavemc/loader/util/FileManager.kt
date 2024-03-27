@@ -1,18 +1,14 @@
 package net.weavemc.loader.util
 
-import net.weavemc.internals.GameInfo.MinecraftVersion
 import net.weavemc.internals.GameInfo.gameVersion
 import java.io.File
+import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.io.path.*
 
 internal object FileManager {
     val MODS_DIRECTORY = getOrCreateDirectory("mods")
-    val CACHE_DIRECTORY = getOrCreateDirectory("cache")
-    val API_DIRECTORY = getOrCreateDirectory("api")
     val DUMP_DIRECTORY = getOrCreateDirectory(".bytecode.out")
-
-    private val apiJarNameRegex = Regex("v\\d+\\.\\d+(\\.\\d+)?\\.jar")
 
     fun getVanillaMinecraftJar(): File {
         val os = System.getProperty("os.name").lowercase()
@@ -28,60 +24,25 @@ internal object FileManager {
             .resolve("${gameVersion.versionName}.jar").toFile()
     }
 
-    fun getCommonApi(): File =
-        API_DIRECTORY.resolve("common.jar").toFile()
-
-    fun getVersionApi(): File? =
-        API_DIRECTORY.listDirectoryEntries()
-            .filter { it.name.matches(apiJarNameRegex) }
-            .filter { it.isRegularFile() }
-            .find { gameVersion == (MinecraftVersion.fromVersionName(it.nameWithoutExtension.removePrefix("v"))
-                ?: error("Invalid API version: ${it.nameWithoutExtension}")) }
-            ?.toFile()
-
     /**
      * Gets all mods in the `~/.weave/mods` directory.
      */
     fun getMods(): List<ModJar> {
         val mods = mutableListOf<ModJar>()
 
-        MODS_DIRECTORY.listDirectoryEntries("*.jar")
-            .filter { it.isRegularFile() }
-            .forEach { mods += ModJar.fromFile(it.toFile()) }
+        mods += MODS_DIRECTORY.walkMods()
 
         val specificVersionDirectory = MODS_DIRECTORY.resolve(gameVersion.versionName)
         if (specificVersionDirectory.exists() && specificVersionDirectory.isDirectory()) {
-            specificVersionDirectory.listDirectoryEntries("*.jar")
-                .filter { it.isRegularFile() }
-                .forEach { mods += ModJar.fromFile(it.toFile()) }
+            mods += specificVersionDirectory.walkMods(true)
         }
 
         return mods
     }
 
-    /**
-     * Represents an original mod jar or a cache file.
-     *
-     * @property file Either the original mod jar OR the cache file.
-     * @property sha256 Either the sha256 of the mod jar OR the sha256 in the cache file name.
-     * @property version Either the current game version OR the version in the cache file name.
-     */
-    data class ModJar(
-        val file: File,
-        val sha256: String,
-        val version: MinecraftVersion? = gameVersion,
-    ) {
-        infix fun sha256Equals(other: ModJar): Boolean = sha256 == other.sha256
+    private fun Path.walkMods(isSpecific: Boolean = false) = listDirectoryEntries("*.jar")
+        .filter { it.isRegularFile() }
+        .map { ModJar(it.toFile(), isSpecific) }
 
-        companion object {
-            /**
-             * Creates a [ModJar] from the given [original mod jar][file].
-             */
-            fun fromFile(file: File): ModJar {
-                val sha256 = file.toSha256()
-                val version = runCatching { MinecraftVersion.fromVersionName(file.nameWithoutExtension) }.getOrNull()
-                return ModJar(file, sha256, version)
-            }
-        }
-    }
+    data class ModJar(val file: File, val isSpecific: Boolean)
 }

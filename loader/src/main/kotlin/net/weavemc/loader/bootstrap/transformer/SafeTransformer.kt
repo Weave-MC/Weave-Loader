@@ -14,6 +14,7 @@ internal interface SafeTransformer : ClassFileTransformer {
         protectionDomain: ProtectionDomain?,
         classfileBuffer: ByteArray
     ) = try {
+        protectionDomain?.codeSource?.codeSigners
         if (loader != null) transform(loader, className, classfileBuffer) else null
     } catch (e: Throwable) {
         e.printStackTrace()

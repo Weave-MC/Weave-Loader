@@ -1,13 +1,12 @@
-package net.weavemc.loader.mapping
+package net.weavemc.loader
 
 import com.grappenmaker.mappings.*
-import net.weavemc.internals.GameInfo.MinecraftClient
-import net.weavemc.internals.GameInfo.MinecraftVersion
 import net.weavemc.internals.GameInfo.gameClient
 import net.weavemc.internals.GameInfo.gameVersion
 import net.weavemc.internals.MappingsRetrieval
-import net.weavemc.loader.WeaveLoader
-import net.weavemc.loader.injection.InjectionClassWriter
+import net.weavemc.internals.MappingsType.*
+import net.weavemc.internals.MinecraftClient
+import net.weavemc.internals.MinecraftVersion
 import net.weavemc.loader.util.FileManager
 import org.objectweb.asm.*
 import org.objectweb.asm.commons.ClassRemapper
@@ -27,8 +26,8 @@ object MappingsHandler {
     val environmentNamespace by lazy {
         when (gameClient) {
             // TODO: correct version
-            MinecraftClient.LUNAR -> if (gameVersion < MinecraftVersion.V1_16_5) "mcp-named" else "mojmap-named"
-            MinecraftClient.FORGE -> "mcp-srg"
+            MinecraftClient.LUNAR -> if (gameVersion < MinecraftVersion.V1_16_5) MCP.named else MOJANG.named
+            MinecraftClient.FORGE -> MCP.srg
             MinecraftClient.VANILLA, MinecraftClient.LABYMOD, MinecraftClient.BADLION -> "official"
         }
     }
@@ -47,8 +46,11 @@ object MappingsHandler {
         return { name -> callback(names[name] ?: name)?.remap(mapper) }
     }
 
-    fun mapper(from: String, to: String, loader: (name: String) -> ByteArray? = classLoaderBytesProvider(from)) =
-        MappingsRemapper(mergedMappings.mappings, from, to, loader = loader)
+    private val cachedMappers = mutableMapOf<Pair<String, String>, MappingsRemapper>()
+
+    fun mapper(from: String, to: String) = cachedMappers.getOrPut(from to to) {
+        MappingsRemapper(mergedMappings.mappings, from, to, loader = classLoaderBytesProvider(from))
+    }
 
     internal val environmentRemapper = mapper("official", environmentNamespace)
     internal val environmentUnmapper = environmentRemapper.reverse()
@@ -111,9 +113,8 @@ object MappingsHandler {
             return node
         }
 
-        override fun createMethodRemapper(parent: MethodVisitor): MethodVisitor {
-            return MinecraftMethodRemapper(annotationNodes.map { it.descriptor ?: "" }, parent, remapper)
-        }
+        override fun createMethodRemapper(parent: MethodVisitor): MethodVisitor =
+            MinecraftMethodRemapper(annotationNodes.map { it.descriptor ?: "" }, parent, remapper)
     }
 
     private class MinecraftMethodRemapper(
@@ -122,7 +123,7 @@ object MappingsHandler {
         remapper: Remapper
     ) : LambdaAwareMethodRemapper(parent, remapper) {
         override fun visitInvokeDynamicInsn(name: String, descriptor: String, handle: Handle, vararg args: Any) {
-            if (annotations.contains("org/spongepowered/asm/mixin/transformer/meta/MixinMerged"))
+            if (annotations.contains("net/weavemc/relocate/spongepowered/asm/mixin/transformer/meta/MixinMerged"))
                 parent.visitInvokeDynamicInsn(name, descriptor, handle, args)
             else
                 super.visitInvokeDynamicInsn(name, descriptor, handle, *args)
@@ -143,8 +144,44 @@ object MappingsHandler {
             mappings = mergedMappings.mappings,
             from = "official",
             to = from,
-        ))
+        ), visitor = relocate()
+        )
 
         jarsToUse.forEach { it.close() }
     }
+
+    fun isNamespaceAvailable(ns: String) = ns in mergedMappings.mappings.namespaces
+}
+
+// Oh yeah we love duplicating code
+private fun relocate(): ((parent: ClassVisitor) -> ClassVisitor) {
+    /*
+    ------------------------------------------------------------------------
+    <THIS PORTION SHOULD BE UPDATED WHENEVER relocate.gradle.kts IS UPDATED>
+    ------------------------------------------------------------------------
+     */
+    val relocatePrefix = "net/weavemc/relocate"
+    val mapping = mapOf(
+        "org/objectweb/asm/" to "$relocatePrefix/asm/",
+        "com/google/" to "$relocatePrefix/google/",
+        "org/spongepowered/" to "$relocatePrefix/spongepowered/"
+    )
+
+    val mappingsExclusions = listOf("gson")
+    /*
+    -------------------------------------------------------------------------
+    </THIS PORTION SHOULD BE UPDATED WHENEVER relocate.gradle.kts IS UPDATED>
+    -------------------------------------------------------------------------
+     */
+
+    fun findMapping(name: String) = mapping.entries.find { (k) -> name.startsWith(k) }
+        ?.takeIf { mappingsExclusions.none { it in name } }
+
+    fun remap(name: String) = findMapping(name)?.let { (k, v) -> name.replaceFirst(k, v) } ?: name
+
+    val remapper = object : Remapper() {
+        override fun map(name: String) = remap(name)
+    }
+
+    return { parent -> ClassRemapper(parent, remapper) }
 }

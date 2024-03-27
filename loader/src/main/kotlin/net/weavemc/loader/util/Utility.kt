@@ -3,6 +3,7 @@ package net.weavemc.loader.util
 import kotlinx.serialization.json.Json
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.tree.ClassNode
+import org.objectweb.asm.tree.MethodNode
 import java.io.File
 import java.io.IOException
 import java.net.URL
@@ -116,3 +117,14 @@ object DownloadUtil {
         if (checksum(path) != checksum) download(url, path)
     }
 }
+
+fun MethodNode.hasMixinAnnotation(name: String): Boolean {
+    val annotation = "spongepowered/asm/mixin/transformer/meta/$name;"
+    return visibleAnnotations?.any { it.desc.endsWith(annotation) } == true
+}
+
+// TODO: give this a good place
+val illegalToReload = setOf(
+    "java.", "javax.", "org.xml.", "org.w3c.", "sun.", "jdk.",
+    "com.sun.management.", "org.apache.", "org.slf4j."
+)

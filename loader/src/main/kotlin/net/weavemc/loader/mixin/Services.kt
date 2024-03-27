@@ -34,7 +34,7 @@ internal class SandboxedMixinService : IMixinService {
     private val lock = ReEntranceLock(1)
     private val sandboxLoader get() = javaClass.classLoader as? SandboxedMixinLoader
 
-    override fun getName() = "Sandboxed Mixin"
+    override fun getName() = "Sandboxed Mixin (within ${sandboxLoader?.parent})"
     override fun isValid() = true
     override fun prepare() {}
     override fun getInitialPhase(): MixinEnvironment.Phase = MixinEnvironment.Phase.PREINIT
