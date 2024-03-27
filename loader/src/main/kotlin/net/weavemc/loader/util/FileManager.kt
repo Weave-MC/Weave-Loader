@@ -1,7 +1,6 @@
 package net.weavemc.loader.util
 
 import net.weavemc.internals.GameInfo.gameVersion
-import net.weavemc.internals.MinecraftVersion
 import java.io.File
 import java.nio.file.Path
 import java.nio.file.Paths
