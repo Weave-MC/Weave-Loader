@@ -1,21 +1,17 @@
 package net.weavemc.loader.mixin
 
 import com.grappenmaker.mappings.ClasspathLoaders
-import com.grappenmaker.mappings.LambdaAwareRemapper
 import net.weavemc.internals.asm
 import net.weavemc.internals.internalNameOf
 import net.weavemc.internals.named
 import net.weavemc.loader.util.asClassNode
 import net.weavemc.loader.util.asClassReader
-import net.weavemc.loader.util.hasMixinAnnotation
 import net.weavemc.loader.util.illegalToReload
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes.ACC_INTERFACE
-import org.objectweb.asm.commons.SimpleRemapper
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodInsnNode
-import org.objectweb.asm.tree.MethodNode
 import org.spongepowered.asm.launch.MixinBootstrap
 import org.spongepowered.asm.mixin.MixinEnvironment
 import org.spongepowered.asm.mixin.MixinEnvironment.Phase
@@ -30,12 +26,8 @@ import java.lang.instrument.ClassFileTransformer
 import java.net.URL
 import java.security.ProtectionDomain
 import java.util.*
-import kotlin.collections.ArrayDeque
 import kotlin.properties.ReadOnlyProperty
-import kotlin.random.Random
-import kotlin.random.nextUInt
 import kotlin.reflect.KProperty
-
 
 /**
  * Implements a [ClassFileTransformer] that passes all loaded classes through the wrapped [mixin] state
