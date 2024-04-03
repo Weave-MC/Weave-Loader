@@ -132,7 +132,6 @@ class InjectionClassWriter(
     flags: Int,
     reader: ClassReader? = null,
 ) : ClassWriter(reader, flags) {
-    // Mods are always mapped to vanilla by Weave-Gradle
     val bytesProvider = MappingsHandler.classLoaderBytesProvider(MappingsHandler.environmentNamespace)
 
     private fun ClassNode.isInterface(): Boolean = (this.access and Opcodes.ACC_INTERFACE) != 0

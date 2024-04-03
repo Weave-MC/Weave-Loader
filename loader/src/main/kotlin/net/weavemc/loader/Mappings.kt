@@ -25,7 +25,6 @@ object MappingsHandler {
 
     val environmentNamespace by lazy {
         when (gameClient) {
-            // TODO: correct version
             MinecraftClient.LUNAR -> if (gameVersion < MinecraftVersion.V1_16_5) MCP.named else MOJANG.named
             MinecraftClient.FORGE -> MCP.srg
             MinecraftClient.VANILLA, MinecraftClient.LABYMOD, MinecraftClient.BADLION -> "official"
