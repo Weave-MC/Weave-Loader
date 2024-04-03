@@ -8,7 +8,7 @@ import org.objectweb.asm.tree.LdcInsnNode
 // Finalizes mixin relocation
 object MixinRelocator : SafeTransformer {
     override fun transform(loader: ClassLoader?, className: String, originalClass: ByteArray): ByteArray? {
-        if (!className.startsWith("net/weavemc/relocate/spongepowered")) return null
+        if (!className.startsWith("net/weavemc/relocate/spongepowered") || loader == null) return null
 
         val reader = originalClass.asClassReader()
         val node = reader.asClassNode()
