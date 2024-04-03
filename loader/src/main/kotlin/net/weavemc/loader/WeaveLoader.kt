@@ -139,7 +139,7 @@ open class WeaveLoader(
             instrumentation.appendToSystemClassLoaderSearch(jar)
 
             config.hooks.forEach { hook ->
-                println("Registering hook $hook")
+                println("[Weave] Registering hook $hook")
                 InjectionHandler.registerModifier(ModHook(config.namespace, instantiate(hook)))
             }
 

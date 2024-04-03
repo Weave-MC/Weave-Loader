@@ -33,10 +33,10 @@ class Bootstrap(val inst: Instrumentation) {
         println(
             """
 [Weave] Bootstrapping...
-    -Caller: $caller
-    -Version: ${gameVersion.versionName}
-    -Client: ${gameClient.clientName}
-    -Loader: $loader
+    - Caller: $caller
+    - Version: ${gameVersion.versionName}
+    - Client: ${gameClient.clientName}
+    - Loader: $loader
             """.trim()
         )
 
