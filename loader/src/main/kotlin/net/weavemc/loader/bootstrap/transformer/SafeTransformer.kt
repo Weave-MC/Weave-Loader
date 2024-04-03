@@ -5,7 +5,12 @@ import java.security.ProtectionDomain
 import kotlin.system.exitProcess
 
 internal interface SafeTransformer : ClassFileTransformer {
-    fun transform(loader: ClassLoader, className: String, originalClass: ByteArray): ByteArray?
+    /**
+     * @param loader The ClassLoader responsible for loading the class, can be null if the loader is the Bootstrap Loader
+     * @param className The name of the class
+     * @param originalClass The class file bytes
+     */
+    fun transform(loader: ClassLoader?, className: String, originalClass: ByteArray): ByteArray?
 
     override fun transform(
         loader: ClassLoader?,
@@ -13,11 +18,10 @@ internal interface SafeTransformer : ClassFileTransformer {
         classBeingRedefined: Class<*>?,
         protectionDomain: ProtectionDomain?,
         classfileBuffer: ByteArray
-    ) = try {
-        protectionDomain?.codeSource?.codeSigners
-        if (loader != null) transform(loader, className, classfileBuffer) else null
-    } catch (e: Throwable) {
-        e.printStackTrace()
+    ) = runCatching {
+        transform(loader, className, classfileBuffer)
+    }.getOrElse {
+        it.printStackTrace()
         exitProcess(1)
     }
 }

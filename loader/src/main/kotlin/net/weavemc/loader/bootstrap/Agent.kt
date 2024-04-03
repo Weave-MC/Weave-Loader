@@ -1,24 +1,13 @@
 package net.weavemc.loader.bootstrap
 
-import net.weavemc.internals.asm
 import net.weavemc.loader.*
 import net.weavemc.loader.bootstrap.transformer.*
-import net.weavemc.loader.util.asClassNode
-import net.weavemc.loader.util.asClassReader
-import org.objectweb.asm.ClassReader
-import org.objectweb.asm.ClassWriter
-import org.objectweb.asm.Opcodes
-import org.objectweb.asm.Type
-import org.objectweb.asm.tree.ClassNode
-import org.objectweb.asm.tree.LabelNode
 import java.awt.GraphicsEnvironment
-import java.lang.instrument.ClassFileTransformer
 import java.lang.instrument.Instrumentation
-import java.security.ProtectionDomain
 
 /**
  * The JavaAgent's `premain()` method, this is where initialization of Weave Loader begins.
- * Weave Loader's initialization begins by calling [WeaveLoader.init]
+ * Weave Loader's initialization begins by instantiating [WeaveLoader]
  */
 @Suppress("UNUSED_PARAMETER")
 fun premain(opt: String?, inst: Instrumentation) {

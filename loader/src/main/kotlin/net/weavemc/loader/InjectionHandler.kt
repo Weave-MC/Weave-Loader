@@ -38,7 +38,7 @@ object InjectionHandler : SafeTransformer {
         if (from == to) this else this.remap(MappingsHandler.mapper(from, to))
 
     override fun transform(
-        loader: ClassLoader,
+        loader: ClassLoader?,
         className: String,
         originalClass: ByteArray
     ): ByteArray? {

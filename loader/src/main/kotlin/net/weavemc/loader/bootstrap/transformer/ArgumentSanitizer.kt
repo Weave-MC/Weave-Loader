@@ -8,7 +8,7 @@ import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
 
 object ArgumentSanitizer : SafeTransformer {
-    override fun transform(loader: ClassLoader, className: String, originalClass: ByteArray): ByteArray? {
+    override fun transform(loader: ClassLoader?, className: String, originalClass: ByteArray): ByteArray? {
         if (className != "sun/management/RuntimeImpl") return null
 
         val node = ClassNode().also { ClassReader(originalClass).accept(it, 0) }

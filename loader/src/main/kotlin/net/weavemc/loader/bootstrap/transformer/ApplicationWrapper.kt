@@ -16,7 +16,7 @@ import java.net.URLClassLoader
 // Makes sure to run the application within some notion of a "custom" ClassLoader,
 // such that signing integrity errors will not occur
 object ApplicationWrapper : SafeTransformer {
-    override fun transform(loader: ClassLoader, className: String, originalClass: ByteArray): ByteArray? {
+    override fun transform(loader: ClassLoader?, className: String, originalClass: ByteArray): ByteArray? {
         val usingLaunchwrapper = className == "net/minecraft/launchwrapper/Launch"
         val usingMinecraftMain = className == "net/minecraft/client/main/Main"
         if (!usingMinecraftMain && !usingLaunchwrapper) return null

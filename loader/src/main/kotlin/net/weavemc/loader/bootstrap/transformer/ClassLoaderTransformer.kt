@@ -1,18 +1,14 @@
 package net.weavemc.loader.bootstrap.transformer
 
-import net.weavemc.internals.InsnBuilder
 import net.weavemc.internals.asm
 import net.weavemc.internals.internalNameOf
 import net.weavemc.internals.visitAsm
 import net.weavemc.loader.mixin.LoaderClassWriter
 import org.objectweb.asm.*
 import org.objectweb.asm.tree.ClassNode
-import org.objectweb.asm.tree.InsnList
 import org.objectweb.asm.tree.LabelNode
-import java.io.InputStream
 import java.net.URL
 import java.net.URLClassLoader
-import kotlin.reflect.KClass
 
 interface URLClassLoaderAccessor {
     val backing: ClassLoader
@@ -20,7 +16,10 @@ interface URLClassLoaderAccessor {
 }
 
 object URLClassLoaderTransformer : SafeTransformer {
-    override fun transform(loader: ClassLoader, className: String, originalClass: ByteArray): ByteArray? {
+    override fun transform(loader: ClassLoader?, className: String, originalClass: ByteArray): ByteArray? {
+        if (loader == null)
+            return null
+
         val reader = ClassReader(originalClass)
         if (reader.superName != internalNameOf<URLClassLoader>()) return null
 
