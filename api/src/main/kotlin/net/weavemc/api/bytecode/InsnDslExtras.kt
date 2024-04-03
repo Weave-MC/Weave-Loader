@@ -5,7 +5,7 @@ import net.weavemc.api.event.EventBus
 import net.weavemc.internals.InsnBuilder
 import net.weavemc.internals.internalNameOf
 
-public fun InsnBuilder.callEvent() {
+fun InsnBuilder.postEvent() {
     invokestatic(
         internalNameOf<EventBus>(),
         "postEvent",
