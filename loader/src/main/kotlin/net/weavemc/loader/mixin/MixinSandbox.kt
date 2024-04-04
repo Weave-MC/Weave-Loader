@@ -249,7 +249,7 @@ internal sealed interface MixinAccess {
     fun addMixin(name: String)
     fun transform(transformer: Any, internalName: String, bytes: ByteArray): ByteArray
     fun transform(transformer: Any, internalName: String, node: ClassNode): Boolean
-    fun findTargetsPerMod(transformer: Any): Map<String, Set<String>>
+    fun findTargets(transformer: Any): Set<String>
 }
 
 @Suppress("unused")
@@ -290,7 +290,7 @@ private data object MixinAccessImpl : MixinAccess {
     private fun retrieveProcessor(transformer: Any) =
         transformer.javaClass.getDeclaredField("processor").also { it.isAccessible = true }[transformer]
 
-    override fun findTargetsPerMod(transformer: Any): Map<String, Set<String>> {
+    override fun findTargets(transformer: Any): Set<String> {
         checkForcedSelect(transformer)
 
         val processor = retrieveProcessor(transformer)
@@ -300,8 +300,7 @@ private data object MixinAccessImpl : MixinAccess {
 
         return configs
             .filter { it.name.startsWith("weave-mod-mixin/") }
-            .groupBy { it.name.drop(16).substringBefore('/') }
-            .mapValues { it.value.flatMapTo(hashSetOf()) { c -> c.targets } }
+            .flatMapTo(hashSetOf()) { it.targets }
     }
 }
 

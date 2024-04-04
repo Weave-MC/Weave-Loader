@@ -12,11 +12,14 @@ import net.weavemc.loader.bootstrap.transformer.URLClassLoaderAccessor
 import net.weavemc.loader.mixin.SandboxedMixinLoader
 import net.weavemc.loader.util.FileManager
 import net.weavemc.loader.util.JSON
+import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.tree.ClassNode
 import java.io.File
 import java.lang.instrument.Instrumentation
+import java.nio.file.Files
 import java.util.jar.JarFile
 import javax.swing.JOptionPane
+import kotlin.io.path.writeBytes
 import kotlin.system.exitProcess
 
 /**
@@ -103,24 +106,20 @@ open class WeaveLoader(
     }
 
     private fun populateMixinModifiers() {
-        val modsById = mods.associateBy { it.modId }
-
-        MappingsHandler.mergedMappings.mappings.namespaces.forEach { ns ->
+        for (ns in MappingsHandler.mergedMappings.mappings.namespaces) {
             val state = mixinForNamespace(ns).state
+            val targets = state.findTargets(state.transformer)
+            if (targets.isEmpty()) continue
 
-            for ((k, v) in state.findTargetsPerMod(state.transformer)) {
-                if (v.isEmpty()) continue
-                val mapper = MappingsHandler.mapper(ns, MappingsHandler.environmentNamespace)
-
-                InjectionHandler.registerModifier(object : Modifier {
-                    override val namespace = modsById.getValue(k).config.namespace
-                    override val targets = v.mapTo(hashSetOf()) { mapper.map(it.replace('.', '/')) }
-                    override fun apply(node: ClassNode, cfg: Hook.AssemblerConfig): ClassNode {
-                        cfg.computeFrames()
-                        return state.transform(node.name, node)
-                    }
-                })
-            }
+            val mapper = MappingsHandler.mapper(ns, MappingsHandler.environmentNamespace)
+            InjectionHandler.registerModifier(object : Modifier {
+                override val namespace = ns
+                override val targets = targets.mapTo(hashSetOf()) { mapper.map(it.replace('.', '/')) }
+                override fun apply(node: ClassNode, cfg: Hook.AssemblerConfig): ClassNode {
+                    cfg.computeFrames()
+                    return state.transform(node.name, node)
+                }
+            })
         }
     }
 
