@@ -203,7 +203,7 @@ private fun File.createRemappedTemp(name: String, config: ModConfig): File {
         input = this,
         output = temp,
         classpath = listOf(FileManager.getVanillaMinecraftJar()),
-        to = config.namespace
+        from = config.namespace
     )
 
     temp.deleteOnExit()
