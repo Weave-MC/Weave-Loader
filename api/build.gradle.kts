@@ -27,6 +27,7 @@ publishing {
             from(components["java"])
             groupId = "net.weavemc.api"
             artifactId = "common"
+            version = "${project.version}-PRE"
         }
     }
 }
