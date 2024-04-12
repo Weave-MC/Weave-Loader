@@ -11,7 +11,7 @@ import java.lang.instrument.Instrumentation
  */
 @Suppress("UNUSED_PARAMETER")
 fun premain(opt: String?, inst: Instrumentation) {
-    println("[Weave] Bootstrapping Weave")
+    println("[Weave] Attached Weave")
 
     inst.addTransformer(URLClassLoaderTransformer)
     inst.addTransformer(MixinRelocator)
@@ -30,5 +30,4 @@ fun premain(opt: String?, inst: Instrumentation) {
 
     // initialize bootstrap
     BootstrapContainer.offerInstrumentation(inst)
-    println("[Weave] Bootstrapped Weave")
 }
