@@ -17,53 +17,40 @@ import java.net.URLClassLoader
 // such that signing integrity errors will not occur
 object ApplicationWrapper : SafeTransformer {
     override fun transform(loader: ClassLoader?, className: String, originalClass: ByteArray): ByteArray? {
-        val usingLaunchwrapper = className == "net/minecraft/launchwrapper/Launch"
-        val usingMinecraftMain = className == "net/minecraft/client/main/Main"
-        if (!usingMinecraftMain && !usingLaunchwrapper) return null
+        if (className != "net/minecraft/client/main/Main") return null
 
         val reader = originalClass.asClassReader()
         val node = reader.asClassNode()
 
-        val targetMethod = if (usingLaunchwrapper) "launch" else "main"
-        val methodNode = node.methods.find { it.name == targetMethod } ?: return null
+        val methodNode = node.methods.find { it.name == "main" } ?: return null
 
         methodNode.instructions.insert(asm {
-            if (usingMinecraftMain) {
-                ldc(Type.getObjectType(node.name))
-                invokevirtual("java/lang/Class", "getClassLoader", "()Ljava/lang/ClassLoader;")
-                invokestatic("java/lang/ClassLoader", "getSystemClassLoader", "()Ljava/lang/ClassLoader;")
+            ldc(Type.getObjectType(node.name))
+            invokevirtual("java/lang/Class", "getClassLoader", "()Ljava/lang/ClassLoader;")
+            invokestatic("java/lang/ClassLoader", "getSystemClassLoader", "()Ljava/lang/ClassLoader;")
 
-                val label = LabelNode()
-                if_acmpne(label)
+            val label = LabelNode()
+            if_acmpne(label)
 
-                ldc(node.name.replace('/', '.'))
-                aload(0)
-                invokestatic(
-                    "net/weavemc/loader/bootstrap/transformer/ApplicationWrapper",
-                    "wrap",
-                    "(Ljava/lang/String;[Ljava/lang/String;)V"
-                )
+            ldc(node.name.replace('/', '.'))
+            aload(0)
+            invokestatic(
+                "net/weavemc/loader/bootstrap/transformer/ApplicationWrapper",
+                "wrap",
+                "(Ljava/lang/String;[Ljava/lang/String;)V"
+            )
 
-                // just in case
-                _return
+            // just in case
+            _return
 
-                +label
-            }
+            +label
 
             ldc(className)
 
-            if (usingLaunchwrapper) {
-                getstatic(
-                    "net/minecraft/launchwrapper/Launch",
-                    "classLoader",
-                    "Lnet/minecraft/launchwrapper/LaunchClassLoader;"
-                )
-            } else {
-                ldc(Type.getObjectType(className))
-                invokevirtual("java/lang/Class", "getClassLoader", "()Ljava/lang/ClassLoader;")
-            }
+            ldc(Type.getObjectType(className))
+            invokevirtual("java/lang/Class", "getClassLoader", "()Ljava/lang/ClassLoader;")
 
-            aload(if (usingLaunchwrapper) 1 else 0)
+            aload(0)
             invokestatic(
                 "net/weavemc/loader/bootstrap/BootstrapContainer",
                 "finishBootstrap",
