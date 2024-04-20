@@ -17,7 +17,7 @@ while injecting into clients that are somewhat closed-off to developers.
         
 | Client  | Supported |
 | ------- | :-------: |
-| Vanilla | :x: |
+| Vanilla | :white_check_mark: |
 | Forge   | :white_check_mark: |
 | Lunar   | :white_check_mark: |
 | Badlion | :x: |
