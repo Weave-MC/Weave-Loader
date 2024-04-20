@@ -2,15 +2,16 @@ pluginManagement {
     repositories {
         mavenCentral()
         gradlePluginPortal()
-        maven(url = "https://jitpack.io")
+        maven(url = "https://repo.weavemc.dev")
+        mavenLocal()
     }
 
     plugins {
-        id("com.github.weave-mc.weave-gradle") version "bcf6ab0279"
+        id("net.weavemc.gradle") version "1.0.0"
     }
 }
 
 val projectName: String by settings
 rootProject.name = projectName
 
-include("loader", "api:common", "api:v1.7", "api:v1.8", "api:v1.12")
+include("loader", "api")

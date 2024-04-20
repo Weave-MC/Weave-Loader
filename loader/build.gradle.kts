@@ -11,9 +11,11 @@ repositories {
 
 dependencies {
     implementation(libs.kxSer)
-    api(libs.bundles.asm)
-    api(project(":api:common"))
-    api(libs.mappingsUtil)
+    implementation(libs.bundles.asm)
+    implementation(project(":api"))
+    implementation(libs.weaveInternals)
+    implementation(libs.mappingsUtil)
+    implementation(libs.bundles.mixin)
 }
 
 tasks.jar {
@@ -34,12 +36,13 @@ publishing {
             }
         }
     }
+
     publications {
         create<MavenPublication>("maven") {
             from(components["java"])
             groupId = "net.weavemc"
             artifactId = "loader"
-            version = "1.0.0"
+            version = "${project.version}-PRE"
         }
     }
 }

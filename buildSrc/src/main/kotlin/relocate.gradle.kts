@@ -17,9 +17,11 @@ val relocate = tasks.register("relocate") {
         path.parentFile.mkdirs()
         path.delete()
 
+        val relocatePrefix = "net/weavemc/relocate"
         val mapping = mapOf(
-            "org/objectweb/asm/" to "net/weavemc/asm/",
-            "com/google/" to "net/weavemc/google/"
+            "org/objectweb/asm/" to "$relocatePrefix/asm/",
+            "com/google/" to "$relocatePrefix/google/",
+            "org/spongepowered/" to "$relocatePrefix/spongepowered/"
         )
 
         val remapPackages = setOf("net/weavemc/", "com/grappenmaker/mappings/")
@@ -31,7 +33,7 @@ val relocate = tasks.register("relocate") {
 
         fun remap(name: String) = findMapping(name)?.let { (k, v) -> name.replaceFirst(k, v) } ?: name
         fun shouldKeepOriginal(name: String) =
-            name.startsWith("org/objectweb/asm/") || name.startsWith("com/google/common/io")
+            name.startsWith("com/google/common/io")
 
         JarOutputStream(FileOutputStream(path)).use { output ->
             val artifact = JarFile(originalOutputFile)
