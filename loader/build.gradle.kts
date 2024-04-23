@@ -21,7 +21,8 @@ dependencies {
 tasks.jar {
     manifest.attributes(
         "Premain-Class" to "net.weavemc.loader.bootstrap.AgentKt",
-        "Can-Retransform-Classes" to "true"
+        "Can-Retransform-Classes" to "true",
+        "Main-Class" to "net.weavemc.loader.bootstrap.AgentKt"
     )
 }
 
