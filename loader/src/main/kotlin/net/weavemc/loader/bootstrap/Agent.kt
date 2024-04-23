@@ -4,6 +4,8 @@ import net.weavemc.loader.*
 import net.weavemc.loader.bootstrap.transformer.*
 import java.awt.GraphicsEnvironment
 import java.lang.instrument.Instrumentation
+import javax.swing.JOptionPane
+import kotlin.system.exitProcess
 
 /**
  * The JavaAgent's `premain()` method, this is where initialization of Weave Loader begins.
@@ -30,4 +32,15 @@ fun premain(opt: String?, inst: Instrumentation) {
 
     // initialize bootstrap
     BootstrapContainer.offerInstrumentation(inst)
+}
+
+fun main() {
+    JOptionPane.showMessageDialog(
+        null,
+        "This is not how you use Weave! Please refer to the readme for instructions.",
+        "Weave Loader Error",
+        JOptionPane.ERROR_MESSAGE
+    )
+
+    exitProcess(-1)
 }

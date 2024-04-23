@@ -179,7 +179,7 @@ open class WeaveLoader(
         println("Possibly non-weave mod failed to load:")
         it.printStackTrace()
 
-        fatalError("Mod file $this is possibly not a Weave mod!")
+        fatalError("Mod file ${this.name} is possibly not a Weave mod!")
     }.getOrThrow()
 
     private fun retrieveMods() = FileManager.getMods().map { it.parseAndMap() }
