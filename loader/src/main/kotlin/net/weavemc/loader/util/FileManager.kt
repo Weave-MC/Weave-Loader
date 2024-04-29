@@ -1,6 +1,6 @@
 package net.weavemc.loader.util
 
-import net.weavemc.internals.GameInfo.gameVersion
+import net.weavemc.internals.GameInfo
 import java.io.File
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -20,8 +20,8 @@ internal object FileManager {
         })
 
         return minecraftPath.resolve("versions")
-            .resolve(gameVersion.versionName)
-            .resolve("${gameVersion.versionName}.jar").toFile()
+            .resolve(GameInfo.version.versionName)
+            .resolve("${GameInfo.version.versionName}.jar").toFile()
     }
 
     /**
@@ -32,7 +32,7 @@ internal object FileManager {
 
         mods += MODS_DIRECTORY.walkMods()
 
-        val specificVersionDirectory = MODS_DIRECTORY.resolve(gameVersion.versionName)
+        val specificVersionDirectory = MODS_DIRECTORY.resolve(GameInfo.version.versionName)
         if (specificVersionDirectory.exists() && specificVersionDirectory.isDirectory()) {
             mods += specificVersionDirectory.walkMods(true)
         }

@@ -1,8 +1,7 @@
 package net.weavemc.loader
 
 import com.grappenmaker.mappings.*
-import net.weavemc.internals.GameInfo.gameClient
-import net.weavemc.internals.GameInfo.gameVersion
+import net.weavemc.internals.GameInfo
 import net.weavemc.internals.MappingsRetrieval
 import net.weavemc.internals.MappingsType.*
 import net.weavemc.internals.MinecraftClient
@@ -20,12 +19,12 @@ object MappingsHandler {
     private val vanillaJar = FileManager.getVanillaMinecraftJar()
 
     val mergedMappings by lazy {
-        MappingsRetrieval.loadMergedWeaveMappings(gameVersion.versionName, vanillaJar)
+        MappingsRetrieval.loadMergedWeaveMappings(GameInfo.version.versionName, vanillaJar)
     }
 
     val environmentNamespace by lazy {
-        when (gameClient) {
-            MinecraftClient.LUNAR -> if (gameVersion < MinecraftVersion.V1_16_5) MCP.named else MOJANG.named
+        when (GameInfo.client) {
+            MinecraftClient.LUNAR -> if (GameInfo.version < MinecraftVersion.V1_16_5) MCP.named else MOJANG.named
             MinecraftClient.FORGE -> MCP.srg
             MinecraftClient.VANILLA, MinecraftClient.LABYMOD, MinecraftClient.BADLION -> "official"
         }
