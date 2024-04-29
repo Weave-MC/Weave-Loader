@@ -1,14 +1,15 @@
 package net.weavemc.loader.bootstrap
 
+import net.weavemc.api.Tweaker
 import net.weavemc.internals.GameInfo
 import net.weavemc.internals.GameInfo.commandLineArgs
+import net.weavemc.internals.ModConfig
 import net.weavemc.loader.bootstrap.transformer.SafeTransformer
 import net.weavemc.loader.bootstrap.transformer.URLClassLoaderAccessor
 import net.weavemc.loader.bootstrap.transformer.URLClassLoaderTransformer
-import net.weavemc.loader.util.JSON
-import net.weavemc.loader.util.MultiMCInstance
-import net.weavemc.loader.util.fatalError
+import net.weavemc.loader.util.*
 import java.lang.instrument.Instrumentation
+import java.util.jar.JarFile
 import kotlin.io.path.Path
 import kotlin.io.path.pathString
 
@@ -19,6 +20,7 @@ object Bootstrap {
                 if (className.startsWith("net/minecraft/client")) {
                     setGameInfo()
                     printBootstrap(loader)
+                    callTweakers(inst)
 
                     // remove bootstrap transformers
                     inst.removeTransformer(this)
@@ -55,11 +57,11 @@ object Bootstrap {
     private fun printBootstrap(loader: ClassLoader?) {
         println(
             """
-[Weave] Bootstrapping...
-    - Version: ${GameInfo.version.versionName}
-    - Client: ${GameInfo.client.clientName}
-    - Loader: $loader
-            """.trim()
+            [Weave] Bootstrapping...
+                - Version: ${GameInfo.version.versionName}
+                - Client: ${GameInfo.client.clientName}
+                - Loader: $loader
+            """.trimIndent()
         )
     }
 
@@ -91,5 +93,20 @@ object Bootstrap {
             "version" to version,
             "client" to client
         )
+    }
+
+    private fun callTweakers(inst: Instrumentation) {
+        println("[Weave] Calling tweakers")
+
+        val tweakers = FileManager
+            .getMods()
+            .map(FileManager.ModJar::file)
+            .map(::JarFile)
+            .map(JarFile::configOrFatal)
+            .flatMap(ModConfig::tweakers)
+
+        for (tweaker in tweakers) {
+            instantiate<Tweaker>(tweaker).tweak(inst)
+        }
     }
 }

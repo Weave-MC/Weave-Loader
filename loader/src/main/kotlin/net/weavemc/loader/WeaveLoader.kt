@@ -184,37 +184,5 @@ class WeaveLoader(
         }
     }
 
-    private fun JarFile.configOrFatal() = runCatching { fetchModConfig(JSON) }.onFailure {
-        println("Possibly non-weave mod failed to load:")
-        it.printStackTrace()
-
-        fatalError("Mod file ${this.name} is possibly not a Weave mod!")
-    }.getOrThrow()
-
     private fun retrieveMods() = FileManager.getMods().map { it.parseAndMap() }
-
-    private inline fun <reified T> instantiate(className: String): T =
-        Class.forName(className)
-            .getConstructor()
-            .newInstance() as? T
-            ?: error("$className does not implement ${T::class.java.simpleName}!")
-}
-
-private fun JarFile.fetchModConfig(json: Json): ModConfig {
-    val configEntry = getEntry("weave.mod.json") ?: error("${this.name} does not contain a weave.mod.json!")
-    return json.decodeFromString<ModConfig>(getInputStream(configEntry).readBytes().decodeToString())
-}
-
-private fun File.createRemappedTemp(name: String, config: ModConfig): File {
-    val temp = File.createTempFile(name, "-weavemod.jar")
-    MappingsHandler.remapModJar(
-        mappings = MappingsHandler.mergedMappings.mappings,
-        input = this,
-        output = temp,
-        classpath = listOf(FileManager.getVanillaMinecraftJar()),
-        from = config.namespace
-    )
-
-    temp.deleteOnExit()
-    return temp
 }

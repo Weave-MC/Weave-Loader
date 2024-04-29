@@ -2,6 +2,7 @@ package net.weavemc.loader.util
 
 import kotlinx.serialization.json.Json
 import net.weavemc.internals.ModConfig
+import net.weavemc.loader.fetchModConfig
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodNode
@@ -14,6 +15,7 @@ import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
+import java.util.jar.JarFile
 import javax.swing.JOptionPane
 import kotlin.io.path.createDirectories
 import kotlin.io.path.exists
@@ -124,6 +126,12 @@ fun MethodNode.hasMixinAnnotation(name: String): Boolean {
     return visibleAnnotations?.any { it.desc.endsWith(annotation) } == true
 }
 
+inline fun <reified T> instantiate(className: String): T =
+    Class.forName(className)
+        .getConstructor()
+        .newInstance() as? T
+        ?: error("$className does not implement ${T::class.java.simpleName}!")
+
 internal fun fatalError(message: String): Nothing {
     JOptionPane.showMessageDialog(
         /* parentComponent = */ null,
@@ -133,6 +141,32 @@ internal fun fatalError(message: String): Nothing {
     )
 
     exitProcess(-1)
+}
+
+fun JarFile.configOrFatal() = runCatching { fetchModConfig(JSON) }.onFailure {
+    println("Possibly non-weave mod failed to load:")
+    it.printStackTrace()
+
+    fatalError("Mod file ${this.name} is possibly not a Weave mod!")
+}.getOrThrow()
+
+fun JarFile.fetchModConfig(json: Json): ModConfig {
+    val configEntry = getEntry("weave.mod.json") ?: error("${this.name} does not contain a weave.mod.json!")
+    return json.decodeFromString<ModConfig>(getInputStream(configEntry).readBytes().decodeToString())
+}
+
+fun File.createRemappedTemp(name: String, config: ModConfig): File {
+    val temp = File.createTempFile(name, "-weavemod.jar")
+    MappingsHandler.remapModJar(
+        mappings = MappingsHandler.mergedMappings.mappings,
+        input = this,
+        output = temp,
+        classpath = listOf(FileManager.getVanillaMinecraftJar()),
+        from = config.namespace
+    )
+
+    temp.deleteOnExit()
+    return temp
 }
 
 // TODO: give this a good place

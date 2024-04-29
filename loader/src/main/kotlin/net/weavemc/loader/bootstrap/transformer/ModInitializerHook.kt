@@ -12,10 +12,11 @@ import org.objectweb.asm.ClassWriter
 import java.lang.instrument.Instrumentation
 
 /**
- * Transformer meant to start the initialization phase for Weave Mods. @see net.weavemc.api.ModInitializer.init()
- * Hooks net.minecraft.client.main.Main.main()
+ * Transformer meant to start the initialization phase for Weave Mods by hooking [net.minecraft.client.main.Main.main].
+ *
+ * @see [net.weavemc.api.ModInitializer.init]
  */
-class ModInitializerHook(val inst: Instrumentation): SafeTransformer {
+internal class ModInitializerHook(val inst: Instrumentation): SafeTransformer {
     override fun transform(loader: ClassLoader?, className: String, originalClass: ByteArray): ByteArray? {
         if (className != "net/minecraft/client/main/Main" || loader == null) return null
 
