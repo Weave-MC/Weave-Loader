@@ -1,6 +1,7 @@
 package net.weavemc.loader.util
 
 import kotlinx.serialization.json.Json
+import net.weavemc.internals.ModConfig
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodNode
@@ -139,3 +140,5 @@ val illegalToReload = setOf(
     "java.", "javax.", "org.xml.", "org.w3c.", "sun.", "jdk.",
     "com.sun.management.", "org.apache.", "org.slf4j."
 )
+
+data class WeaveMod(val modId: String, val config: ModConfig)

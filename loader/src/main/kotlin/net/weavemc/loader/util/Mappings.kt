@@ -1,4 +1,4 @@
-package net.weavemc.loader
+package net.weavemc.loader.util
 
 import com.grappenmaker.mappings.*
 import net.weavemc.internals.GameInfo
@@ -6,7 +6,8 @@ import net.weavemc.internals.MappingsRetrieval
 import net.weavemc.internals.MappingsType.*
 import net.weavemc.internals.MinecraftClient
 import net.weavemc.internals.MinecraftVersion
-import net.weavemc.loader.util.FileManager
+import net.weavemc.loader.InjectionClassWriter
+import net.weavemc.loader.WeaveLoader
 import org.objectweb.asm.*
 import org.objectweb.asm.commons.ClassRemapper
 import org.objectweb.asm.commons.Remapper

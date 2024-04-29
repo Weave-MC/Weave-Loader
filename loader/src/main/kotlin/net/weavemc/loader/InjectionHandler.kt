@@ -3,8 +3,8 @@ package net.weavemc.loader
 import com.grappenmaker.mappings.LambdaAwareRemapper
 import net.weavemc.api.Hook
 import net.weavemc.internals.dump
-import net.weavemc.loader.MappingsHandler.remap
 import net.weavemc.loader.bootstrap.transformer.SafeTransformer
+import net.weavemc.loader.util.MappingsHandler.remap
 import net.weavemc.loader.util.*
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
