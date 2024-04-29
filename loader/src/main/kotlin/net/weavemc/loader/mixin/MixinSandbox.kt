@@ -32,7 +32,7 @@ import kotlin.reflect.KProperty
 /**
  * Implements a [ClassFileTransformer] that passes all loaded classes through the wrapped [mixin] state
  */
-public class SandboxedMixinTransformer(
+class SandboxedMixinTransformer(
     private val mixin: SandboxedMixinState
 ) : ClassFileTransformer {
     override fun transform(
@@ -51,7 +51,7 @@ public class SandboxedMixinTransformer(
  *
  * fixupConflicts determines whether the remapper for the mixin sandbox renames possibly colliding mixed-in methods
  */
-public class SandboxedMixinLoader(
+class SandboxedMixinLoader(
     private val parent: ClassLoader = getSystemClassLoader(),
     private val loader: (name: String) -> ByteArray? = ClasspathLoaders.fromLoader(parent),
 ) : ClassLoader(parent) {
@@ -67,7 +67,7 @@ public class SandboxedMixinLoader(
     /**
      * Responsible for managing the state of the sandboxed mixin environment
      */
-    public val state: SandboxedMixinState = SandboxedMixinState(this)
+    val state: SandboxedMixinState = SandboxedMixinState(this)
 
     private fun transform(internalName: String, bytes: ByteArray): ByteArray? {
         if (internalName != "net/weavemc/relocate/spongepowered/asm/util/Constants") return null
@@ -112,7 +112,7 @@ public class SandboxedMixinLoader(
      * Allows you to add an "injected resource" to this loader, that is, when a resource with [name] is requested,
      * a stream (or temporary file) with [bytes] is returned (instead of delegating to the parent loader)
      */
-    public fun injectResource(name: String, bytes: ByteArray) {
+    fun injectResource(name: String, bytes: ByteArray) {
         injectedResources[name] = bytes
     }
 
@@ -134,7 +134,7 @@ public class SandboxedMixinLoader(
     /**
      * Allows you to prevent a certain class with a given binary [name] from being sandboxed
      */
-    public fun addLoaderExclusion(name: String) {
+    fun addLoaderExclusion(name: String) {
         loaderExclusions += name
     }
 
@@ -162,7 +162,7 @@ private fun createMixinAccessor(loader: ClassLoader) = runCatching {
  *
  * [initialize] must be invoked before calling any other method
  */
-public class SandboxedMixinState(
+class SandboxedMixinState(
     private val loader: SandboxedMixinLoader
 ) : MixinAccess by createMixinAccessor(loader) {
     // be careful to not load classes in the wrong context
@@ -171,13 +171,13 @@ public class SandboxedMixinState(
     /**
      * Whether this [SandboxedMixinState] has been initialized
      */
-    public var initialized: Boolean = false
+    var initialized: Boolean = false
         private set
 
     /**
      * Initializes this [SandboxedMixinState], does nothing when [initialized] is true
      */
-    public fun initialize() {
+    fun initialize() {
         if (initialized) return
 
         injectService(
@@ -206,7 +206,7 @@ public class SandboxedMixinState(
     /**
      * Registers a mixin configuration, available on the classpath of the parent loader with a given [resourceName]
      */
-    public fun registerMixin(modId: String, resourceName: String) {
+    fun registerMixin(modId: String, resourceName: String) {
         val resource = loader.getResourceAsStream(resourceName) ?: error("Mixin config $resourceName does not exist!")
 
         // This is quite jank: we relocate the resources such that we can later find out what mod it was from
@@ -219,7 +219,7 @@ public class SandboxedMixinState(
     /**
      * Transforms a class represented by given [bytes] with a certain [internalName] using the mixin environment
      */
-    public fun transform(internalName: String, bytes: ByteArray): ByteArray =
+    fun transform(internalName: String, bytes: ByteArray): ByteArray =
         transform(transformer, internalName.replace('/', '.'), bytes)
 
     /**
@@ -227,13 +227,13 @@ public class SandboxedMixinState(
      *
      * Returns null when mixin was not interested in visiting this class
      */
-    public fun transformOrNull(internalName: String, bytes: ByteArray): ByteArray? =
+    fun transformOrNull(internalName: String, bytes: ByteArray): ByteArray? =
         transform(internalName, bytes).takeIf { it !== bytes }
 
     /**
      * Transforms a class represented by given [node] with a certain [internalName] using the mixin environment
      */
-    public fun transform(internalName: String, node: ClassNode): ClassNode {
+    fun transform(internalName: String, node: ClassNode): ClassNode {
         transform(transformer, internalName.replace('/', '.'), node)
         return node
     }
@@ -314,7 +314,7 @@ private fun <R> counter() = object : ReadOnlyProperty<R, Int> {
  * [useBytecodeInheritance] determines if inheritance info should be derived from bytecode instead of reflection, if possible
  */
 // TODO: generalize
-public class LoaderClassWriter(
+class LoaderClassWriter(
     private val loader: ClassLoader,
     reader: ClassReader? = null,
     flags: Int = 0,
