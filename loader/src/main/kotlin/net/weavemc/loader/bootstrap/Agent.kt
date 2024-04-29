@@ -45,38 +45,6 @@ fun premain(opt: String?, inst: Instrumentation) {
     Bootstrap.bootstrap(inst)
 }
 
-private fun setGameInfo() {
-    val cwd = Path(System.getProperty("user.dir"))
-    val version = System.getProperty("weave.environment.version")
-        ?: if (cwd.pathString.contains("instances")) {
-            val instance = cwd.parent
-            val instanceData =
-                JSON.decodeFromString<MultiMCInstance>(instance.resolve("mmc-pack.json").toFile().readText())
-
-            instanceData.components.find { it.uid == "net.minecraft" }?.version
-                ?: fatalError("Failed to find \"Minecraft\" component in ${instance.pathString}'s mmc-pack.json")
-        } else {
-            """--version\s+(\S+)""".toRegex()
-                .find(System.getProperty("sun.java.command"))
-                ?.groupValues?.get(1) ?: fatalError("Could not parse version from command line arguments")
-        }
-
-    fun classExists(name: String): Boolean =
-        GameInfo::class.java.classLoader.getResourceAsStream("${name.replace('.', '/')}.class") != null
-
-    val client = when {
-        classExists("com.moonsworth.lunar.genesis.Genesis") -> "lunar client"
-        classExists("net.minecraftforge.fml.common.Loader") -> "forge"
-        GameInfo.commandLineArgs.contains("labymod") -> "labymod"
-        else -> "vanilla"
-    }
-
-    System.getProperties()["weave.game.info"] = mapOf(
-        "version" to version,
-        "client" to client
-    )
-}
-
 private fun callTweakers(inst: Instrumentation) {
     println("[Weave] Calling tweakers")
 
