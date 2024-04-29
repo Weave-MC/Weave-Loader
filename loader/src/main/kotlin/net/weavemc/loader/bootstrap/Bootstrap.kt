@@ -18,9 +18,7 @@ object Bootstrap {
         inst.addTransformer(object: SafeTransformer {
             override fun transform(loader: ClassLoader?, className: String, originalClass: ByteArray): ByteArray? {
                 if (className.startsWith("net/minecraft/client")) {
-                    setGameInfo()
                     printBootstrap(loader)
-                    callTweakers(inst)
 
                     // remove bootstrap transformers
                     inst.removeTransformer(this)
@@ -65,48 +63,5 @@ object Bootstrap {
         )
     }
 
-    private fun setGameInfo() {
-        val cwd = Path(System.getProperty("user.dir"))
-        val version: String = if (cwd.pathString.contains("instances")) {
-            val instance = cwd.parent
-            val instanceData = JSON.decodeFromString<MultiMCInstance>(instance.resolve("mmc-pack.json").toFile().readText())
 
-            instanceData.components.find { it.uid == "net.minecraft" }?.version
-                ?: fatalError("Failed to find \"Minecraft\" component in ${instance.pathString}'s mmc-pack.json")
-        } else {
-            """--version\s+(\S+)""".toRegex()
-                .find(System.getProperty("sun.java.command"))
-                ?.groupValues?.get(1) ?: fatalError("Could not parse version from command line arguments")
-        }
-
-        fun classExists(name: String): Boolean =
-            GameInfo::class.java.classLoader.getResourceAsStream("${name.replace('.', '/')}.class") != null
-
-        val client = when {
-            classExists("com.moonsworth.lunar.genesis.Genesis") -> "lunar client"
-            classExists("net.minecraftforge.fml.common.Loader") -> "forge"
-            commandLineArgs.contains("labymod") -> "labymod"
-            else -> "vanilla"
-        }
-
-        System.getProperties()["weave.game.info"] = mapOf(
-            "version" to version,
-            "client" to client
-        )
-    }
-
-    private fun callTweakers(inst: Instrumentation) {
-        println("[Weave] Calling tweakers")
-
-        val tweakers = FileManager
-            .getMods()
-            .map(FileManager.ModJar::file)
-            .map(::JarFile)
-            .map(JarFile::configOrFatal)
-            .flatMap(ModConfig::tweakers)
-
-        for (tweaker in tweakers) {
-            instantiate<Tweaker>(tweaker).tweak(inst)
-        }
-    }
 }
