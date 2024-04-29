@@ -10,9 +10,12 @@ import net.weavemc.internals.MinecraftVersion
 import net.weavemc.internals.ModConfig
 import net.weavemc.loader.bootstrap.transformer.URLClassLoaderAccessor
 import net.weavemc.loader.mixin.SandboxedMixinLoader
+import net.weavemc.loader.util.*
 import net.weavemc.loader.util.FileManager
 import net.weavemc.loader.util.JSON
 import net.weavemc.loader.util.fatalError
+import net.weavemc.loader.util.launchStart
+import net.weavemc.loader.util.updateLaunchTimes
 import org.objectweb.asm.tree.ClassNode
 import java.io.File
 import java.lang.instrument.Instrumentation
@@ -21,7 +24,7 @@ import java.util.jar.JarFile
 /**
  * The main class of the Weave Loader.
  */
-open class WeaveLoader(
+class WeaveLoader(
     private val classLoader: URLClassLoaderAccessor,
     private val instrumentation: Instrumentation
 ) {
@@ -30,24 +33,52 @@ open class WeaveLoader(
      *
      * @see ModConfig
      */
-    private val mods: MutableList<WeaveMod> = mutableListOf()
+    val mods: MutableList<WeaveMod> = mutableListOf()
     private val mixinInstances = mutableMapOf<String, SandboxedMixinLoader>()
 
-    private fun mixinForNamespace(namespace: String) = mixinInstances.getOrPut(namespace) {
-        val parent = classLoader.backing
-        SandboxedMixinLoader(
-            parent = parent,
-            loader = ClasspathLoaders.fromLoader(parent)
-                .remappingNames(MappingsHandler.mergedMappings.mappings, "official", namespace),
-        ).apply { state.initialize() }
+    companion object {
+        private var INSTANCE: WeaveLoader? = null
+        @JvmStatic
+        fun getInstance() = INSTANCE ?: fatalError("Attempted to retrieve WeaveLoader instance before it has been instantiated!")
     }
 
     init {
         println("[Weave] Initializing Weave")
+
+        INSTANCE = this
         launchStart = System.currentTimeMillis()
         instrumentation.addTransformer(InjectionHandler)
 
-        loadAndInitMods()
+        finalize()
+    }
+
+    private fun finalize() {
+        retrieveMods().forEach { it.registerAsMod() }
+        verifyDependencies()
+        populateMixinModifiers()
+
+        // TODO remove
+        // Invoke preInit() once everything is done.
+        mods.forEach { weaveMod ->
+            weaveMod.config.entryPoints.forEach { entrypoint ->
+                instantiate<ModInitializer>(entrypoint).preInit(instrumentation)
+            }
+        }
+
+        println("[Weave] Initialized Weave")
+        updateLaunchTimes()
+    }
+
+    /**
+     * Invokes Weave Mods' init. @see net.weavemc.api.ModInitializer
+     * Invoked at the head of Minecraft's main method. @see net.weavemc.loader.transformer.ModInitializerHook
+     */
+    fun initializeMods() {
+        mods.forEach { weaveMod ->
+            weaveMod.config.entryPoints.forEach { entrypoint ->
+                instantiate<ModInitializer>(entrypoint).init()
+            }
+        }
     }
 
     private fun verifyDependencies() {
@@ -74,20 +105,13 @@ open class WeaveLoader(
         }
     }
 
-    private fun loadAndInitMods() {
-        retrieveMods().forEach { it.registerAsMod() }
-        verifyDependencies()
-        populateMixinModifiers()
-
-        // Invoke preInit() once everything is done.
-        mods.forEach { weaveMod ->
-            weaveMod.config.entryPoints.forEach { entrypoint ->
-                instantiate<ModInitializer>(entrypoint).preInit(instrumentation)
-            }
-        }
-
-        println("[Weave] Initialized Weave")
-        updateLaunchTimes()
+    private fun mixinForNamespace(namespace: String) = mixinInstances.getOrPut(namespace) {
+        val parent = classLoader.backing
+        SandboxedMixinLoader(
+            parent = parent,
+            loader = ClasspathLoaders.fromLoader(parent)
+                .remappingNames(MappingsHandler.mergedMappings.mappings, "official", namespace),
+        ).apply { state.initialize() }
     }
 
     private fun populateMixinModifiers() {
@@ -194,5 +218,3 @@ private fun File.createRemappedTemp(name: String, config: ModConfig): File {
     temp.deleteOnExit()
     return temp
 }
-
-private data class WeaveMod(val modId: String, val config: ModConfig)

@@ -3,17 +3,26 @@ package net.weavemc.api
 import java.lang.instrument.Instrumentation
 
 /**
- * All Weave Loader mods need to implement this class. When Weave is loading mods,
- * it will create a new instance of the class that implements this interface. This occurs before the game loads.
+ * When Weave is loading mods, it will create a new instance of the class that implements this interface.
+ * This occurs before the game loads.
  *
  * Override [preInit()][preInit] to initialize your mod.
  */
 interface ModInitializer {
     /**
-     * This is called before the game loads, and should be overridden to initialize your mod.
+     * Invoked before Minecraft is initialized.
      *
      * @param inst Instrumentation object which can be used to register custom transformers
-     * @since Weave-Loader 1.0.0
+     * @since Weave-Loader 1.0.0-beta.1
      */
-    fun preInit(inst: Instrumentation)
+    @Deprecated("", replaceWith = ReplaceWith("init()"))
+    fun preInit(inst: Instrumentation) {}
+
+    /**
+     * Invoked when Minecraft is initialized as to prevent premature class loading of Minecraft related classes.
+     *
+     * Should be overridden to initialize your mod.
+     * @since Weave-Loader 1.0.0-beta.2
+     */
+    fun init() {}
 }

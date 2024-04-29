@@ -15,6 +15,7 @@ fun premain(opt: String?, inst: Instrumentation) {
     println("[Weave] Attached Weave")
 
     inst.addTransformer(URLClassLoaderTransformer)
+    inst.addTransformer(ModInitializerHook(inst))
 //    inst.addTransformer(ApplicationWrapper)
 
     inst.addTransformer(ArgumentSanitizer, true)
