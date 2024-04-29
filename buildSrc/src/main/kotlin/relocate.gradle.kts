@@ -1,5 +1,4 @@
-import org.objectweb.asm.ClassReader
-import org.objectweb.asm.ClassWriter
+import org.objectweb.asm.*
 import org.objectweb.asm.commons.ClassRemapper
 import org.objectweb.asm.commons.Remapper
 import java.io.FileOutputStream
@@ -55,18 +54,55 @@ val relocate = tasks.register("relocate") {
 
                     val reader = ClassReader(originalBytes)
                     val writer = ClassWriter(reader, 0)
-                    reader.accept(ClassRemapper(writer, object : Remapper() {
+                    val parent = constructParent(internalName, ClassRemapper(writer, object : Remapper() {
                         override fun map(name: String) = remap(name)
-                    }), 0)
+                    }))
+
+                    reader.accept(parent, 0)
 
                     output.writeEntry(newName, writer.toByteArray())
                 } else output.writeEntry(entry.name, originalBytes)
             }
 
-            resources.forEach { output.writeEntry(it.name, artifact.read(it)) }
+
+            resources.forEach { resource ->
+                // exclude mixin services
+                if (resource.name.startsWith("META-INF/services")) return@forEach
+                output.writeEntry(resource.name, artifact.read(resource))
+            }
         }
     }
 }
+
+fun String.relocateMixin() = replace("org.spongepowered", "net.weavemc.relocate.spongepowered")
+
+class MixinRelocateFinal(parent: ClassVisitor?) : ClassVisitor(Opcodes.ASM9, parent) {
+    override fun visitField(
+        access: Int,
+        name: String,
+        descriptor: String,
+        signature: String?,
+        value: Any?
+    ): FieldVisitor {
+        val newValue = if (value is String) value.relocateMixin() else value
+        return super.visitField(access, name, descriptor, signature, newValue)
+    }
+
+    override fun visitMethod(
+        access: Int,
+        name: String,
+        descriptor: String,
+        signature: String?,
+        exceptions: Array<String>?
+    ) = object : MethodVisitor(Opcodes.ASM9, super.visitMethod(access, name, descriptor, signature, exceptions)) {
+        override fun visitLdcInsn(value: Any?) {
+            super.visitLdcInsn(if (value is String) value.relocateMixin() else value)
+        }
+    }
+}
+
+fun constructParent(internalName: String, parent: ClassVisitor) =
+    if (internalName.startsWith("org/spongepowered")) MixinRelocateFinal(parent) else parent
 
 fun JarOutputStream.writeEntry(name: String, bytes: ByteArray) {
     putNextEntry(JarEntry(name))
