@@ -2,10 +2,9 @@ package net.weavemc.loader.bootstrap
 
 import net.weavemc.loader.*
 import net.weavemc.loader.bootstrap.transformer.*
+import net.weavemc.loader.util.fatalError
 import java.awt.GraphicsEnvironment
 import java.lang.instrument.Instrumentation
-import javax.swing.JOptionPane
-import kotlin.system.exitProcess
 
 /**
  * The JavaAgent's `premain()` method, this is where initialization of Weave Loader begins.
@@ -16,8 +15,7 @@ fun premain(opt: String?, inst: Instrumentation) {
     println("[Weave] Attached Weave")
 
     inst.addTransformer(URLClassLoaderTransformer)
-    inst.addTransformer(MixinRelocator)
-    inst.addTransformer(ApplicationWrapper)
+//    inst.addTransformer(ApplicationWrapper)
 
     inst.addTransformer(ArgumentSanitizer, true)
     inst.retransformClasses(Class.forName("sun.management.RuntimeImpl", false, ClassLoader.getSystemClassLoader()))
@@ -31,16 +29,9 @@ fun premain(opt: String?, inst: Instrumentation) {
     GraphicsEnvironment.isHeadless()
 
     // initialize bootstrap
-    BootstrapContainer.offerInstrumentation(inst)
+    Bootstrap.bootstrap(inst)
 }
 
 fun main() {
-    JOptionPane.showMessageDialog(
-        null,
-        "This is not how you use Weave! Please refer to the readme for instructions.",
-        "Weave Loader Error",
-        JOptionPane.ERROR_MESSAGE
-    )
-
-    exitProcess(-1)
+    fatalError("This is not how you use Weave! Please refer to the readme for instructions.")
 }
