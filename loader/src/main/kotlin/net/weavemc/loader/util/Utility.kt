@@ -13,10 +13,12 @@ import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
+import javax.swing.JOptionPane
 import kotlin.io.path.createDirectories
 import kotlin.io.path.exists
 import kotlin.io.path.inputStream
 import kotlin.io.path.isDirectory
+import kotlin.system.exitProcess
 
 /**
  * Grabs the directory for the specified directory, creating it if it doesn't exist.
@@ -119,6 +121,17 @@ object DownloadUtil {
 fun MethodNode.hasMixinAnnotation(name: String): Boolean {
     val annotation = "spongepowered/asm/mixin/transformer/meta/$name;"
     return visibleAnnotations?.any { it.desc.endsWith(annotation) } == true
+}
+
+internal fun fatalError(message: String): Nothing {
+    JOptionPane.showMessageDialog(
+        /* parentComponent = */ null,
+        /* message = */ "An error occurred: $message",
+        /* title = */ "Weave Loader error",
+        /* messageType = */ JOptionPane.ERROR_MESSAGE
+    )
+
+    exitProcess(-1)
 }
 
 // TODO: give this a good place

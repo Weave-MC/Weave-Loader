@@ -5,22 +5,18 @@ import com.grappenmaker.mappings.remappingNames
 import kotlinx.serialization.json.Json
 import net.weavemc.api.Hook
 import net.weavemc.api.ModInitializer
-import net.weavemc.internals.GameInfo.gameVersion
+import net.weavemc.internals.GameInfo
 import net.weavemc.internals.MinecraftVersion
 import net.weavemc.internals.ModConfig
 import net.weavemc.loader.bootstrap.transformer.URLClassLoaderAccessor
 import net.weavemc.loader.mixin.SandboxedMixinLoader
 import net.weavemc.loader.util.FileManager
 import net.weavemc.loader.util.JSON
-import org.objectweb.asm.ClassWriter
+import net.weavemc.loader.util.fatalError
 import org.objectweb.asm.tree.ClassNode
 import java.io.File
 import java.lang.instrument.Instrumentation
-import java.nio.file.Files
 import java.util.jar.JarFile
-import javax.swing.JOptionPane
-import kotlin.io.path.writeBytes
-import kotlin.system.exitProcess
 
 /**
  * The main class of the Weave Loader.
@@ -52,17 +48,6 @@ open class WeaveLoader(
         instrumentation.addTransformer(InjectionHandler)
 
         loadAndInitMods()
-    }
-
-    private fun fatalError(message: String): Nothing {
-        JOptionPane.showMessageDialog(
-            /* parentComponent = */ null,
-            /* message = */ "An error occurred: $message",
-            /* title = */ "Weave Loader error",
-            /* messageType = */ JOptionPane.ERROR_MESSAGE
-        )
-
-        exitProcess(-1)
     }
 
     private fun verifyDependencies() {
@@ -157,13 +142,13 @@ open class WeaveLoader(
             val config = it.configOrFatal()
             val compiledFor = config.compiledFor
 
-            if (compiledFor != null && gameVersion != MinecraftVersion.fromVersionName(compiledFor)) {
+            if (compiledFor != null && GameInfo.version != MinecraftVersion.fromVersionName(compiledFor)) {
                 val extra = if (!isSpecific) {
                     " Hint: this mod was placed in the general mods folder. Consider putting mods in a version-specific mods folder"
                 } else ""
 
                 fatalError(
-                    "Mod ${config.modId} was compiled for version $compiledFor, current version is $gameVersion.$extra"
+                    "Mod ${config.modId} was compiled for version $compiledFor, current version is ${GameInfo.version.versionName}.$extra"
                 )
             }
 
