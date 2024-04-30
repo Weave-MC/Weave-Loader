@@ -43,7 +43,7 @@ publishing {
             from(components["java"])
             groupId = "net.weavemc"
             artifactId = "loader"
-            version = "${project.version}-PRE"
+            version = "${project.version}"
         }
     }
 }
