@@ -1,7 +1,6 @@
 package net.weavemc.loader.bootstrap
 
 import net.weavemc.api.Tweaker
-import net.weavemc.internals.GameInfo
 import net.weavemc.internals.ModConfig
 import net.weavemc.loader.WeaveLoader
 import net.weavemc.loader.bootstrap.transformer.ArgumentSanitizer
@@ -12,8 +11,6 @@ import net.weavemc.loader.util.FileManager.ModJar
 import java.awt.GraphicsEnvironment
 import java.lang.instrument.Instrumentation
 import java.util.jar.JarFile
-import kotlin.io.path.Path
-import kotlin.io.path.pathString
 
 /**
  * The JavaAgent's `premain()` method, this is where initialization of Weave Loader begins.
@@ -28,7 +25,6 @@ fun premain(opt: String?, inst: Instrumentation) {
 
     inst.addTransformer(URLClassLoaderTransformer)
     inst.addTransformer(ModInitializerHook(inst))
-//    inst.addTransformer(ApplicationWrapper)
 
     inst.addTransformer(ArgumentSanitizer, true)
     inst.retransformClasses(Class.forName("sun.management.RuntimeImpl", false, ClassLoader.getSystemClassLoader()))

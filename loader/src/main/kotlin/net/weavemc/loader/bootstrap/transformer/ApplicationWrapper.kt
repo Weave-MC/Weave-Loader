@@ -4,6 +4,7 @@ import net.weavemc.internals.asm
 import net.weavemc.loader.mixin.LoaderClassWriter
 import net.weavemc.loader.util.asClassNode
 import net.weavemc.loader.util.asClassReader
+import net.weavemc.loader.util.fatalError
 import net.weavemc.loader.util.illegalToReload
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Type
@@ -11,18 +12,18 @@ import org.objectweb.asm.tree.LabelNode
 import java.lang.invoke.MethodHandles
 import java.lang.invoke.MethodType
 import java.lang.invoke.WrongMethodTypeException
+import java.net.URL
 import java.net.URLClassLoader
 
 // Makes sure to run the application within some notion of a "custom" ClassLoader,
 // such that signing integrity errors will not occur
-object ApplicationWrapper : SafeTransformer {
-    override fun transform(loader: ClassLoader?, className: String, originalClass: ByteArray): ByteArray? {
-        if (className != "net/minecraft/client/main/Main") return null
-
+object ApplicationWrapper {
+    fun insertWrapper(className: String, originalClass: ByteArray): ByteArray {
         val reader = originalClass.asClassReader()
         val node = reader.asClassNode()
 
-        val methodNode = node.methods.find { it.name == "main" } ?: return null
+        val methodNode = node.methods.find { it.name == "main" }
+            ?: fatalError("Failed to find the main method in $className whilst inserting wrapper")
 
         methodNode.instructions.insert(asm {
             ldc(Type.getObjectType(node.name))
