@@ -1,4 +1,4 @@
-allprojects {
+subprojects {
     val projectGroup: String by project
     val projectVersion: String by project
 
@@ -7,8 +7,6 @@ allprojects {
 
     repositories {
         mavenCentral()
-        maven {
-            url = uri("https://repo.weavemc.dev/releases")
-        }
+        maven("https://repo.weavemc.dev/releases")
     }
 }
