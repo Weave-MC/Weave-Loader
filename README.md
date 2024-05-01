@@ -3,11 +3,11 @@
     src="https://avatars.githubusercontent.com/u/126124815?s=400&u=c274f4ff6a9ff62698476de6bf66cacf1d6bed8e"
 />
 
-# Weave Loader, A Universal Minecraft Mod Loader
+# Weave Loader, the Universal Minecraft Mod Loader
 
 Weave Loader is a tool designed to simplify the process of modding Minecraft. It allows
 developers to easily create mods by providing a simple and intuitive API for interacting with Minecraft's codebase,
-while injecting into clients that are somewhat closed-off to developers.
+while supporting injection into clients that are somewhat closed-off to developers.
 
 ## Supported Clients / Versions
 
@@ -15,19 +15,19 @@ while injecting into clients that are somewhat closed-off to developers.
 <tr><th>Supported Clients</th><th>Supported Versions</th></tr>
 <tr><td>
         
-| Client  | Supported |
-| ------- | :-------: |
+| Client  |     Supported      |
+|---------|:------------------:|
 | Vanilla | :white_check_mark: |
 | Forge   | :white_check_mark: |
 | Lunar   | :white_check_mark: |
-| Badlion | :x: |
-| Feather | :x: |
+| Badlion |        :x:         |
+| Feather |        :x:         |
 | Labymod | :white_check_mark: |
 
 </td><td>
     
-| Version | Supported |
-| ------- | :-------: |
+| Version |     Supported      |
+|---------|:------------------:|
 | 1.7     | :white_check_mark: |
 | 1.8     | :white_check_mark: |
 | 1.12    | :white_check_mark: |
@@ -48,30 +48,38 @@ the [releases page](https://github.com/Weave-MC/Weave-Loader/releases), or build
 
 ### Building with Gradle
 
-- `git clone` the project, this can be achieved by installing [git][git], then running
+- First clone the project with [Git][git] then `cd` into the project directory: 
 
 ```bash
-git clone https://github.com/Weave-MC/Weave-Loader.git
-git submodule update --init --recursive
+git clone --recursive https://github.com/Weave-MC/Weave-Loader
+cd Weave-Loader
 ```
 
-- **UN*X**
+You then need to give permission to the Gradle wrapper and run the `agent` task. This can be done a bit differently
+depending on your operating system:
+
+<details open>
+<summary><b>UN*X</b> (Linux, BSDs, macOS, etc.)</summary>
 
 ```bash
-cd Weave-Loader && chmod +x ./gradlew && ./gradlew agent
+chmod +x ./gradlew
+./gradlew agent
 ```
+</details>
 
-- **Windows**
-
-```cmd
-cd Weave-Loader && .\gradlew.bat agent
+<details>
+<summary><b>Windows</b></summary>
+```powershell
+.\gradlew.bat agent
 ```
+</details>
 
 ## Usage
 
 To use Weave-Loader, you have two options:
-1. Use [Weave-Manager](https://github.com/Weave-MC/Weave-Manager) to handle the process of attaching Weave to your preferred Minecraft client automatically.
-2. Manually add the agent mentioned in the previous step to the JVM arguments when launching Minecraft. You need to include the follow argument: `-javaagent:$PATH_TO_AGENT`
+- 1) Use [Weave-Manager](https://github.com/Weave-MC/Weave-Manager) to handle the process of attaching Weave to your preferred Minecraft client automatically.
+- 2) Manually add the agent mentioned in the previous step to the JVM arguments when launching Minecraft.
+  - You need to include the follow argument: `-javaagent:$PATH_TO_AGENT`
 
 Weave will automatically load mods from `~/.weave/mods/`.
 
