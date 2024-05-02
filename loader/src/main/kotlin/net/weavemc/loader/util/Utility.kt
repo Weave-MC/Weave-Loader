@@ -8,7 +8,6 @@ import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodNode
 import java.io.File
 import java.io.IOException
-import java.lang.reflect.Method
 import java.net.URL
 import java.nio.file.Files
 import java.nio.file.Path
@@ -151,15 +150,15 @@ internal fun fatalError(message: String): Nothing {
  * @param errorCode the error code to exit with
  */
 fun exit(errorCode: Int) {
-	runCatching {
+    runCatching {
         val clazz = Class.forName("java.lang.Shutdown")
         clazz.getDeclaredMethod("exit", Int::class.javaPrimitiveType).apply {
             isAccessible = true
         }.invoke(null, errorCode)
     }.onFailure { e0 ->
-		runCatching {
+        runCatching {
             exitRuntime(errorCode)
-		}.onFailure { e1 ->
+        }.onFailure { e1 ->
             if (getJavaVersion() <= 19) { // beware of class removal
                 AccessController.doPrivileged(PrivilegedAction<Void> {
                     exitRuntime(errorCode)
@@ -167,7 +166,7 @@ fun exit(errorCode: Int) {
                 })
             } else {
                 // this'll exit alright, but it's not pretty
-				e1.addSuppressed(e0)
+                e1.addSuppressed(e0)
                 throw RuntimeException("Exitting the JVM, no errors to report here.", e1)
             }
         }
@@ -185,16 +184,12 @@ private fun exitRuntime(errorCode: Int) {
 }
 
 private fun getJavaVersion(): Int {
-    var version = System.getProperty("java.version", "1.6.0")
-    if (version.startsWith("1.")) {
-        version = version.split(".")[1]
-    } else {
-        val dot = version.indexOf(".")
-        if (dot != -1) {
-            version = version.substring(0, dot)
-        }
-    }
-    return version.toInt()
+    val version = System.getProperty("java.version", "1.6.0")
+    val part = if (version.startsWith("1."))
+        version.split(".")[1]
+    else
+        version.substringBefore(".")
+    return part.toInt()
 }
 
 fun JarFile.configOrFatal() = runCatching { fetchModConfig(JSON) }.onFailure {
