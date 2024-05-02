@@ -11,16 +11,12 @@ plugins {
 val shade: Configuration by configurations.creating
 configurations.implementation { extendsFrom(shade) }
 
-fun ShadowJar.configStandard() {
-    configurations = listOf(shade)
-    exclude("META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA", "OSGI-INF/**", "*.profile", "module-info.class", "ant_tasks/**")
-    mergeServiceFiles()
-}
-
 tasks {
     val shadowJar by getting(ShadowJar::class) {
-        configStandard()
         archiveClassifier.set("all")
+
+        configurations = listOf(shade)
+        exclude("META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA", "OSGI-INF/**", "*.profile", "module-info.class", "ant_tasks/**")
 
         arrayOf(
             "com.google",
@@ -33,6 +29,8 @@ tasks {
             val relocated = "net.weavemc.loader.shaded.${lastPackage}"
             relocate(pkg, relocated)
         }
+
+        mergeServiceFiles()
 
         afterEvaluate {
             this@getting.manifest.inheritFrom(tasks.jar.get().manifest)
