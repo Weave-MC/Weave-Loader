@@ -31,15 +31,17 @@ internal object FileManager {
         val gameVersion = GameInfo.version.versionName
         val classpath = System.getProperty("java.class.path")
         if (classpath != null) {
-            val separator = File.pathSeparator
-            val paths = classpath.split(separator)
+            operator fun String.div(other: String) =
+                this + File.separator + other
+
+            val paths = classpath.split(File.pathSeparator)
             for (path in paths) {
                 // .minecraft/versions/<ver>/<ver>.jar
-                if (path.endsWith("/$gameVersion/$gameVersion.jar")) {
+                if (path.endsWith(File.separator + gameVersion / "$gameVersion.jar")) {
                     return File(path)
                 }
                 // MultiMC-like maven structure
-                if (path.endsWith("com/mojang/minecraft/$gameVersion/minecraft-$gameVersion-client.jar")) {
+                if (path.endsWith("com" / "mojang" / "minecraft" / gameVersion / "minecraft-$gameVersion-client.jar")) {
                     return File(path)
                 }
             }
