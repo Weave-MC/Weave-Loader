@@ -21,7 +21,6 @@ import java.security.PrivilegedAction
 import java.util.jar.JarFile
 import javax.swing.JOptionPane
 import kotlin.io.path.*
-import kotlin.system.exitProcess
 
 /**
  * Grabs the directory for the specified directory, creating it if it doesn't exist.
@@ -152,15 +151,15 @@ internal fun fatalError(message: String): Nothing {
  * @param errorCode the error code to exit with
  */
 fun exit(errorCode: Int) {
-    try {
+	runCatching {
         val clazz = Class.forName("java.lang.Shutdown")
         clazz.getDeclaredMethod("exit", Int::class.javaPrimitiveType).apply {
             isAccessible = true
         }.invoke(null, errorCode)
-    } catch (e: Throwable) {
-        try {
+    }.onFailure { e0 ->
+		runCatching {
             exitRuntime(errorCode)
-        } catch (e1: Throwable) {
+		}.onFailure { e1 ->
             if (getJavaVersion() <= 19) { // beware of class removal
                 AccessController.doPrivileged(PrivilegedAction<Void> {
                     exitRuntime(errorCode)
@@ -168,6 +167,7 @@ fun exit(errorCode: Int) {
                 })
             } else {
                 // this'll exit alright, but it's not pretty
+				e1.addSuppressed(e0)
                 throw RuntimeException("Exitting the JVM, no errors to report here.", e1)
             }
         }
