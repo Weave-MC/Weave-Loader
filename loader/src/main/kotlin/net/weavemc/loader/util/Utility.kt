@@ -8,13 +8,16 @@ import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodNode
 import java.io.File
 import java.io.IOException
+import java.lang.reflect.Method
 import java.net.URL
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
+import java.security.AccessController
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
+import java.security.PrivilegedAction
 import java.util.jar.JarFile
 import javax.swing.JOptionPane
 import kotlin.io.path.*
@@ -138,7 +141,60 @@ internal fun fatalError(message: String): Nothing {
         /* messageType = */ JOptionPane.ERROR_MESSAGE
     )
 
-    exitProcess(-1)
+    exit(-1)
+    throw IllegalStateException("Exiting.")
+}
+
+/**
+ * Exits the JVM with the given error code, escaping any SecurityManager
+ * in place (looking at you Froge).
+ *
+ * @param errorCode the error code to exit with
+ */
+fun exit(errorCode: Int) {
+    try {
+        val clazz = Class.forName("java.lang.Shutdown")
+        clazz.getDeclaredMethod("exit", Int::class.javaPrimitiveType).apply {
+            isAccessible = true
+        }.invoke(null, errorCode)
+    } catch (e: Throwable) {
+        try {
+            exitRuntime(errorCode)
+        } catch (e1: Throwable) {
+            if (getJavaVersion() <= 19) { // beware of class removal
+                AccessController.doPrivileged(PrivilegedAction<Void> {
+                    exitRuntime(errorCode)
+                    null
+                })
+            } else {
+                // this'll exit alright, but it's not pretty
+                throw RuntimeException("Exitting the JVM, no errors to report here.", e1)
+            }
+        }
+    }
+}
+
+private fun exitRuntime(errorCode: Int) {
+    val clazz = Class.forName("java.lang.Runtime")
+    val runtime = clazz.getDeclaredMethod("getRuntime").apply {
+        isAccessible = true
+    }.invoke(null)
+    clazz.getDeclaredMethod("exit", Int::class.javaPrimitiveType).apply {
+        isAccessible = true
+    }.invoke(runtime, errorCode)
+}
+
+private fun getJavaVersion(): Int {
+    var version = System.getProperty("java.version", "1.6.0")
+    if (version.startsWith("1.")) {
+        version = version.split(".")[1]
+    } else {
+        val dot = version.indexOf(".")
+        if (dot != -1) {
+            version = version.substring(0, dot)
+        }
+    }
+    return version.toInt()
 }
 
 fun JarFile.configOrFatal() = runCatching { fetchModConfig(JSON) }.onFailure {
@@ -170,16 +226,15 @@ fun File.createRemappedTemp(name: String, config: ModConfig): File {
 internal fun setGameInfo() {
     val cwd = Path(System.getProperty("user.dir"))
     val version = System.getProperty("weave.environment.version")
-        ?: cwd.takeIf { it.pathString.contains("instances") }?.run {
+        ?: cwd.takeIf { "instances" in it.pathString }?.run {
             val instance = cwd.parent
             runCatching {
                 val instanceData = JSON.decodeFromString<MultiMCInstance>(
                     instance.resolve("mmc-pack.json").toFile().readText()
                 )
 
-                return@run instanceData.components.find { it.uid == "net.minecraft" }?.version
-            }
-            null
+                instanceData.components.find { it.uid == "net.minecraft" }?.version
+            }.getOrNull()
         } ?: """--version\s+(\S+)""".toRegex()
             .find(System.getProperty("sun.java.command"))
             ?.groupValues?.get(1)
