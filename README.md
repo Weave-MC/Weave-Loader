@@ -78,9 +78,9 @@ chmod +x ./gradlew
 ## Usage
 
 To use Weave-Loader, you have two options:
-- 1) Use [Weave-Manager](https://github.com/Weave-MC/Weave-Manager) to handle the process of attaching Weave to your preferred Minecraft client automatically.
-- 2) Manually add the agent mentioned in the previous step to the JVM arguments when launching Minecraft.
-  - You need to include the follow argument: `-javaagent:$PATH_TO_AGENT`
+- Use [Weave-Manager](https://github.com/Weave-MC/Weave-Manager) to handle the process of attaching Weave to your preferred Minecraft client automatically.
+- Manually add the Weave-Loader agent mentioned in the previous step to the JVM arguments when launching Minecraft.
+  - You will need to include the following argument: `-javaagent:$PATH_TO_AGENT`
 
 Weave will automatically load mods from `~/.weave/mods/`.
 
