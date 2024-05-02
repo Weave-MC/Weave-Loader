@@ -35,8 +35,8 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: |
-            $HOME/.gradle/caches
-            $HOME/.gradle/wrapper
+            ~/.gradle/caches
+            ~/.gradle/wrapper
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: ${{ runner.os }}-gradle-
 
@@ -50,11 +50,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: weaveloader-artifacts
-          path: build/libs/
+          path: |
+            api/build/libs/
+            loader/build/libs/
 
       - name: Create release
         if: github.event_name == 'release'
-        working-directory: build/libs
+        working-directory: loader/build/libs
         run: |
           agent=Weave-Loader-Agent-${{github.event.release.name}}.jar
           sha256sum $agent > $agent.sha256
