@@ -3,7 +3,6 @@ package net.weavemc.loader.util
 import net.weavemc.internals.GameInfo
 import java.io.File
 import java.nio.file.Path
-import java.nio.file.Paths
 import kotlin.io.path.*
 
 internal object FileManager {
@@ -19,7 +18,7 @@ internal object FileManager {
             else -> null
         }
         if (minecraftPath != null) {
-            val fullPath = Paths.get(System.getProperty("user.home"), minecraftPath)
+            val fullPath = Path(System.getProperty("user.home", System.getenv("HOME")), minecraftPath)
 
             val regularPath = fullPath.resolve("versions")
                 .resolve(GameInfo.version.versionName)
@@ -31,16 +30,18 @@ internal object FileManager {
 
         val gameVersion = GameInfo.version.versionName
         val classpath = System.getProperty("java.class.path")
-        val separator = File.pathSeparator
-        val paths = classpath.split(separator)
-        for (path in paths) {
-            // .minecraft/versions/<ver>/<ver>.jar
-            if (path.endsWith("/$gameVersion/$gameVersion.jar")) {
-                return File(path)
-            }
-            // MultiMC-like maven structure
-            if (path.endsWith("com/mojang/minecraft/$gameVersion/minecraft-$gameVersion-client.jar")) {
-                return File(path)
+        if (classpath != null) {
+            val separator = File.pathSeparator
+            val paths = classpath.split(separator)
+            for (path in paths) {
+                // .minecraft/versions/<ver>/<ver>.jar
+                if (path.endsWith("/$gameVersion/$gameVersion.jar")) {
+                    return File(path)
+                }
+                // MultiMC-like maven structure
+                if (path.endsWith("com/mojang/minecraft/$gameVersion/minecraft-$gameVersion-client.jar")) {
+                    return File(path)
+                }
             }
         }
         fatalError("Could not find vanilla jar for version $gameVersion")
