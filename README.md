@@ -69,6 +69,7 @@ chmod +x ./gradlew
 
 <details>
 <summary><b>Windows</b></summary>
+
 ```powershell
 .\gradlew.bat agent
 ```
