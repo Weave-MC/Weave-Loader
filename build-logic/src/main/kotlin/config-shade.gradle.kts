@@ -18,15 +18,13 @@ tasks {
         configurations = listOf(shade)
         exclude("META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA", "OSGI-INF/**", "*.profile", "module-info.class", "ant_tasks/**")
 
-        arrayOf(
+        listOf(
             "com.google",
             "org.objectweb.asm",
             "org.spongepowered",
             "com.grappenmaker.mappings",
         ).forEach { pkg ->
-            val lastPackageIndex = pkg.lastIndexOf('.')
-            val lastPackage = if (lastPackageIndex != -1) pkg.substring(lastPackageIndex + 1) else pkg
-            val relocated = "net.weavemc.loader.shaded.${lastPackage}"
+            val relocated = "net.weavemc.loader.shaded.${pkg.substringAfterLast(".")}"
             relocate(pkg, relocated)
         }
 
