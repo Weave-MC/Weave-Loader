@@ -156,24 +156,24 @@ object MappingsHandler {
 private fun relocate(): ((parent: ClassVisitor) -> ClassVisitor) {
     /*
     ------------------------------------------------------------------------
-    <THIS PORTION SHOULD BE UPDATED WHENEVER relocate.gradle.kts IS UPDATED>
+    <THIS PORTION SHOULD BE UPDATED WHENEVER config-shade.gradle.kts IS UPDATED>
     ------------------------------------------------------------------------
      */
-    val relocatePrefix = "net/weavemc/relocate"
+    val relocatePrefix = "net/weavemc/loader/shaded"
     val mapping = mapOf(
-        "org/objectweb/asm/" to "$relocatePrefix/asm/",
-        "com/google/" to "$relocatePrefix/google/",
-        "org/spongepowered/" to "$relocatePrefix/spongepowered/"
+        "org/objectweb/asm" to "$relocatePrefix/asm",
+        "com/google" to "$relocatePrefix/google",
+        "org/spongepowered" to "$relocatePrefix/spongepowered"
     )
 
     val mappingsExclusions = listOf("gson")
     /*
     -------------------------------------------------------------------------
-    </THIS PORTION SHOULD BE UPDATED WHENEVER relocate.gradle.kts IS UPDATED>
+    </THIS PORTION SHOULD BE UPDATED WHENEVER config-shade.gradle.kts IS UPDATED>
     -------------------------------------------------------------------------
      */
 
-    fun findMapping(name: String) = mapping.entries.find { (k) -> name.startsWith(k) }
+    fun findMapping(name: String) = mapping.entries.find { (k) -> name.startsWith("$k/") }
         ?.takeIf { mappingsExclusions.none { it in name } }
 
     fun remap(name: String) = findMapping(name)?.let { (k, v) -> name.replaceFirst(k, v) } ?: name

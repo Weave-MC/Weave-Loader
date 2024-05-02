@@ -19,12 +19,13 @@ tasks {
         exclude("META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA", "OSGI-INF/**", "*.profile", "module-info.class", "ant_tasks/**")
 
         listOf(
-            "com.google",
-            "org.objectweb.asm",
-            "org.spongepowered",
-            "com.grappenmaker.mappings",
+            "com.google.",
+            "org.objectweb.asm.",
+            "org.spongepowered.",
+            "com.grappenmaker.mappings.",
         ).forEach { pkg ->
-            val relocated = "net.weavemc.loader.shaded.${pkg.substringAfterLast(".")}"
+            val packageName = pkg.substringBeforeLast(".").substringAfterLast(".")
+            val relocated = "net.weavemc.loader.shaded.$packageName."
             relocate(pkg, relocated)
         }
 
