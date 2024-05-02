@@ -170,24 +170,20 @@ fun File.createRemappedTemp(name: String, config: ModConfig): File {
 internal fun setGameInfo() {
     val cwd = Path(System.getProperty("user.dir"))
     val version = System.getProperty("weave.environment.version")
-        ?: if (cwd.pathString.contains("instances")) {
+        ?: cwd.takeIf { it.pathString.contains("instances") }?.run {
             val instance = cwd.parent
             runCatching {
                 val instanceData = JSON.decodeFromString<MultiMCInstance>(
                     instance.resolve("mmc-pack.json").toFile().readText()
                 )
 
-                instanceData.components.find { it.uid == "net.minecraft" }?.version
-                    ?: fatalError("Failed to find \"Minecraft\" component in ${instance.pathString}'s mmc-pack.json")
-            }.onFailure { t ->
-                t.printStackTrace()
-                fatalError("Failed to parse ${instance.pathString}'s mmc-pack.json")
+                return@run instanceData.components.find { it.uid == "net.minecraft" }?.version
             }
-        } else {
-            """--version\s+(\S+)""".toRegex()
-                .find(System.getProperty("sun.java.command"))
-                ?.groupValues?.get(1) ?: fatalError("Could not parse version from command line arguments")
-        }
+            null
+        } ?: """--version\s+(\S+)""".toRegex()
+            .find(System.getProperty("sun.java.command"))
+            ?.groupValues?.get(1)
+        ?: fatalError("Could not determine game version")
 
     fun classExists(name: String): Boolean =
         GameInfo::class.java.classLoader.getResourceAsStream("${name.replace('.', '/')}.class") != null
