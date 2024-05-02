@@ -57,10 +57,10 @@ class SandboxedMixinLoader(
 ) : ClassLoader(parent) {
     private val injectedResources = mutableMapOf<String, ByteArray>()
     private val tempFiles = mutableMapOf<String, URL>()
-    private val loaderExclusions = hashSetOf("net.weavemc.loader.mixin.MixinAccess")
+    private val loaderExclusions = mutableSetOf("net.weavemc.loader.mixin.MixinAccess")
 
     private val systemClasses = illegalToReload + setOf(
-        "kotlin.", "kotlinx.", "net.weavemc.relocate.asm.",
+        "kotlin.", "kotlinx.", "net.weavemc.loader.shaded.asm.",
         "net.weavemc.loader.mixin.SandboxedMixinState"
     )
 
@@ -70,7 +70,7 @@ class SandboxedMixinLoader(
     val state: SandboxedMixinState = SandboxedMixinState(this)
 
     private fun transform(internalName: String, bytes: ByteArray): ByteArray? {
-        if (internalName != "net/weavemc/relocate/spongepowered/asm/util/Constants") return null
+        if (internalName != "net/weavemc/loader/shaded/spongepowered/asm/util/Constants") return null
 
         val reader = bytes.asClassReader()
         val node = reader.asClassNode()
@@ -82,7 +82,7 @@ class SandboxedMixinLoader(
 
         target.instructions.insert(call, asm {
             pop
-            ldc("net.weavemc.relocate.spongepowered.asm.mixin")
+            ldc("net.weavemc.loader.shaded.spongepowered.asm.mixin")
         })
 
         target.instructions.remove(call)
@@ -180,21 +180,6 @@ class SandboxedMixinState(
     fun initialize() {
         if (initialized) return
 
-        injectService(
-            "net.weavemc.relocate.spongepowered.asm.service.IMixinService",
-            "net.weavemc.loader.mixin.SandboxedMixinService"
-        )
-
-        injectService(
-            "net.weavemc.relocate.spongepowered.asm.service.IMixinServiceBootstrap",
-            "net.weavemc.loader.mixin.DummyServiceBootstrap"
-        )
-
-        injectService(
-            "net.weavemc.relocate.spongepowered.asm.service.IGlobalPropertyService",
-            "net.weavemc.loader.mixin.DummyPropertyService"
-        )
-
         bootstrap()
         validate()
         gotoDefault()
@@ -237,9 +222,6 @@ class SandboxedMixinState(
         transform(transformer, internalName.replace('/', '.'), node)
         return node
     }
-
-    private fun injectService(name: String, value: String) =
-        loader.injectResource("META-INF/services/$name", value.encodeToByteArray())
 }
 
 internal sealed interface MixinAccess {
