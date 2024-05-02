@@ -1,7 +1,6 @@
 plugins {
-    id("kotlin")
+    id("config-kotlin")
     `maven-publish`
-    relocate
 }
 
 dependencies {
