@@ -130,6 +130,7 @@ inline fun <reified T> instantiate(className: String): T =
         ?: error("$className does not implement ${T::class.java.simpleName}!")
 
 internal fun fatalError(message: String): Nothing {
+    System.err.println("An error occurred: $message")
     JOptionPane.showMessageDialog(
         /* parentComponent = */ null,
         /* message = */ "An error occurred: $message",
@@ -171,11 +172,17 @@ internal fun setGameInfo() {
     val version = System.getProperty("weave.environment.version")
         ?: if (cwd.pathString.contains("instances")) {
             val instance = cwd.parent
-            val instanceData =
-                JSON.decodeFromString<MultiMCInstance>(instance.resolve("mmc-pack.json").toFile().readText())
+            try {
+                val instanceData = JSON.decodeFromString<MultiMCInstance>(
+                    instance.resolve("mmc-pack.json").toFile().readText()
+                )
 
-            instanceData.components.find { it.uid == "net.minecraft" }?.version
-                ?: fatalError("Failed to find \"Minecraft\" component in ${instance.pathString}'s mmc-pack.json")
+                instanceData.components.find { it.uid == "net.minecraft" }?.version
+                    ?: fatalError("Failed to find \"Minecraft\" component in ${instance.pathString}'s mmc-pack.json")
+            } catch (t: Throwable) {
+                t.printStackTrace()
+                fatalError("Failed to parse ${instance.pathString}'s mmc-pack.json")
+            }
         } else {
             """--version\s+(\S+)""".toRegex()
                 .find(System.getProperty("sun.java.command"))
