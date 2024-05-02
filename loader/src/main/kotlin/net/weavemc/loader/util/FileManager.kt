@@ -12,16 +12,38 @@ internal object FileManager {
 
     fun getVanillaMinecraftJar(): File {
         val os = System.getProperty("os.name").lowercase()
-        val minecraftPath = Paths.get(System.getProperty("user.home"), when {
+        val minecraftPath = when {
             os.contains("win") -> "AppData${File.separator}Roaming${File.separator}.minecraft"
             os.contains("mac") -> "Library${File.separator}Application Support${File.separator}minecraft"
             os.contains("nix") || os.contains("nux") || os.contains("aix") -> ".minecraft"
-            else -> error("Failed to retrieve Vanilla Minecraft Jar due to unsupported OS.")
-        })
+            else -> null
+        }
+        if (minecraftPath != null) {
+            val fullPath = Paths.get(System.getProperty("user.home"), minecraftPath)
 
-        return minecraftPath.resolve("versions")
-            .resolve(GameInfo.version.versionName)
-            .resolve("${GameInfo.version.versionName}.jar").toFile()
+            val regularPath = fullPath.resolve("versions")
+                .resolve(GameInfo.version.versionName)
+                .resolve("${GameInfo.version.versionName}.jar")
+            if (regularPath.exists()) {
+                return regularPath.toFile()
+            }
+        }
+
+        val gameVersion = GameInfo.version.versionName
+        val classpath = System.getProperty("java.class.path")
+        val separator = File.pathSeparator
+        val paths = classpath.split(separator)
+        for (path in paths) {
+            // .minecraft/versions/<ver>/<ver>.jar
+            if (path.endsWith("/$gameVersion/$gameVersion.jar")) {
+                return File(path)
+            }
+            // MultiMC-like maven structure
+            if (path.endsWith("com/mojang/minecraft/$gameVersion/minecraft-$gameVersion-client.jar")) {
+                return File(path)
+            }
+        }
+        fatalError("Could not find vanilla jar for version $gameVersion")
     }
 
     /**
@@ -36,6 +58,8 @@ internal object FileManager {
         if (specificVersionDirectory.exists() && specificVersionDirectory.isDirectory()) {
             mods += specificVersionDirectory.walkMods(true)
         }
+
+        println("Discovered ${mods.size} mod files")
 
         return mods
     }

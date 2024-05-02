@@ -17,9 +17,13 @@ import java.io.File
 import java.util.jar.JarFile
 
 object MappingsHandler {
-    private val vanillaJar = FileManager.getVanillaMinecraftJar()
+    private val vanillaJar by lazy {
+        FileManager.getVanillaMinecraftJar()
+    }
 
     val mergedMappings by lazy {
+        println("Loading merged mappings for ${GameInfo.version.versionName}")
+        println(" - Vanilla jar: $vanillaJar")
         MappingsRetrieval.loadMergedWeaveMappings(GameInfo.version.versionName, vanillaJar)
     }
 
@@ -165,8 +169,6 @@ private fun relocate(): ((parent: ClassVisitor) -> ClassVisitor) {
         "com/google" to "$relocatePrefix/google",
         "org/spongepowered" to "$relocatePrefix/spongepowered"
     )
-
-    val mappingsExclusions = listOf("gson")
     /*
     -------------------------------------------------------------------------
     </THIS PORTION SHOULD BE UPDATED WHENEVER config-shade.gradle.kts IS UPDATED>
@@ -174,7 +176,6 @@ private fun relocate(): ((parent: ClassVisitor) -> ClassVisitor) {
      */
 
     fun findMapping(name: String) = mapping.entries.find { (k) -> name.startsWith("$k/") }
-        ?.takeIf { mappingsExclusions.none { it in name } }
 
     fun remap(name: String) = findMapping(name)?.let { (k, v) -> name.replaceFirst(k, v) } ?: name
 
