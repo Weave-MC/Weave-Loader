@@ -172,14 +172,14 @@ internal fun setGameInfo() {
     val version = System.getProperty("weave.environment.version")
         ?: if (cwd.pathString.contains("instances")) {
             val instance = cwd.parent
-            try {
+            runCatching {
                 val instanceData = JSON.decodeFromString<MultiMCInstance>(
                     instance.resolve("mmc-pack.json").toFile().readText()
                 )
 
                 instanceData.components.find { it.uid == "net.minecraft" }?.version
                     ?: fatalError("Failed to find \"Minecraft\" component in ${instance.pathString}'s mmc-pack.json")
-            } catch (t: Throwable) {
+            }.onFailure { t ->
                 t.printStackTrace()
                 fatalError("Failed to parse ${instance.pathString}'s mmc-pack.json")
             }
