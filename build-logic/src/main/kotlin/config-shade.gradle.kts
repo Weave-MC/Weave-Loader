@@ -1,7 +1,4 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-import gradle.kotlin.dsl.accessors._d73e0aad27c892ff134862f94ec3182c.build
-import gradle.kotlin.dsl.accessors._d73e0aad27c892ff134862f94ec3182c.implementation
-import gradle.kotlin.dsl.accessors._d73e0aad27c892ff134862f94ec3182c.jar
 import org.gradle.kotlin.dsl.creating
 
 plugins {
@@ -9,7 +6,8 @@ plugins {
 }
 
 val shade: Configuration by configurations.creating
-configurations.implementation { extendsFrom(shade) }
+val api: Configuration by configurations.getting
+api.extendsFrom(shade)
 
 tasks {
     val shadowJar by getting(ShadowJar::class) {
@@ -40,9 +38,12 @@ tasks {
         mergeServiceFiles()
 
         afterEvaluate {
-            this@getting.manifest.inheritFrom(tasks.jar.get().manifest)
+            val jarTask = tasks.getByName<Jar>("jar")
+            this@getting.manifest.inheritFrom(jarTask.manifest)
         }
     }
 
-    build.get().dependsOn(shadowJar)
+    val build by getting {
+        dependsOn(shadowJar)
+    }
 }
