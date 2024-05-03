@@ -1,9 +1,13 @@
 package net.weavemc.loader.mixin
 
 import com.grappenmaker.mappings.ClasspathLoaders
+import me.xtrm.klog.Level
+import me.xtrm.klog.dsl.klog
+import me.xtrm.klog.dsl.klogConfig
 import net.weavemc.internals.asm
 import net.weavemc.internals.internalNameOf
 import net.weavemc.internals.named
+import net.weavemc.loader.WeaveLogAppender
 import net.weavemc.loader.util.asClassNode
 import net.weavemc.loader.util.asClassReader
 import net.weavemc.loader.util.illegalToReload
@@ -28,6 +32,8 @@ import java.security.ProtectionDomain
 import java.util.*
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
+
+private val logger by klog
 
 /**
  * Implements a [ClassFileTransformer] that passes all loaded classes through the wrapped [mixin] state
@@ -145,11 +151,10 @@ private fun createMixinAccessor(loader: ClassLoader) =
             .loadClass("net.weavemc.loader.mixin.MixinAccessImpl")
             .getField("INSTANCE").also { it.isAccessible = true }[null] as MixinAccess
     }.onFailure {
-        println("Failed to create a mixin access instance:")
-        it.printStackTrace()
+        logger.error("Failed to create a mixin access instance", it)
 
         val dummy = object {}
-        println(
+        logger.debug(
             "Creating accessor within $loader, which is nested within ${loader.parent}, " +
                     "while this method is called within ${dummy.javaClass.classLoader}, " +
                     "and MixinAccess is accessed from within ${MixinAccess::class.java.classLoader}"
@@ -255,6 +260,13 @@ internal sealed interface MixinAccess {
 private data object MixinAccessImpl : MixinAccess {
     private val env get() = MixinEnvironment.getDefaultEnvironment()
     private var hasForcedSelect = false
+
+    init {
+        klogConfig {
+            defaultLevel = Level.INFO
+            appenders = mutableListOf(WeaveLogAppender(true))
+        }
+    }
 
     override fun bootstrap() = MixinBootstrap.init()
     override fun validate() {

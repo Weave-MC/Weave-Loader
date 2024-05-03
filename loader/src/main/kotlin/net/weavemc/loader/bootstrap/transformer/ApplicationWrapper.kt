@@ -1,5 +1,6 @@
 package net.weavemc.loader.bootstrap.transformer
 
+import me.xtrm.klog.dsl.klog
 import net.weavemc.internals.asm
 import net.weavemc.loader.mixin.LoaderClassWriter
 import net.weavemc.loader.util.asClassNode
@@ -12,7 +13,6 @@ import org.objectweb.asm.tree.LabelNode
 import java.lang.invoke.MethodHandles
 import java.lang.invoke.MethodType
 import java.lang.invoke.WrongMethodTypeException
-import java.net.URL
 import java.net.URLClassLoader
 
 // Makes sure to run the application within some notion of a "custom" ClassLoader,
@@ -66,9 +66,10 @@ object ApplicationWrapper {
     @JvmStatic
     @Suppress("unused")
     fun wrap(targetMain: String, args: Array<String>) {
-        println("[Weave] Minecraft Main was directly invoked, which potentially blocks transformation")
-        println(
-            "[Weave] This is normal to happen on Vanilla Minecraft pre-launchwrapper. " +
+        val logger by klog
+        logger.info("Minecraft Main was directly invoked, which potentially blocks transformation")
+        logger.info(
+            "This is normal to happen on Vanilla Minecraft pre-launchwrapper. " +
                     "Therefore, the game will be wrapped into a new ClassLoader"
         )
 
@@ -83,7 +84,7 @@ object ApplicationWrapper {
                     // Some error occurred within reflective access
                     e.printStackTrace()
 
-                    println("[Weave] Failed to wrap game using java.lang.invoke, using Reflection fallback")
+                    logger.warn("Failed to wrap game using java.lang.invoke, using Reflection fallback")
                     mainClass.getMethod("main", args::class.java)(null, args)
                 }
                 else -> throw e

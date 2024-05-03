@@ -1,11 +1,13 @@
 package net.weavemc.loader.util
 
+import me.xtrm.klog.dsl.klog
 import net.weavemc.internals.GameInfo
 import java.io.File
 import java.nio.file.Path
 import kotlin.io.path.*
 
 internal object FileManager {
+    private val logger by klog
     val MODS_DIRECTORY = getOrCreateDirectory("mods")
     val DUMP_DIRECTORY = getOrCreateDirectory(".bytecode.out")
 
@@ -13,6 +15,7 @@ internal object FileManager {
         parts.joinToString(File.separator)
 
     fun getVanillaMinecraftJar(): File {
+        logger.trace("Searching for vanilla jar")
         val os = System.getProperty("os.name").lowercase()
         run {
             val userHome = System.getProperty("user.home", System.getenv("HOME") ?: System.getenv("USERPROFILE"))
@@ -32,6 +35,7 @@ internal object FileManager {
             }
         }
 
+        logger.trace("Trying to find vanilla jar in classpath")
         val gameVersion = GameInfo.version.versionName
         val mclPath = buildPath("versions", gameVersion, "$gameVersion.jar")
         val mmcPath = buildPath("libraries", "com", "mojang", "minecraft", gameVersion,
@@ -49,14 +53,16 @@ internal object FileManager {
     fun getMods(): List<ModJar> {
         val mods = mutableListOf<ModJar>()
 
+        logger.trace("Searching for mods in $MODS_DIRECTORY")
         mods += MODS_DIRECTORY.walkMods()
 
         val specificVersionDirectory = MODS_DIRECTORY.resolve(GameInfo.version.versionName)
         if (specificVersionDirectory.exists() && specificVersionDirectory.isDirectory()) {
+            logger.trace("Searching for mods in $specificVersionDirectory")
             mods += specificVersionDirectory.walkMods(true)
         }
 
-        println("Discovered ${mods.size} mod files")
+        logger.info("Discovered ${mods.size} mod files")
 
         return mods
     }

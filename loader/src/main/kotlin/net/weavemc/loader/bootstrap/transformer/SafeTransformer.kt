@@ -1,12 +1,12 @@
 package net.weavemc.loader.bootstrap.transformer
 
+import me.xtrm.klog.dsl.klog
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.tree.ClassNode
 import java.lang.instrument.ClassFileTransformer
 import java.security.ProtectionDomain
-import kotlin.system.exitProcess
 
-val checkBytecode = java.lang.Boolean.getBoolean("weave.loader.checkTransformedBytecode")
+private val checkBytecode = java.lang.Boolean.getBoolean("weave.loader.checkTransformedBytecode")
 
 internal interface SafeTransformer : ClassFileTransformer {
     /**
@@ -34,8 +34,7 @@ internal interface SafeTransformer : ClassFileTransformer {
         }
         bytes
     }.getOrElse {
-        it.printStackTrace()
-        println("An error occurred while transforming $className (from ${this.javaClass.name}): ${it.message}")
-        exitProcess(1)
+        klog.fatal("An error occurred while transforming {} (from {})", className, this.javaClass.name, it)
+        null
     }
 }

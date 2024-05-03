@@ -2,6 +2,9 @@ package net.weavemc.loader
 
 import com.grappenmaker.mappings.ClasspathLoaders
 import com.grappenmaker.mappings.remappingNames
+import me.xtrm.klog.Level
+import me.xtrm.klog.Logger
+import me.xtrm.klog.dsl.klogConfig
 import net.weavemc.api.Hook
 import net.weavemc.api.ModInitializer
 import net.weavemc.internals.GameInfo
@@ -20,8 +23,10 @@ import java.util.jar.JarFile
  */
 class WeaveLoader(
     private val classLoader: URLClassLoaderAccessor,
-    private val instrumentation: Instrumentation
+    private val instrumentation: Instrumentation,
 ) {
+    private val logger: Logger
+
     /**
      * Stored list of [WeaveMod]s.
      *
@@ -32,12 +37,20 @@ class WeaveLoader(
 
     companion object {
         private var INSTANCE: WeaveLoader? = null
+
         @JvmStatic
-        fun getInstance() = INSTANCE ?: fatalError("Attempted to retrieve WeaveLoader instance before it has been instantiated!")
+        fun getInstance() = INSTANCE
+            ?: fatalError("Attempted to retrieve WeaveLoader instance before it has been instantiated!")
     }
 
     init {
-        println("[Weave] Initializing Weave")
+        klogConfig {
+            defaultLevel = Level.INFO
+            appenders = mutableListOf(WeaveLogAppender(true))
+        }
+
+        logger = Logger(WeaveLoader::class.qualifiedName!!)
+        logger.info("Initializing Weave")
 
         INSTANCE = this
         launchStart = System.currentTimeMillis()
@@ -47,36 +60,36 @@ class WeaveLoader(
     }
 
     private fun finalize() {
-        println("[Weave] Finalizing Weave")
+        logger.trace("Finalizing Weave loading...")
         retrieveMods().forEach { it.registerAsMod() }
-        println("[Weave] Verifying dependencies")
+        logger.trace("Verifying dependencies")
         verifyDependencies()
-        println("[Weave] Populating mixin modifiers")
+        logger.trace("Populating mixin modifiers")
         populateMixinModifiers()
 
-        println("[Weave] calling preInit() for mods")
+        logger.trace("Calling preInit() for mods")
         // TODO remove
         // Invoke preInit() once everything is done.
         mods.forEach { weaveMod ->
             weaveMod.config.entryPoints.forEach { entrypoint ->
                 runCatching {
+                    logger.debug("Calling $entrypoint#preInit")
+                    @Suppress("DEPRECATION")
                     instantiate<ModInitializer>(entrypoint)
                 }.onFailure {
-                    it.printStackTrace()
-                    println("Failed to instantiate $entrypoint#preInit")
+                    logger.error("Failed to instantiate $entrypoint#preInit", it)
                 }.onSuccess {
                     runCatching {
                         @Suppress("DEPRECATION")
                         it.preInit(instrumentation)
                     }.onFailure {
-                        it.printStackTrace()
-                        println("Exception thrown when invoking $entrypoint#preInit")
+                        logger.error("Exception thrown when invoking $entrypoint#preInit", it)
                     }
                 }
             }
         }
 
-        println("[Weave] Initialized Weave")
+        logger.info("Weave initialized in ${System.currentTimeMillis() - launchStart}ms")
         updateLaunchTimes()
     }
 
@@ -90,14 +103,12 @@ class WeaveLoader(
                 runCatching {
                     instantiate<ModInitializer>(entrypoint)
                 }.onFailure {
-                    it.printStackTrace()
-                    println("Failed to instantiate $entrypoint#init")
+                    logger.error("Failed to instantiate $entrypoint#init", it)
                 }.onSuccess {
                     runCatching {
                         it.init()
                     }.onFailure {
-                        it.printStackTrace()
-                        println("Exception thrown when invoking $entrypoint#init")
+                        logger.error("Exception thrown when invoking $entrypoint#init", it)
                     }
                 }
             }
@@ -129,6 +140,7 @@ class WeaveLoader(
     }
 
     private fun mixinForNamespace(namespace: String) = mixinInstances.getOrPut(namespace) {
+        logger.debug("Creating a new MixinLoader for namespace $namespace")
         val parent = classLoader.backing
         SandboxedMixinLoader(
             parent = parent,
@@ -159,7 +171,7 @@ class WeaveLoader(
      * Registers mod's hooks and mixins then adds to mods list for later instantiation
      */
     private fun File.registerAsMod() {
-        println("[Weave] Registering ${this.name}")
+        logger.trace("Registering ${this.name}")
         classLoader.addWeaveURL(this.toURI().toURL())
 
         JarFile(this).use { jar ->
@@ -170,7 +182,7 @@ class WeaveLoader(
             instrumentation.appendToSystemClassLoaderSearch(jar)
 
             config.hooks.forEach { hook ->
-                println("[Weave] Registering hook $hook")
+                logger.trace("Registering hook $hook")
                 InjectionHandler.registerModifier(ModHook(config.namespace, instantiate(hook)))
             }
 
@@ -178,7 +190,7 @@ class WeaveLoader(
             config.mixinConfigs.forEach { state.registerMixin(modId, it) }
 
             mods += WeaveMod(modId, config)
-            println("[Weave] Registered ${this.name}")
+            logger.trace("Registered ${this.name}")
         }
     }
 
