@@ -9,11 +9,14 @@ internal object FileManager {
     val MODS_DIRECTORY = getOrCreateDirectory("mods")
     val DUMP_DIRECTORY = getOrCreateDirectory(".bytecode.out")
 
+    private fun buildPath(vararg parts: String) =
+        parts.joinToString(File.separator)
+
     fun getVanillaMinecraftJar(): File {
         val os = System.getProperty("os.name").lowercase()
         val minecraftPath = when {
-            os.contains("win") -> "AppData${File.separator}Roaming${File.separator}.minecraft"
-            os.contains("mac") -> "Library${File.separator}Application Support${File.separator}minecraft"
+            os.contains("win") -> buildPath("AppData", "Roaming", ".minecraft")
+            os.contains("mac") -> buildPath("Library", "Application Support", "minecraft")
             os.contains("nix") || os.contains("nux") || os.contains("aix") -> ".minecraft"
             else -> null
         }
@@ -31,8 +34,6 @@ internal object FileManager {
         val gameVersion = GameInfo.version.versionName
         val classpath = System.getProperty("java.class.path")
         if (classpath != null) {
-            fun buildPath(vararg parts: String) = parts.joinToString(File.separator)
-
             val paths = classpath.split(File.pathSeparator)
             for (path in paths) {
                 // .minecraft/versions/<ver>/<ver>.jar
