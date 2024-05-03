@@ -48,8 +48,6 @@ class SandboxedMixinTransformer(
  * A [ClassLoader] that is capable of "sandboxing" Spongepowered Mixin. The [parent] loader can be specified,
  * which will be used to load non-sandboxed classes. A [loader] can be specified, which is responsible for providing
  * class bytes by a given name (forward slashes are the package separator).
- *
- * fixupConflicts determines whether the remapper for the mixin sandbox renames possibly colliding mixed-in methods
  */
 class SandboxedMixinLoader(
     private val parent: ClassLoader = getSystemClassLoader(),
@@ -141,21 +139,22 @@ class SandboxedMixinLoader(
     internal fun getClassBytes(name: String) = loader(name) ?: getResourceAsStream("$name.class")?.readBytes()
 }
 
-private fun createMixinAccessor(loader: ClassLoader) = runCatching {
-    loader
-        .loadClass("net.weavemc.loader.mixin.MixinAccessImpl")
-        .getField("INSTANCE").also { it.isAccessible = true }[null] as MixinAccess
-}.onFailure {
-    println("Failed to create a mixin access instance:")
-    it.printStackTrace()
+private fun createMixinAccessor(loader: ClassLoader) =
+    runCatching {
+        loader
+            .loadClass("net.weavemc.loader.mixin.MixinAccessImpl")
+            .getField("INSTANCE").also { it.isAccessible = true }[null] as MixinAccess
+    }.onFailure {
+        println("Failed to create a mixin access instance:")
+        it.printStackTrace()
 
-    val dummy = object {}
-    println(
-        "Creating accessor within $loader, which is nested within ${loader.parent}, " +
-                "while this method is called within ${dummy.javaClass.classLoader}, " +
-                "and MixinAccess is accessed from within ${MixinAccess::class.java.classLoader}"
-    )
-}.getOrThrow()
+        val dummy = object {}
+        println(
+            "Creating accessor within $loader, which is nested within ${loader.parent}, " +
+                    "while this method is called within ${dummy.javaClass.classLoader}, " +
+                    "and MixinAccess is accessed from within ${MixinAccess::class.java.classLoader}"
+        )
+    }.getOrThrow()
 
 /**
  * Keeps track of the state of the mixin environment. Allows you to interact with the sandbox.
@@ -179,6 +178,21 @@ class SandboxedMixinState(
      */
     fun initialize() {
         if (initialized) return
+
+        injectService(
+            "net.weavemc.loader.shaded.spongepowered.asm.service.IMixinService",
+            "net.weavemc.loader.mixin.SandboxedMixinService"
+        )
+
+        injectService(
+            "net.weavemc.loader.shaded.spongepowered.asm.service.IMixinServiceBootstrap",
+            "net.weavemc.loader.mixin.DummyServiceBootstrap"
+        )
+
+        injectService(
+            "net.weavemc.loader.shaded.spongepowered.asm.service.IGlobalPropertyService",
+            "net.weavemc.loader.mixin.DummyPropertyService"
+        )
 
         bootstrap()
         validate()
@@ -222,6 +236,9 @@ class SandboxedMixinState(
         transform(transformer, internalName.replace('/', '.'), node)
         return node
     }
+
+    private fun injectService(name: String, value: String) =
+        loader.injectResource("META-INF/services/$name", value.encodeToByteArray())
 }
 
 internal sealed interface MixinAccess {
@@ -297,14 +314,25 @@ private fun <R> counter() = object : ReadOnlyProperty<R, Int> {
  */
 // TODO: generalize
 class LoaderClassWriter(
-    private val loader: ClassLoader,
+    private val loader: ClassLoader?,
     reader: ClassReader? = null,
     flags: Int = 0,
     private val useBytecodeInheritance: Boolean = true,
 ) : ClassWriter(reader, flags) {
-    override fun getClassLoader(): ClassLoader = loader
-    private fun String.load() = loader.getResourceAsStream("$this.class")?.readBytes()?.asClassReader()?.asClassNode()
-    private val ClassNode.isInterface: Boolean get() = access and ACC_INTERFACE != 0
+    private fun getStream(name: String) = loader?.getResourceAsStream(name)
+        ?: LoaderClassWriter::class.java.getResourceAsStream(name)
+
+    private fun String.load() =
+        getStream("$this.class")?.readBytes()?.asClassReader()?.asClassNode()
+
+    private val ClassNode.isInterface: Boolean
+        get() = access and ACC_INTERFACE != 0
+
+    init {
+        if (!useBytecodeInheritance && loader == null) {
+            error("Cannot use reflection for inheritance without a ClassLoader")
+        }
+    }
 
     override fun getCommonSuperClass(type1: String, type2: String): String {
         if (!useBytecodeInheritance) return super.getCommonSuperClass(type1, type2)
@@ -331,4 +359,6 @@ class LoaderClassWriter(
         "java/lang/Object" -> emptyList()
         else -> listOf(superName) + (superName.load()?.getParents() ?: emptyList())
     }
+
+    override fun getClassLoader(): ClassLoader? = loader
 }

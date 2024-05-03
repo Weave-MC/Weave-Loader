@@ -5,13 +5,13 @@ plugins {
 }
 
 repositories {
-    maven("https://repo.spongepowered.org/repository/maven-public/")
+    maven("https://maven.fabricmc.net/")
 }
 
 dependencies {
+    shade(project(":api"))
     shade(libs.kxSer)
     shade(libs.bundles.asm)
-    shade(project(":api"))
     shade(libs.weaveInternals)
     shade(libs.mappingsUtil)
     shade(libs.bundles.mixin)

@@ -60,8 +60,8 @@ internal class SandboxedMixinService : IMixinService {
     override fun getMixinContainers() = emptyList<IContainerHandle>()
     override fun getResourceAsStream(name: String): InputStream? = javaClass.classLoader.getResourceAsStream(name)
     override fun getSideName() = Constants.SIDE_CLIENT
-    override fun getMinCompatibilityLevel() = null
-    override fun getMaxCompatibilityLevel() = null
+    override fun getMinCompatibilityLevel() = MixinEnvironment.CompatibilityLevel.JAVA_7
+    override fun getMaxCompatibilityLevel() = MixinEnvironment.CompatibilityLevel.MAX_SUPPORTED
     override fun getLogger(name: String) = LoggerAdapterConsole(name)
 }
 
