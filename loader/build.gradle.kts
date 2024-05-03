@@ -7,6 +7,7 @@ plugins {
 }
 
 repositories {
+    mavenLocal()
     maven("https://maven.fabricmc.net/")
 }
 

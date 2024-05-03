@@ -46,6 +46,6 @@ internal interface SafeTransformer : ClassFileTransformer {
         bytes
     }.getOrElse {
         klog.fatal("An error occurred while transforming {} (from {})", className, this.javaClass.name, it)
-        exit(1)
+        exit(-1)
     }
 }
