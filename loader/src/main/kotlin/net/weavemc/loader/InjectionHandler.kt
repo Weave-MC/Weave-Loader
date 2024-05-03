@@ -1,11 +1,12 @@
 package net.weavemc.loader
 
 import com.grappenmaker.mappings.LambdaAwareRemapper
+import me.xtrm.klog.dsl.klog
 import net.weavemc.api.Hook
 import net.weavemc.internals.dump
 import net.weavemc.loader.bootstrap.transformer.SafeTransformer
-import net.weavemc.loader.util.MappingsHandler.remap
 import net.weavemc.loader.util.*
+import net.weavemc.loader.util.MappingsHandler.remap
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
@@ -82,7 +83,7 @@ object InjectionHandler : SafeTransformer {
 
                 runCatching {
                     classWriter.toByteArray().dump(bytecodeOut.absolutePath)
-                }.onFailure { println("Failed to dump bytecode for $bytecodeOut") }
+                }.onFailure { klog.error("Failed to dump bytecode for $bytecodeOut", it) }
             }
 
             return classWriter.toByteArray()
@@ -114,7 +115,7 @@ data class ModHook(
 }
 
 class AssemblerConfigImpl : Hook.AssemblerConfig {
-    var computeFrames = false
+    private var computeFrames = false
 
     override fun computeFrames() {
         computeFrames = true

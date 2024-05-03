@@ -1,11 +1,15 @@
 package net.weavemc.loader.mixin
 
+import me.xtrm.klog.dsl.klog
+import net.weavemc.loader.WeaveLogAppender
 import net.weavemc.loader.util.asClassNode
 import net.weavemc.loader.util.asClassReader
 import net.weavemc.loader.util.getJavaVersion
 import org.spongepowered.asm.launch.platform.container.ContainerHandleVirtual
 import org.spongepowered.asm.launch.platform.container.IContainerHandle
-import org.spongepowered.asm.logging.LoggerAdapterConsole
+import org.spongepowered.asm.logging.ILogger
+import org.spongepowered.asm.logging.Level
+import org.spongepowered.asm.logging.LoggerAdapterAbstract
 import org.spongepowered.asm.mixin.MixinEnvironment
 import org.spongepowered.asm.mixin.transformer.IMixinTransformerFactory
 import org.spongepowered.asm.service.*
@@ -31,18 +35,20 @@ internal object SandboxedClassProvider : IClassProvider, IClassBytecodeProvider 
 }
 
 internal class SandboxedMixinService : IMixinService {
-    private val logger = getLogger("Sandboxed Mixin")
+    private val logger by klog
+
     private val lock = ReEntranceLock(1)
     private val sandboxLoader get() = javaClass.classLoader as? SandboxedMixinLoader
 
-    override fun getName() = "Sandboxed Mixin (within ${sandboxLoader?.parent})"
+    override fun getName() = "weave-mixin (within ${sandboxLoader?.parent})"
     override fun isValid() = true
     override fun prepare() {}
     override fun getInitialPhase(): MixinEnvironment.Phase = MixinEnvironment.Phase.PREINIT
 
     override fun offer(internal: IMixinInternal) {
         if (internal is IMixinTransformerFactory) {
-            if (sandboxLoader == null) logger.warn("$sandboxLoader was null while transformer was constructed")
+            if (sandboxLoader == null)
+                logger.warn("\"sandboxLoader\" was null while transformer was constructed")
             sandboxLoader?.state?.transformer = internal.createTransformer()
         }
     }
@@ -65,12 +71,12 @@ internal class SandboxedMixinService : IMixinService {
     override fun getMaxCompatibilityLevel() = runCatching {
         MixinEnvironment.CompatibilityLevel.valueOf("JAVA_${getJavaVersion()}")
     }.getOrNull()
-    override fun getLogger(name: String) = LoggerAdapterConsole(name)
+    override fun getLogger(name: String) = WeaveLoggerAdapter(name)
 }
 
 @Suppress("unused")
 internal class DummyServiceBootstrap : IMixinServiceBootstrap {
-    override fun getName() = "Sandboxed Mixin Bootstrap"
+    override fun getName() = "weave-mixin Bootstrap"
     override fun getServiceClassName(): String = SandboxedMixinService::class.java.name
     override fun bootstrap() {}
 }
@@ -95,4 +101,50 @@ internal class DummyPropertyService : IGlobalPropertyService {
     }
 
     override fun getPropertyString(key: IPropertyKey, defaultValue: String) = getProperty(key, defaultValue)
+}
+
+private typealias KlogLevel = me.xtrm.klog.Level
+private class WeaveLoggerAdapter(name: String) : LoggerAdapterAbstract(name) {
+    private val logger by klog(name)
+    private val stdout = WeaveLogAppender.WrappingStream(System.out)
+
+    override fun getType(): String {
+        return "Default Console Logger"
+    }
+
+    override fun catching(level: Level, t: Throwable) {
+        logger.warn("Catching {}: {}", t.javaClass.name, t.message, t)
+    }
+
+    override fun log(level: Level, message: String, vararg params: Any) {
+        val formatted = FormattedMessage(message, *params)
+        logger.log(level.toKlog(), formatted.message)
+        if (formatted.hasThrowable()) {
+            formatted.throwable.printStackTrace(stdout)
+        }
+    }
+
+    override fun log(level: Level, message: String, t: Throwable) {
+        logger.log(level.toKlog(), message)
+        t.printStackTrace(stdout)
+    }
+
+    override fun <T : Throwable> throwing(throwable: T?): T? {
+        this.log(
+            Level.WARN, "Throwing {}: {}",
+            throwable?.javaClass?.getName() ?: "null",
+            throwable?.message ?: "null",
+            throwable ?: Throwable("No Throwable")
+        )
+        return throwable
+    }
+
+    private fun Level.toKlog(): KlogLevel = when (this) {
+        Level.TRACE -> KlogLevel.TRACE
+        Level.DEBUG -> KlogLevel.DEBUG
+        Level.INFO -> KlogLevel.INFO
+        Level.WARN -> KlogLevel.WARN
+        Level.ERROR -> KlogLevel.ERROR
+        Level.FATAL -> KlogLevel.FATAL
+    }
 }

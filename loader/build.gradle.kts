@@ -1,3 +1,5 @@
+@file:Suppress("VulnerableLibrariesLocal")
+
 plugins {
     id("config-kotlin")
     id("config-shade")
@@ -5,11 +7,13 @@ plugins {
 }
 
 repositories {
+    mavenLocal()
     maven("https://maven.fabricmc.net/")
 }
 
 dependencies {
     shade(project(":api"))
+    shade(libs.klog)
     shade(libs.kxSer)
     shade(libs.bundles.asm)
     shade(libs.weaveInternals)

@@ -1,14 +1,18 @@
 package net.weavemc.loader.bootstrap
 
+import me.xtrm.klog.dsl.klog
 import net.weavemc.internals.GameInfo
 import net.weavemc.loader.bootstrap.transformer.ApplicationWrapper
 import net.weavemc.loader.bootstrap.transformer.SafeTransformer
 import net.weavemc.loader.bootstrap.transformer.URLClassLoaderAccessor
 import net.weavemc.loader.bootstrap.transformer.URLClassLoaderTransformer
-import net.weavemc.loader.util.*
+import net.weavemc.loader.util.exit
+import net.weavemc.loader.util.fatalError
 import java.lang.instrument.Instrumentation
 
 object Bootstrap {
+    val logger by klog
+
     fun bootstrap(inst: Instrumentation) {
         inst.addTransformer(object: SafeTransformer {
             override fun transform(loader: ClassLoader?, className: String, originalClass: ByteArray): ByteArray? {
@@ -32,16 +36,21 @@ object Bootstrap {
                         fatalError("Failed to deliberately add Weave to the target classloader")
                     }
 
-                    println("[Weave] Bootstrapping complete.")
+                    logger.info("Bootstrapping complete, initializing loader...")
 
                     /**
                      * Start the Weave Loader initialization phase
                      */
                     val wlc = loader.loadClass("net.weavemc.loader.WeaveLoader")
-                    wlc.getConstructor(
-                        URLClassLoaderAccessor::class.java,
-                        Instrumentation::class.java
-                    ).newInstance(clAccessor, inst)
+                    runCatching {
+                        wlc.getConstructor(
+                            URLClassLoaderAccessor::class.java,
+                            Instrumentation::class.java,
+                        ).newInstance(clAccessor, inst)
+                    }.onFailure {
+                        logger.fatal("Failed to instantiate WeaveLoader", it)
+                        exit(-1)
+                    }
                 }
 
                 return null
@@ -50,15 +59,9 @@ object Bootstrap {
     }
 
     private fun printBootstrap(loader: ClassLoader?) {
-        println(
-            """
-            [Weave] Bootstrapping...
-                - Version: ${GameInfo.version.versionName}
-                - Client: ${GameInfo.client.clientName}
-                - Loader: $loader
-            """.trimIndent()
-        )
+        logger.info("Bootstrapping Weave Loader...")
+        logger.debug(" - Version: ${GameInfo.version.versionName}")
+        logger.debug(" - Client: ${GameInfo.client.clientName}")
+        logger.debug(" - Loader: $loader")
     }
-
-
 }

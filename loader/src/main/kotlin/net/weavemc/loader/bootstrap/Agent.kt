@@ -1,8 +1,12 @@
 package net.weavemc.loader.bootstrap
 
+import me.xtrm.klog.Level
+import me.xtrm.klog.dsl.klog
+import me.xtrm.klog.dsl.klogConfig
 import net.weavemc.api.Tweaker
 import net.weavemc.internals.ModConfig
 import net.weavemc.loader.WeaveLoader
+import net.weavemc.loader.WeaveLogAppender
 import net.weavemc.loader.bootstrap.transformer.ArgumentSanitizer
 import net.weavemc.loader.bootstrap.transformer.ModInitializerHook
 import net.weavemc.loader.bootstrap.transformer.URLClassLoaderTransformer
@@ -12,13 +16,20 @@ import java.awt.GraphicsEnvironment
 import java.lang.instrument.Instrumentation
 import java.util.jar.JarFile
 
+private val logger by klog
+
 /**
  * The JavaAgent's `premain()` method, this is where initialization of Weave Loader begins.
  * Weave Loader's initialization begins by instantiating [WeaveLoader]
  */
 @Suppress("UNUSED_PARAMETER")
 fun premain(opt: String?, inst: Instrumentation) {
-    println("[Weave] Attached Weave")
+    klogConfig {
+        defaultLevel = Level.INFO
+        appenders = mutableListOf(WeaveLogAppender())
+    }
+
+    logger.info("Attached Weave")
 
     setGameInfo()
     callTweakers(inst)
@@ -42,7 +53,7 @@ fun premain(opt: String?, inst: Instrumentation) {
 }
 
 private fun callTweakers(inst: Instrumentation) {
-    println("[Weave] Calling tweakers")
+    logger.info("Calling tweakers")
 
     val tweakers = FileManager
         .getMods()

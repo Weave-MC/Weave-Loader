@@ -1,6 +1,7 @@
 package net.weavemc.loader.util
 
 import kotlinx.serialization.json.Json
+import me.xtrm.klog.dsl.klog
 import net.weavemc.internals.GameInfo
 import net.weavemc.internals.ModConfig
 import org.objectweb.asm.ClassReader
@@ -131,7 +132,7 @@ inline fun <reified T> instantiate(className: String): T =
         ?: error("$className does not implement ${T::class.java.simpleName}!")
 
 internal fun fatalError(message: String): Nothing {
-    System.err.println("An error occurred: $message")
+    klog.fatal("An error occurred: $message")
     JOptionPane.showMessageDialog(
         /* parentComponent = */ null,
         /* message = */ "An error occurred: $message",
@@ -193,7 +194,7 @@ internal fun getJavaVersion(): Int {
 }
 
 fun JarFile.configOrFatal() = runCatching { fetchModConfig(JSON) }.onFailure {
-    println("Possibly non-weave mod failed to load:")
+    klog.error("Possibly non-weave mod failed to load:")
     it.printStackTrace()
 
     fatalError("Mod file ${this.name} is possibly not a Weave mod!")

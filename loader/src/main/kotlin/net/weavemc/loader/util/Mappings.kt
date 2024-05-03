@@ -1,6 +1,7 @@
 package net.weavemc.loader.util
 
 import com.grappenmaker.mappings.*
+import me.xtrm.klog.dsl.klog
 import net.weavemc.internals.GameInfo
 import net.weavemc.internals.MappingsRetrieval
 import net.weavemc.internals.MappingsType.MCP
@@ -19,14 +20,15 @@ import java.util.*
 import java.util.jar.JarFile
 
 object MappingsHandler {
+    private val logger by klog
     private val relocationVisitor by lazy { relocate() }
     private val vanillaJar by lazy {
         FileManager.getVanillaMinecraftJar()
     }
 
     val mergedMappings by lazy {
-        println("Loading merged mappings for ${GameInfo.version.versionName}")
-        println(" - Vanilla jar: $vanillaJar")
+        logger.info("Loading merged mappings for ${GameInfo.version.versionName}")
+        logger.debug("Vanilla jar: $vanillaJar")
         MappingsRetrieval.loadMergedWeaveMappings(GameInfo.version.versionName, vanillaJar)
     }
 
