@@ -14,7 +14,7 @@ dependencies {
     shade(libs.bundles.asm)
     shade(libs.weaveInternals)
     shade(libs.mappingsUtil)
-    shade(libs.bundles.mixin)
+    shade(libs.mixin)
 }
 
 tasks.jar {

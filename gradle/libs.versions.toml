@@ -5,8 +5,6 @@ kotlin = "2.0.0-RC2"
 kxSer = "1.5.1"
 mappingsUtil = "0.1.3"
 weaveInternals = "1.0.0-b.2"
-guava = "21.0"
-gson = "2.2.4"
 gradle-shadow = "8.1.1"
 
 [libraries]
@@ -18,8 +16,6 @@ mixin = { module = "net.fabricmc:sponge-mixin", version.ref = "mixin" }
 kxSer = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kxSer" }
 mappingsUtil = { module = "io.github.770grappenmaker:mappings-util", version.ref = "mappingsUtil" }
 weaveInternals = { module = "net.weavemc:internals", version.ref = "weaveInternals" }
-guava = { module = "com.google.guava:guava", version.ref = "guava" }
-gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 
 gradle-shadow = { module = "com.github.johnrengelman.shadow:com.github.johnrengelman.shadow.gradle.plugin", version.ref = "gradle-shadow" }
 kotlin-compiler = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
@@ -27,5 +23,4 @@ kotlin-serialization = { module = "org.jetbrains.kotlin:kotlin-serialization", v
 
 [bundles]
 asm = ["asm", "asm-tree", "asm-commons", "asm-util"]
-mixin = ["guava", "gson", "mixin"]
 kotlin-plugins = ["kotlin-compiler", "kotlin-serialization"]
