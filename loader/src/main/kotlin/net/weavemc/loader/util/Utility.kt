@@ -141,7 +141,6 @@ internal fun fatalError(message: String): Nothing {
     )
 
     exit(-1)
-    throw IllegalStateException("Exiting.")
 }
 
 /**
@@ -150,7 +149,7 @@ internal fun fatalError(message: String): Nothing {
  *
  * @param errorCode the error code to exit with
  */
-fun exit(errorCode: Int) {
+fun exit(errorCode: Int): Nothing {
     runCatching {
         val clazz = Class.forName("java.lang.Shutdown")
         clazz.getDeclaredMethod("exit", Int::class.javaPrimitiveType).apply {
@@ -172,6 +171,7 @@ fun exit(errorCode: Int) {
             }
         }
     }
+    throw IllegalStateException("This should never be reached")
 }
 
 private fun exitRuntime(errorCode: Int) {
