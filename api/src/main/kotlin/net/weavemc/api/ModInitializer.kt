@@ -8,6 +8,7 @@ import java.lang.instrument.Instrumentation
  *
  * Override [preInit()][preInit] to initialize your mod.
  */
+@JvmDefaultWithCompatibility
 interface ModInitializer {
     /**
      * Invoked before Minecraft is initialized.

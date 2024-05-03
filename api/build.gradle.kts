@@ -10,6 +10,8 @@ dependencies {
     compileOnly(libs.weaveInternals)
 }
 
+kotlin.compilerOptions.freeCompilerArgs.add("-Xjvm-default=all")
+
 publishing {
     repositories {
         maven {
