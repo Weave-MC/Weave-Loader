@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+
 plugins {
     `java-library`
     kotlin("jvm")
@@ -14,14 +16,13 @@ base {
     archivesName.set("weave-${project.name}")
 }
 
-java {
-    withSourcesJar()
+java.withSourcesJar()
 
-    toolchain {
-        languageVersion = toolchainTarget
+kotlin {
+    compilerOptions {
+        freeCompilerArgs.add("-Xjvm-default=all")
+        languageVersion.set(KotlinVersion.KOTLIN_1_9)
+        apiVersion.set(KotlinVersion.KOTLIN_1_9)
     }
-}
-
-kotlin.jvmToolchain {
-    languageVersion = toolchainTarget
+    jvmToolchain(8)
 }

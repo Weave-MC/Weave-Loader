@@ -1,6 +1,7 @@
 [versions]
 asm = "9.7"
 mixin = "0.13.4+mixin.0.8.5"
+kotlin = "2.0.0-RC2"
 kxSer = "1.5.1"
 mappingsUtil = "0.1.3"
 weaveInternals = "1.0.0-b.2"
@@ -21,7 +22,10 @@ guava = { module = "com.google.guava:guava", version.ref = "guava" }
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 
 gradle-shadow = { module = "com.github.johnrengelman.shadow:com.github.johnrengelman.shadow.gradle.plugin", version.ref = "gradle-shadow" }
+kotlin-compiler = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
+kotlin-serialization = { module = "org.jetbrains.kotlin:kotlin-serialization", version.ref = "kotlin" }
 
 [bundles]
 asm = ["asm", "asm-tree", "asm-commons", "asm-util"]
 mixin = ["guava", "gson", "mixin"]
+kotlin-plugins = ["kotlin-compiler", "kotlin-serialization"]

@@ -8,7 +8,13 @@ repositories {
 
 dependencies {
     implementation(libs.bundles.asm)
+    implementation(libs.bundles.kotlin.plugins)
     implementation(libs.gradle.shadow)
-    implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.10")
-    implementation("org.jetbrains.kotlin:kotlin-serialization:1.9.10")
+}
+
+kotlin {
+    compilerOptions {
+        languageVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_9)
+        apiVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_9)
+    }
 }

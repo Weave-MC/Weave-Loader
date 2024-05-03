@@ -15,6 +15,9 @@ classes
 *.iml
 .idea
 
+# Kotlin K2
+.kotlin/
+
 # VScode Configuration Directory. 
 .vscode
 
