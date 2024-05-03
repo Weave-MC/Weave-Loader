@@ -3,7 +3,8 @@ package net.weavemc.loader.util
 import com.grappenmaker.mappings.*
 import net.weavemc.internals.GameInfo
 import net.weavemc.internals.MappingsRetrieval
-import net.weavemc.internals.MappingsType.*
+import net.weavemc.internals.MappingsType.MCP
+import net.weavemc.internals.MappingsType.MOJANG
 import net.weavemc.internals.MinecraftClient
 import net.weavemc.internals.MinecraftVersion
 import net.weavemc.loader.InjectionClassWriter
@@ -126,7 +127,7 @@ object MappingsHandler {
         remapper: Remapper
     ) : LambdaAwareMethodRemapper(parent, remapper) {
         override fun visitInvokeDynamicInsn(name: String, descriptor: String, handle: Handle, vararg args: Any) {
-            if (annotations.contains("net/weavemc/relocate/spongepowered/asm/mixin/transformer/meta/MixinMerged"))
+            if (annotations.contains("net/weavemc/loader/shaded/spongepowered/asm/mixin/transformer/meta/MixinMerged"))
                 parent.visitInvokeDynamicInsn(name, descriptor, handle, args)
             else
                 super.visitInvokeDynamicInsn(name, descriptor, handle, *args)
