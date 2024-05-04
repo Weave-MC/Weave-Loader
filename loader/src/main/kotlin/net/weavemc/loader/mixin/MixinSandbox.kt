@@ -58,7 +58,7 @@ class SandboxedMixinLoader(
     private val loaderExclusions = mutableSetOf("net.weavemc.loader.mixin.MixinAccess")
 
     private val systemClasses = illegalToReload + setOf(
-        "kotlin.", "kotlinx.", "net.weavemc.loader.shaded.asm.",
+        "kotlin.", "kotlinx.", "org.objectweb.asm.",
         "net.weavemc.loader.mixin.SandboxedMixinState"
     )
 
@@ -68,7 +68,7 @@ class SandboxedMixinLoader(
     val state: SandboxedMixinState = SandboxedMixinState(this)
 
     private fun transform(internalName: String, bytes: ByteArray): ByteArray? {
-        if (internalName != "net/weavemc/loader/shaded/spongepowered/asm/util/Constants") return null
+        if (internalName != "org/spongepowered/asm/util/Constants") return null
 
         val reader = bytes.asClassReader()
         val node = reader.asClassNode()
@@ -80,7 +80,7 @@ class SandboxedMixinLoader(
 
         target.instructions.insert(call, asm {
             pop
-            ldc("net.weavemc.loader.shaded.spongepowered.asm.mixin")
+            ldc("org.spongepowered.asm.mixin")
         })
 
         target.instructions.remove(call)
@@ -180,17 +180,17 @@ class SandboxedMixinState(
         if (initialized) return
 
         injectService(
-            "net.weavemc.loader.shaded.spongepowered.asm.service.IMixinService",
+            "org.spongepowered.asm.service.IMixinService",
             "net.weavemc.loader.mixin.SandboxedMixinService"
         )
 
         injectService(
-            "net.weavemc.loader.shaded.spongepowered.asm.service.IMixinServiceBootstrap",
+            "org.spongepowered.asm.service.IMixinServiceBootstrap",
             "net.weavemc.loader.mixin.DummyServiceBootstrap"
         )
 
         injectService(
-            "net.weavemc.loader.shaded.spongepowered.asm.service.IGlobalPropertyService",
+            "org.spongepowered.asm.service.IGlobalPropertyService",
             "net.weavemc.loader.mixin.DummyPropertyService"
         )
 

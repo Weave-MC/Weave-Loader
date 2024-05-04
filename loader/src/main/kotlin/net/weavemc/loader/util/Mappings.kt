@@ -127,7 +127,7 @@ object MappingsHandler {
         remapper: Remapper
     ) : LambdaAwareMethodRemapper(parent, remapper) {
         override fun visitInvokeDynamicInsn(name: String, descriptor: String, handle: Handle, vararg args: Any) {
-            if (annotations.contains("net/weavemc/loader/shaded/spongepowered/asm/mixin/transformer/meta/MixinMerged"))
+            if (annotations.contains("org/spongepowered/asm/mixin/transformer/meta/MixinMerged"))
                 parent.visitInvokeDynamicInsn(name, descriptor, handle, args)
             else
                 super.visitInvokeDynamicInsn(name, descriptor, handle, *args)
@@ -165,6 +165,9 @@ private fun relocate(): ((parent: ClassVisitor) -> ClassVisitor) {
     ------------------------------------------------------------------------
      */
     val relocatePrefix = "net/weavemc/loader/shaded"
+    // Note the missing trailing slash in those packages, this makes it so that
+    // shadowJar won't rewrite them during relocation (since it's configured to target
+    // `org.objectweb.asm.`, not `org.objectweb.asm` for example)
     val mapping = mapOf(
         "org/objectweb/asm" to "$relocatePrefix/asm",
         "com/google" to "$relocatePrefix/google",
