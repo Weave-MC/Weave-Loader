@@ -15,6 +15,7 @@ import org.objectweb.asm.commons.Remapper
 import org.objectweb.asm.commons.SimpleRemapper
 import org.objectweb.asm.tree.ClassNode
 import java.io.File
+import java.util.*
 import java.util.jar.JarFile
 
 object MappingsHandler {
@@ -157,29 +158,28 @@ object MappingsHandler {
     fun isNamespaceAvailable(ns: String) = ns in mergedMappings.mappings.namespaces
 }
 
-// Oh yeah we love duplicating code
+private val relocationData: Properties by lazy {
+    val url = MappingsHandler::class.java.classLoader.getResource("weave-relocation-data.properties")
+    val stream = url?.openStream()
+
+    Properties().apply { stream?.use { load(it) } }
+}
+
 private fun relocate(): ((parent: ClassVisitor) -> ClassVisitor) {
-    /*
-    ------------------------------------------------------------------------
-    <THIS PORTION SHOULD BE UPDATED WHENEVER config-shade.gradle.kts IS UPDATED>
-    ------------------------------------------------------------------------
-     */
-    val relocatePrefix = "net/weavemc/loader/shaded"
+    if (relocationData.isEmpty) {
+        println("Relocation data not found, skipping remapping.")
+        return { it }
+    }
+    val relocatePrefix = relocationData["target"].toString()
+        .replace(".", "/")
+    val packages = relocationData["packages"].toString()
+        .split(";")
+        .map { it.replace(".", "/")}
+
     // Note the missing trailing slash in those packages, this makes it so that
     // shadowJar won't rewrite them during relocation (since it's configured to target
     // `org.objectweb.asm.`, not `org.objectweb.asm` for example)
-    val mapping = mapOf(
-        "com/grappenmaker" to "$relocatePrefix/grappenmaker",
-        "org/objectweb/asm" to "$relocatePrefix/asm",
-        "org/spongepowered" to "$relocatePrefix/spongepowered",
-        "kotlinx" to "$relocatePrefix/kotlinx",
-        "kotlin" to "$relocatePrefix/kotlin",
-    )
-    /*
-    -------------------------------------------------------------------------
-    </THIS PORTION SHOULD BE UPDATED WHENEVER config-shade.gradle.kts IS UPDATED>
-    -------------------------------------------------------------------------
-     */
+    val mapping = packages.associateWith { "$relocatePrefix/${it.substringAfterLast("/")}" }
 
     fun findMapping(name: String) = mapping.entries.find { (k) -> name.startsWith("$k/") }
 
