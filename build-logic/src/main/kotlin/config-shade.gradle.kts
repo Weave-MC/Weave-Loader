@@ -16,6 +16,9 @@ tasks {
 
         configurations = listOf(shade)
         exclude(
+            // Unwanted libraries
+            "org/intellij/lang/annotations/**", "org/jetbrains/annotations/**",
+
             // Signature files
             "META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA",
             // OSGI-related metadata
@@ -36,9 +39,11 @@ tasks {
         )
 
         listOf(
-            "com.google.",
+            "com.grappenmaker.",
             "org.objectweb.asm.",
             "org.spongepowered.",
+            "kotlin.",
+            "kotlinx.",
         ).forEach { pkg ->
             val packageName = pkg.substringBeforeLast(".").substringAfterLast(".")
             val relocated = "$shadedPackage.$packageName."

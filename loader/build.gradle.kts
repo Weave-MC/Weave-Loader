@@ -14,7 +14,10 @@ dependencies {
     shade(libs.bundles.asm)
     shade(libs.weaveInternals)
     shade(libs.mappingsUtil)
-    shade(libs.mixin)
+    shade(libs.mixin) {
+        exclude(group = "com.google.guava")
+        exclude(group = "com.google.code.gson")
+    }
 }
 
 tasks.jar {

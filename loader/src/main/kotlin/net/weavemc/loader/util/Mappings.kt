@@ -169,9 +169,11 @@ private fun relocate(): ((parent: ClassVisitor) -> ClassVisitor) {
     // shadowJar won't rewrite them during relocation (since it's configured to target
     // `org.objectweb.asm.`, not `org.objectweb.asm` for example)
     val mapping = mapOf(
+        "com/grappenmaker" to "$relocatePrefix/grappenmaker",
         "org/objectweb/asm" to "$relocatePrefix/asm",
-        "com/google" to "$relocatePrefix/google",
-        "org/spongepowered" to "$relocatePrefix/spongepowered"
+        "org/spongepowered" to "$relocatePrefix/spongepowered",
+        "kotlinx" to "$relocatePrefix/kotlinx",
+        "kotlin" to "$relocatePrefix/kotlin",
     )
     /*
     -------------------------------------------------------------------------
