@@ -171,7 +171,7 @@ private val relocationData: Properties by lazy {
 
 private fun relocate(): ((parent: ClassVisitor) -> ClassVisitor) {
     if (relocationData.isEmpty) {
-        println("Relocation data not found, skipping remapping.")
+        klog.warn("Relocation data not found, skipping remapping.")
         return { it }
     }
     val relocatePrefix = relocationData["target"].toString()
