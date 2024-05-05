@@ -1,5 +1,4 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-import java.util.*
 
 plugins {
     id("com.github.johnrengelman.shadow")
@@ -9,9 +8,21 @@ val shade: Configuration by configurations.creating
 val api: Configuration by configurations.getting
 api.extendsFrom(shade)
 
-val shadedPackage = "net.weavemc.loader.shaded"
+val targetPackage = "net.weavemc.loader.shaded"
+val packagesList = listOf(
+    "com.grappenmaker",
+    "org.objectweb.asm",
+    "org.spongepowered",
+    "kotlin",
+    "kotlinx",
+)
 
 tasks {
+    val createRelocationData by creating(CreateRelocationData::class) {
+        this.shadedPackage.set(targetPackage)
+        this.relocationList.addAll(packagesList)
+    }
+
     val shadowJar by getting(ShadowJar::class) {
         archiveClassifier.set("all")
 
@@ -52,26 +63,11 @@ tasks {
             "org/spongepowered/asm/launch/platform/container/ContainerHandleModLauncherEx\$SecureJarResource.class",
         )
 
-        val relocationList = listOf(
-            "com.grappenmaker",
-            "org.objectweb.asm",
-            "org.spongepowered",
-            "kotlin",
-            "kotlinx",
-        )
+        from(createRelocationData)
 
-        val properties = Properties()
-        properties["target"] = shadedPackage
-        properties["packages"] = relocationList.joinToString(";")
-
-        val relocationData = layout.buildDirectory.dir("tmp").get()
-            .file("weave-relocation-data.properties")
-        relocationData.asFile.outputStream().use { properties.store(it, null) }
-        this@getting.from(relocationData)
-
-        relocationList.forEach { pkg ->
+        packagesList.forEach { pkg ->
             val packageName = pkg.substringAfterLast(".")
-            val relocated = "$shadedPackage.$packageName."
+            val relocated = "$targetPackage.$packageName."
             relocate("$pkg.", relocated)
         }
 
@@ -84,7 +80,7 @@ tasks {
             // Fix mixin whining about a missing version
             manifest.attributes(mapOf(
                 "Implementation-Version" to "9.7"
-            ), "${shadedPackage.replace('.', '/')}/asm/")
+            ), "${targetPackage.replace('.', '/')}/asm/")
         }
     }
 
