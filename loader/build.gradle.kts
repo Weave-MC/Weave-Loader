@@ -1,6 +1,7 @@
 plugins {
     id("config-kotlin")
     id("config-shade")
+    `jvm-test-suite`
     `maven-publish`
 }
 
