@@ -12,7 +12,7 @@ minecraft {
         entryPoints = listOf("net.weavemc.loader.tests.TestMod")
         mojangMappings()
     }
-    version("1.8.9")
+    version("1.16.5")
 }
 
 dependencies {

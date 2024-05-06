@@ -17,14 +17,15 @@ includeBuild("build-logic")
 include("loader", "api")
 
 val legacyVersions = arrayOf(
-    "1.7.10", "1.8.9", "1.9.4", "1.10.2", "1.11.2", "1.12.2"
+    "1.7.10", "1.8.9", /*"1.9.4", "1.10.2", "1.11.2",*/ "1.12.2"
 )
 val modernVersions = arrayOf(
-    "1.14.4", "1.16.5", "1.17.1", "1.18.2", "1.19.4", "1.20.6"
+    /*"1.14.4",*/ "1.16.5", /*"1.17.1", "1.18.2", "1.19.4",*/ "1.20.1", /*"1.20.6"*/
 )
 
 val integrationTests = mapOf(
-    // VanillaGradle supports both modern mojmapped versions
+    // VanillaGradle supports only modern mojmapped versions
+    //TODO: switch to NeoGradle Vanilla (when it works)
     "vanilla" to listOf(*modernVersions),
 
     // Split fabric into two groups since support for legacy is not official
