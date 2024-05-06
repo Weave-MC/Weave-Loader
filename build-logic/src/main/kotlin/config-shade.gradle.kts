@@ -19,8 +19,8 @@ val packagesList = listOf(
 
 tasks {
     val createRelocationData by creating(CreateRelocationData::class) {
-        this.shadedPackage.set(targetPackage)
-        this.relocationList.addAll(packagesList)
+        shadedPackage.set(targetPackage)
+        relocationList.addAll(packagesList)
     }
 
     val shadowJar by getting(ShadowJar::class) {

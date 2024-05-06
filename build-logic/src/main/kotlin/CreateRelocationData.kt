@@ -24,13 +24,16 @@ open class CreateRelocationData : DefaultTask() {
 
     @TaskAction
     fun createRelocationData() {
-        val properties = Properties()
-        properties["target"] = shadedPackage.get()
-        properties["packages"] = relocationList.get().joinToString(";")
+        val properties = propertiesOf(
+            "target" to shadedPackage.get(),
+            "packages" to relocationList.get().joinToString(";")
+        )
 
-        val outputStream = propertiesFile.get().asFile.outputStream()
-        outputStream.use {
+        propertiesFile.get().asFile.outputStream().use {
             properties.store(it, "Relocation data for Weave-Loader")
         }
     }
 }
+
+private fun propertiesOf(vararg props: Pair<String, Any?>) =
+    Properties().also { it += props }

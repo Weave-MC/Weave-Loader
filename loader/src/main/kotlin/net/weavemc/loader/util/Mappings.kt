@@ -19,6 +19,7 @@ import java.util.*
 import java.util.jar.JarFile
 
 object MappingsHandler {
+    private val relocationVisitor by lazy { relocate() }
     private val vanillaJar by lazy {
         FileManager.getVanillaMinecraftJar()
     }
@@ -145,11 +146,12 @@ object MappingsHandler {
     ) {
         val jarsToUse = (classpath + input).map { JarFile(it) }
 
-        remapJar(mappings, input, output, from, to, ClasspathLoaders.fromJars(jarsToUse).remappingNames(
-            mappings = mergedMappings.mappings,
-            from = "official",
-            to = from,
-        ), visitor = relocate()
+        remapJar(
+            mappings, input, output, from, to, ClasspathLoaders.fromJars(jarsToUse).remappingNames(
+                mappings = mergedMappings.mappings,
+                from = "official",
+                to = from,
+            ), visitor = relocationVisitor
         )
 
         jarsToUse.forEach { it.close() }
@@ -174,7 +176,7 @@ private fun relocate(): ((parent: ClassVisitor) -> ClassVisitor) {
         .replace(".", "/")
     val packages = relocationData["packages"].toString()
         .split(";")
-        .map { it.replace(".", "/")}
+        .map { it.replace(".", "/") }
 
     // Note the missing trailing slash in those packages, this makes it so that
     // shadowJar won't rewrite them during relocation (since it's configured to target
