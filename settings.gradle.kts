@@ -28,18 +28,18 @@ val integrationTests = mapOf(
     "vanilla" to listOf(*modernVersions),
 
     // Split fabric into two groups since support for legacy is not official
-    "fabric" to listOf(*modernVersions),
-    "legacy-fabric" to listOf(*legacyVersions),
+//    "fabric" to listOf(*modernVersions),
+//    "legacy-fabric" to listOf(*legacyVersions),
 
     // Forge can support both legacy and modern versions
-    "forge" to listOf(*legacyVersions, *modernVersions)
+//    "forge" to listOf(*legacyVersions, *modernVersions)
 )
 
 include("integrationTests:testmod")
 integrationTests.keys.forEach { loader ->
     integrationTests[loader]?.forEach { version ->
-        include("integrationTests:$loader:$version")
-        project(":integrationTests:$loader:$version").apply {
+        include("integrationTests:$loader-$version")
+        project(":integrationTests:$loader-$version").apply {
             projectDir = file("integrationTests/$loader/$version").also { it.mkdirs() }
             buildFileName = "../build.gradle.kts"
         }

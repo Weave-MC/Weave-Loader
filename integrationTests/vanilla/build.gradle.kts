@@ -3,7 +3,7 @@ plugins {
     id("org.spongepowered.gradle.vanilla") version "0.2.1-SNAPSHOT"
 }
 
-val minecraftVersion: String = "1.16.5"
+val minecraftVersion: String = project.name.substringAfterLast("-")
 
 minecraft {
     version(minecraftVersion)
@@ -13,15 +13,13 @@ minecraft {
 }
 
 val runClient by tasks.getting(JavaExec::class) {
-//        println(this.javaClass)
-//        doFirst {
-//            val weaveLoader = project("loader").tasks["shadowJar"].outputs.files.asPath
-//            val weaveTestMod = project("integrationTests:testmod").tasks["jar"].outputs.files.asPath
-//
-//            println("Weave Loader: $weaveLoader")
-//            println("Weave Test Mod: $weaveTestMod")
-//            this@getting.jvmArgs("-javaagent:$weaveLoader=args")
-//        }
-    dependsOn(project(":loader").tasks["shadowJar"])
-    dependsOn(project(":integrationTests:testmod").tasks["jar"])
+    val weaveLoader = tasks.getByPath(":loader:shadowJar").outputs.files.asPath
+    val weaveTestMod = tasks.getByPath(":integrationTests:testmod:jar").outputs.files.asPath
+
+//    println("Weave Loader: $weaveLoader")
+//    println("Weave Test Mod: $weaveTestMod")
+    // Load Weave Loader with the single test mod as an argument
+    this.jvmArgs("-javaagent:$weaveLoader=\"$weaveTestMod\"")
 }
+runClient.dependsOn(":loader:shadowJar")
+runClient.dependsOn(":integrationTests:testmod:jar")
