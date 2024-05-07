@@ -1,54 +1,46 @@
-# Eclipse IDE Files.
-eclipse
-bin
-*.launch
-.settings
-.metadata
-.classpath
-.project
+### Gradle ###
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
 
-# IntelliJ IDEA Output Files. 
-out
-classes
-*.ipr
-*.iws
-*.iml
-.idea
-
-# Kotlin K2
+### Kotlin ###
 .kotlin/
 
-# VScode Configuration Directory. 
-.vscode
+### IntelliJ IDEA ###
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
 
-# Gradle Output Directories. 
-build
-.gradle
+### Eclipse ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
 
-# Netbeans Output Files. 
-.nb-gradle
-.nb-gradle-properties
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
 
-# Compiled class file
-*.class
+### VS Code ###
+.vscode/
 
-# Log file
-*.log
+### Fleet ###
+.fleet/
 
-# Package Files #
-*.jar
-*.war
-*.nar
-*.ear
-*.zip
-*.tar.gz
-*.rar
-
-# VM Crash Logs.
-hs_err_pid*
-replay_pid*
-
-# Other
-run
+### Mac OS ###
 .DS_Store
-Thumbs.db

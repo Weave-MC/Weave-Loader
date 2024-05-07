@@ -64,6 +64,7 @@ tasks {
         )
 
         from(createRelocationData)
+        from("LICENSE")
 
         packagesList.forEach { pkg ->
             val packageName = pkg.substringAfterLast(".")
