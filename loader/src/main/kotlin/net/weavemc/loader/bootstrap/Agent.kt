@@ -36,7 +36,7 @@ fun premain(opt: String?, inst: Instrumentation) {
     inst.addTransformer(ModInitializerHook(inst))
 
     inst.addTransformer(ArgumentSanitizer, true)
-    inst.retransformClasses(Class.forName("sun.management.RuntimeImpl", false, ClassLoader.getSystemClassLoader()))
+    inst.tryRetransform("sun.management.RuntimeImpl")
     inst.removeTransformer(ArgumentSanitizer)
 
     // Prevent ichor prebake
@@ -48,6 +48,15 @@ fun premain(opt: String?, inst: Instrumentation) {
 
     // initialize bootstrap
     Bootstrap.bootstrap(inst)
+}
+
+private fun Instrumentation.tryRetransform(className: String) {
+    val loadedClass = this.allLoadedClasses.firstOrNull { it.name == className }
+    if (loadedClass == null) {
+        Class.forName(className, false, ClassLoader.getSystemClassLoader())
+    } else {
+        this.retransformClasses(loadedClass)
+    }
 }
 
 private fun callTweakers(inst: Instrumentation) {
