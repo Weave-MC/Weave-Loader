@@ -29,10 +29,6 @@ object Bootstrap {
                     val clAccessor = if (loader is URLClassLoaderAccessor) loader
                     else fatalError("Failed to transform URLClassLoader to implement URLClassLoaderAccessor. Impossible to recover")
 
-                    clAccessor.addWeaveIgnoredPackage("net.weavemc.loader.bootstrap")
-                    clAccessor.addWeaveIgnoredPackage("kotlin.")
-                    clAccessor.addWeaveIgnoredPackage("me.xtrm.klog.")
-
                     runCatching {
                         clAccessor.addWeaveURL(javaClass.protectionDomain.codeSource.location)
                     }.onFailure {

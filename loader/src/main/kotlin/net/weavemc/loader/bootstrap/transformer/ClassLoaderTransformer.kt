@@ -37,14 +37,28 @@ object URLClassLoaderTransformer : SafeTransformer {
             areturn
         }
 
+        val defaultIgnoredPackages = listOf(
+            "net.weavemc.loader.bootstrap.",
+            "me.xtrm.klog.",
+            "kotlin."
+        )
+
         // private final List<String> weave$ignoredPackages = new ArrayList<>();
         node.visitField(Opcodes.ACC_PRIVATE or Opcodes.ACC_FINAL, "weave\$ignoredPackages", "Ljava/util/List;", "Ljava/util/List<Ljava/lang/String;>;", null)
-        node.methods.filter { it.name == "<init>" }.forEach { methodNode ->
+        node.methods.filter { it.name == "<init>" }.forEach { methodNode -> //TODO: Find which constructors are required to inject into
             methodNode.instructions.insert(asm {
                 aload(0)
                 new("java/util/ArrayList")
                 dup
                 invokespecial("java/util/ArrayList", "<init>", "()V")
+                // This is awful, but necessary, since `aload(0)` in a constructor head
+                // puts an `UninitializedThis` value on the stack which cannot `getfield`
+                repeat(defaultIgnoredPackages.size) { dup }
+                defaultIgnoredPackages.forEach { pkg ->
+                    ldc(pkg)
+                    invokeinterface("java/util/List", "add", "(Ljava/lang/Object;)Z")
+                    pop
+                }
                 putfield(node.name, "weave\$ignoredPackages", "Ljava/util/List;")
             })
         }
@@ -59,10 +73,6 @@ object URLClassLoaderTransformer : SafeTransformer {
         node.visitMethod(Opcodes.ACC_PRIVATE or Opcodes.ACC_FINAL, "weave\$shouldIgnore", "(Ljava/lang/String;)Z", null, null).visitAsm {
             val loopStart = LabelNode()
             val loopEnd = LabelNode()
-
-            getstatic("java/lang/System", "out", "Ljava/io/PrintStream;")
-            aload(1)
-            invokevirtual("java/io/PrintStream", "println", "(Ljava/lang/String;)V")
 
             // Iterator<String> iter = weave$ignoredPackages.iterator();
             aload(0)
@@ -87,17 +97,11 @@ object URLClassLoaderTransformer : SafeTransformer {
             ifeq(loopStart)
 
             // return true
-            getstatic("java/lang/System", "out", "Ljava/io/PrintStream;")
-            ldc("Returning true")
-            invokevirtual("java/io/PrintStream", "println", "(Ljava/lang/String;)V")
             iconst_1
             ireturn
 
             +loopEnd
             // return false
-            getstatic("java/lang/System", "out", "Ljava/io/PrintStream;")
-            ldc("Returning false")
-            invokevirtual("java/io/PrintStream", "println", "(Ljava/lang/String;)V")
             iconst_0
             ireturn
         }
