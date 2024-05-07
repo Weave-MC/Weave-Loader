@@ -1,4 +1,4 @@
-package net.weavemc.loader
+package net.weavemc.loader.bootstrap
 
 import me.xtrm.klog.Appender
 import me.xtrm.klog.LogContext
@@ -22,9 +22,7 @@ import kotlin.io.path.exists
  *
  * @param initialized Whether the logger has already been initialized
  */
-class WeaveLogAppender(
-    initialized: Boolean = false
-) : Appender {
+object WeaveLogAppender : Appender {
     private val formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy_HH-mm-ss")
     private val logDir = getOrCreateDirectory("logs")
     private val logFile: Path
@@ -36,11 +34,9 @@ class WeaveLogAppender(
     private val logger by klog
 
     init {
-        logFile = fetchLogFile(initialized)
-        logFileStream = PrintStream(FileOutputStream(logFile.toFile(), initialized), true)
-        if (!initialized) {
-            symlinkLatest()
-        }
+        logFile = fetchLogFile(false)
+        logFileStream = PrintStream(FileOutputStream(logFile.toFile(), false), true)
+        symlinkLatest()
     }
 
     override fun append(context: LogContext, finalMessage: String) {

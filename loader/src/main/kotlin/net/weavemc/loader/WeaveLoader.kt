@@ -2,9 +2,7 @@ package net.weavemc.loader
 
 import com.grappenmaker.mappings.ClasspathLoaders
 import com.grappenmaker.mappings.remappingNames
-import me.xtrm.klog.Level
 import me.xtrm.klog.Logger
-import me.xtrm.klog.dsl.klogConfig
 import net.weavemc.api.Hook
 import net.weavemc.api.ModInitializer
 import net.weavemc.internals.GameInfo
@@ -44,11 +42,10 @@ class WeaveLoader(
     }
 
     init {
-        klogConfig {
-            defaultLevel = Level.INFO
-            appenders = mutableListOf(WeaveLogAppender(true))
-        }
-
+//        klogConfig {
+//            defaultLevel = Level.INFO
+//            appenders = mutableListOf(net.weavemcWeaveLogAppender(true))
+//        }
         logger = Logger(WeaveLoader::class.qualifiedName!!)
         logger.info("Initializing Weave")
 
@@ -74,7 +71,6 @@ class WeaveLoader(
             weaveMod.config.entryPoints.forEach { entrypoint ->
                 runCatching {
                     logger.debug("Calling $entrypoint#preInit")
-                    @Suppress("DEPRECATION")
                     instantiate<ModInitializer>(entrypoint)
                 }.onFailure {
                     logger.error("Failed to instantiate $entrypoint#preInit", it)
@@ -141,7 +137,7 @@ class WeaveLoader(
 
     private fun mixinForNamespace(namespace: String) = mixinInstances.getOrPut(namespace) {
         logger.debug("Creating a new MixinLoader for namespace $namespace")
-        val parent = classLoader.backing
+        val parent = classLoader.weaveBacking
         SandboxedMixinLoader(
             parent = parent,
             loader = ClasspathLoaders.fromLoader(parent)
