@@ -14,15 +14,16 @@ internal object FileManager {
 
     fun getVanillaMinecraftJar(): File {
         val os = System.getProperty("os.name").lowercase()
-        val minecraftPath = when {
-            os.contains("win") -> buildPath("AppData", "Roaming", ".minecraft")
-            os.contains("mac") -> buildPath("Library", "Application Support", "minecraft")
-            os.contains("nix") || os.contains("nux") || os.contains("aix") -> ".minecraft"
-            else -> null
-        }
-        if (minecraftPath != null) {
-            val fullPath = Path(System.getProperty("user.home", System.getenv("HOME")), minecraftPath)
-
+        run {
+            val userHome = System.getProperty("user.home", System.getenv("HOME") ?: System.getenv("USERPROFILE"))
+            val minecraftPath = when {
+                os.contains("win") -> arrayOf("AppData", "Roaming", ".minecraft")
+                os.contains("mac") -> arrayOf("Library", "Application Support", "minecraft")
+                os.contains("nix") || os.contains("nux") || os.contains("aix") ->
+                    arrayOf(".minecraft")
+                else -> return@run
+            }
+            val fullPath = Path(userHome, *minecraftPath)
             val regularPath = fullPath.resolve("versions")
                 .resolve(GameInfo.version.versionName)
                 .resolve("${GameInfo.version.versionName}.jar")
@@ -32,27 +33,14 @@ internal object FileManager {
         }
 
         val gameVersion = GameInfo.version.versionName
+        val mclPath = buildPath("versions", gameVersion, "$gameVersion.jar")
+        val mmcPath = buildPath("libraries", "com", "mojang", "minecraft", gameVersion,
+            "minecraft-$gameVersion-client.jar")
         val classpath = System.getProperty("java.class.path")
-        if (classpath != null) {
-            val paths = classpath.split(File.pathSeparator)
-            for (path in paths) {
-                // .minecraft/versions/<ver>/<ver>.jar
-                val mcLauncherPath = File.separator + buildPath(gameVersion, "$gameVersion.jar")
-                if (path.endsWith(mcLauncherPath)) {
-                    return File(path)
-                }
-                // MultiMC-like maven structure
-                val multiMcPath = buildPath(
-                    "com", "mojang", "minecraft",
-                    gameVersion,
-                    "minecraft-$gameVersion-client.jar"
-                )
-                if (path.endsWith(multiMcPath)) {
-                    return File(path)
-                }
-            }
-        }
-        fatalError("Could not find vanilla jar for version $gameVersion")
+        val paths = classpath?.split(File.pathSeparator)
+        return paths?.find { it.endsWith(mclPath) || it.endsWith(mmcPath) }
+            ?.let { File(it) }
+            ?: fatalError("Could not find vanilla jar for version $gameVersion")
     }
 
     /**

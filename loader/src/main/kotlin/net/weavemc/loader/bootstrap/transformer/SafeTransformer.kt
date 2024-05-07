@@ -6,7 +6,7 @@ import java.lang.instrument.ClassFileTransformer
 import java.security.ProtectionDomain
 import kotlin.system.exitProcess
 
-val checkBytecode = !java.lang.Boolean.getBoolean("weave.loader.skipBytecodeCheck")
+val checkBytecode = java.lang.Boolean.getBoolean("weave.loader.checkTransformedBytecode")
 
 internal interface SafeTransformer : ClassFileTransformer {
     /**

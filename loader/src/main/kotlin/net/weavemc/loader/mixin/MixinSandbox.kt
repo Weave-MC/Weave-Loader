@@ -328,12 +328,6 @@ class LoaderClassWriter(
     private val ClassNode.isInterface: Boolean
         get() = access and ACC_INTERFACE != 0
 
-    init {
-        if (!useBytecodeInheritance && loader == null) {
-            error("Cannot use reflection for inheritance without a ClassLoader")
-        }
-    }
-
     override fun getCommonSuperClass(type1: String, type2: String): String {
         if (!useBytecodeInheritance) return super.getCommonSuperClass(type1, type2)
         return when {

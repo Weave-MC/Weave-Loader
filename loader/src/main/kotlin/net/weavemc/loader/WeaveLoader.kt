@@ -60,11 +60,18 @@ class WeaveLoader(
         mods.forEach { weaveMod ->
             weaveMod.config.entryPoints.forEach { entrypoint ->
                 runCatching {
-                    @Suppress("DEPRECATION")
-                    instantiate<ModInitializer>(entrypoint).preInit(instrumentation)
+                    instantiate<ModInitializer>(entrypoint)
                 }.onFailure {
                     it.printStackTrace()
                     println("Failed to instantiate $entrypoint#preInit")
+                }.onSuccess {
+                    runCatching {
+                        @Suppress("DEPRECATION")
+                        it.preInit(instrumentation)
+                    }.onFailure {
+                        it.printStackTrace()
+                        println("Exception thrown when invoking $entrypoint#preInit")
+                    }
                 }
             }
         }
@@ -81,10 +88,17 @@ class WeaveLoader(
         mods.forEach { weaveMod ->
             weaveMod.config.entryPoints.forEach { entrypoint ->
                 runCatching {
-                    instantiate<ModInitializer>(entrypoint).init()
+                    instantiate<ModInitializer>(entrypoint)
                 }.onFailure {
                     it.printStackTrace()
                     println("Failed to instantiate $entrypoint#init")
+                }.onSuccess {
+                    runCatching {
+                        it.init()
+                    }.onFailure {
+                        it.printStackTrace()
+                        println("Exception thrown when invoking $entrypoint#init")
+                    }
                 }
             }
         }

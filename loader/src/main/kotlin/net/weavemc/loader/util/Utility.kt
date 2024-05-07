@@ -183,7 +183,7 @@ private fun exitRuntime(errorCode: Int) {
     }.invoke(runtime, errorCode)
 }
 
-private fun getJavaVersion(): Int {
+internal fun getJavaVersion(): Int {
     val version = System.getProperty("java.version", "1.6.0")
     val part = if (version.startsWith("1."))
         version.split(".")[1]
