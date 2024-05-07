@@ -11,7 +11,6 @@ import net.weavemc.loader.bootstrap.transformer.ArgumentSanitizer
 import net.weavemc.loader.bootstrap.transformer.ModInitializerHook
 import net.weavemc.loader.bootstrap.transformer.URLClassLoaderTransformer
 import net.weavemc.loader.util.*
-import net.weavemc.loader.util.FileManager.ModJar
 import java.awt.GraphicsEnvironment
 import java.lang.instrument.Instrumentation
 import java.util.jar.JarFile
@@ -62,7 +61,7 @@ private fun callTweakers(inst: Instrumentation) {
         .flatMap(ModConfig::tweakers)
 
     for (tweaker in tweakers) {
-        println("[Weave] Calling tweaker: $tweaker")
+        logger.trace("Calling tweaker: $tweaker")
         instantiate<Tweaker>(tweaker).tweak(inst)
     }
 }
