@@ -6,7 +6,6 @@ import me.xtrm.klog.dsl.klogConfig
 import net.weavemc.api.Tweaker
 import net.weavemc.internals.ModConfig
 import net.weavemc.loader.WeaveLoader
-import net.weavemc.loader.WeaveLogAppender
 import net.weavemc.loader.bootstrap.transformer.ArgumentSanitizer
 import net.weavemc.loader.bootstrap.transformer.ModInitializerHook
 import net.weavemc.loader.bootstrap.transformer.URLClassLoaderTransformer
@@ -25,7 +24,7 @@ private val logger by klog
 fun premain(opt: String?, inst: Instrumentation) {
     klogConfig {
         defaultLevel = Level.INFO
-        appenders = mutableListOf(WeaveLogAppender())
+        appenders = mutableListOf(WeaveLogAppender)
     }
 
     logger.info("Attached Weave")

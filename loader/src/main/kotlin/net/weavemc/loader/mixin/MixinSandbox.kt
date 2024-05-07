@@ -1,13 +1,10 @@
 package net.weavemc.loader.mixin
 
 import com.grappenmaker.mappings.ClasspathLoaders
-import me.xtrm.klog.Level
 import me.xtrm.klog.dsl.klog
-import me.xtrm.klog.dsl.klogConfig
 import net.weavemc.internals.asm
 import net.weavemc.internals.internalNameOf
 import net.weavemc.internals.named
-import net.weavemc.loader.WeaveLogAppender
 import net.weavemc.loader.util.asClassNode
 import net.weavemc.loader.util.asClassReader
 import net.weavemc.loader.util.illegalToReload
@@ -109,7 +106,12 @@ class SandboxedMixinLoader(
         }
     }
 
-    override fun loadClass(name: String): Class<*> = findClass(name)
+    override fun loadClass(name: String): Class<*> {
+        if (name.startsWith("me.xtrm.klog.") || name.startsWith("kotlin.")) {
+            return getSystemClassLoader().loadClass(name)
+        }
+        return findClass(name)
+    }
     private fun shouldLoadParent(name: String) = name in loaderExclusions || systemClasses.any { name.startsWith(it) }
 
     /**
@@ -260,13 +262,6 @@ internal sealed interface MixinAccess {
 private data object MixinAccessImpl : MixinAccess {
     private val env get() = MixinEnvironment.getDefaultEnvironment()
     private var hasForcedSelect = false
-
-    init {
-        klogConfig {
-            defaultLevel = Level.INFO
-            appenders = mutableListOf(WeaveLogAppender(true))
-        }
-    }
 
     override fun bootstrap() = MixinBootstrap.init()
     override fun validate() {

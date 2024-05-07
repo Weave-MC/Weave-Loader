@@ -1,13 +1,12 @@
 package net.weavemc.loader.mixin
 
 import me.xtrm.klog.dsl.klog
-import net.weavemc.loader.WeaveLogAppender
+import net.weavemc.loader.bootstrap.WeaveLogAppender
 import net.weavemc.loader.util.asClassNode
 import net.weavemc.loader.util.asClassReader
 import net.weavemc.loader.util.getJavaVersion
 import org.spongepowered.asm.launch.platform.container.ContainerHandleVirtual
 import org.spongepowered.asm.launch.platform.container.IContainerHandle
-import org.spongepowered.asm.logging.ILogger
 import org.spongepowered.asm.logging.Level
 import org.spongepowered.asm.logging.LoggerAdapterAbstract
 import org.spongepowered.asm.mixin.MixinEnvironment
@@ -104,7 +103,8 @@ internal class DummyPropertyService : IGlobalPropertyService {
 }
 
 private typealias KlogLevel = me.xtrm.klog.Level
-private class WeaveLoggerAdapter(name: String) : LoggerAdapterAbstract(name) {
+
+class WeaveLoggerAdapter(name: String) : LoggerAdapterAbstract(name) {
     private val logger by klog(name)
     private val stdout = WeaveLogAppender.WrappingStream(System.out)
 
