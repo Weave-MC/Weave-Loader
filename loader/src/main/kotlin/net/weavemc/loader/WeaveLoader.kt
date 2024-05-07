@@ -42,10 +42,6 @@ class WeaveLoader(
     }
 
     init {
-//        klogConfig {
-//            defaultLevel = Level.INFO
-//            appenders = mutableListOf(net.weavemcWeaveLogAppender(true))
-//        }
         logger = Logger(WeaveLoader::class.qualifiedName!!)
         logger.info("Initializing Weave")
 
