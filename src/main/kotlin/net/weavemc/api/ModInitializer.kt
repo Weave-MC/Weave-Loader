@@ -17,7 +17,8 @@ interface ModInitializer {
      * @since Weave-Loader 1.0.0-beta.1
      */
     @Deprecated("", replaceWith = ReplaceWith("init()"))
-    fun preInit(inst: Instrumentation) {}
+    fun preInit(inst: Instrumentation) {
+    }
 
     /**
      * Invoked when Minecraft is initialized as to prevent premature class loading of Minecraft related classes.

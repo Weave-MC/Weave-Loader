@@ -1,6 +1,7 @@
-package net.weavemc.loader.bootstrap.transformer
+package net.weavemc.loader.impl.bootstrap.transformer
 
 import net.weavemc.internals.asm
+import net.weavemc.loader.impl.bootstrap.SafeTransformer
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes

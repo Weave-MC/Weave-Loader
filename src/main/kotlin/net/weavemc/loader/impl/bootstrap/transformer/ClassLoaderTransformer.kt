@@ -1,9 +1,10 @@
-package net.weavemc.loader.bootstrap.transformer
+package net.weavemc.loader.impl.bootstrap.transformer
 
 import net.weavemc.internals.asm
 import net.weavemc.internals.internalNameOf
 import net.weavemc.internals.visitAsm
-import net.weavemc.loader.mixin.LoaderClassWriter
+import net.weavemc.loader.impl.bootstrap.SafeTransformer
+import net.weavemc.loader.impl.mixin.LoaderClassWriter
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
@@ -38,30 +39,37 @@ object URLClassLoaderTransformer : SafeTransformer {
         }
 
         val defaultIgnoredPackages = listOf(
-            "net.weavemc.loader.bootstrap.",
+            "net.weavemc.loader.impl.bootstrap.",
             "me.xtrm.klog.",
             "kotlin."
         )
 
         // private final List<String> weave$ignoredPackages = new ArrayList<>();
-        node.visitField(Opcodes.ACC_PRIVATE or Opcodes.ACC_FINAL, "weave\$ignoredPackages", "Ljava/util/List;", "Ljava/util/List<Ljava/lang/String;>;", null)
-        node.methods.filter { it.name == "<init>" }.forEach { methodNode -> //TODO: Find which constructors are required to inject into
-            methodNode.instructions.insert(asm {
-                aload(0)
-                new("java/util/ArrayList")
-                dup
-                invokespecial("java/util/ArrayList", "<init>", "()V")
-                // This is awful, but necessary, since `aload(0)` in a constructor head
-                // puts an `UninitializedThis` value on the stack which cannot `getfield`
-                repeat(defaultIgnoredPackages.size) { dup }
-                defaultIgnoredPackages.forEach { pkg ->
-                    ldc(pkg)
-                    invokeinterface("java/util/List", "add", "(Ljava/lang/Object;)Z")
-                    pop
-                }
-                putfield(node.name, "weave\$ignoredPackages", "Ljava/util/List;")
-            })
-        }
+        node.visitField(
+            Opcodes.ACC_PRIVATE or Opcodes.ACC_FINAL,
+            "weave\$ignoredPackages",
+            "Ljava/util/List;",
+            "Ljava/util/List<Ljava/lang/String;>;",
+            null
+        )
+        node.methods.filter { it.name == "<init>" }
+            .forEach { methodNode -> //TODO: Find which constructors are required to inject into
+                methodNode.instructions.insert(asm {
+                    aload(0)
+                    new("java/util/ArrayList")
+                    dup
+                    invokespecial("java/util/ArrayList", "<init>", "()V")
+                    // This is awful, but necessary, since `aload(0)` in a constructor head
+                    // puts an `UninitializedThis` value on the stack which cannot `getfield`
+                    repeat(defaultIgnoredPackages.size) { dup }
+                    defaultIgnoredPackages.forEach { pkg ->
+                        ldc(pkg)
+                        invokeinterface("java/util/List", "add", "(Ljava/lang/Object;)Z")
+                        pop
+                    }
+                    putfield(node.name, "weave\$ignoredPackages", "Ljava/util/List;")
+                })
+            }
         node.visitMethod(Opcodes.ACC_PUBLIC, "addWeaveIgnoredPackage", "(Ljava/lang/String;)V", null, null).visitAsm {
             aload(0)
             getfield(node.name, "weave\$ignoredPackages", "Ljava/util/List;")
@@ -70,7 +78,13 @@ object URLClassLoaderTransformer : SafeTransformer {
             pop
             _return
         }
-        node.visitMethod(Opcodes.ACC_PRIVATE or Opcodes.ACC_FINAL, "weave\$shouldIgnore", "(Ljava/lang/String;)Z", null, null).visitAsm {
+        node.visitMethod(
+            Opcodes.ACC_PRIVATE or Opcodes.ACC_FINAL,
+            "weave\$shouldIgnore",
+            "(Ljava/lang/String;)Z",
+            null,
+            null
+        ).visitAsm {
             val loopStart = LabelNode()
             val loopEnd = LabelNode()
 

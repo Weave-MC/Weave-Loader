@@ -1,4 +1,4 @@
-package net.weavemc.loader.util
+package net.weavemc.loader.impl.util
 
 import com.grappenmaker.mappings.*
 import me.xtrm.klog.dsl.klog
@@ -8,8 +8,8 @@ import net.weavemc.internals.MappingsType.MCP
 import net.weavemc.internals.MappingsType.MOJANG
 import net.weavemc.internals.MinecraftClient
 import net.weavemc.internals.MinecraftVersion
-import net.weavemc.loader.InjectionClassWriter
-import net.weavemc.loader.WeaveLoader
+import net.weavemc.loader.impl.InjectionClassWriter
+import net.weavemc.loader.impl.WeaveLoader
 import org.objectweb.asm.*
 import org.objectweb.asm.commons.ClassRemapper
 import org.objectweb.asm.commons.Remapper

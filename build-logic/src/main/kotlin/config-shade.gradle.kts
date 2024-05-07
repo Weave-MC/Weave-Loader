@@ -8,7 +8,7 @@ val shade: Configuration by configurations.creating
 val api: Configuration by configurations.getting
 api.extendsFrom(shade)
 
-val targetPackage = "net.weavemc.loader.shaded"
+val targetPackage = "net.weavemc.loader.impl.shaded"
 val packagesList = listOf(
     "com.grappenmaker",
     "org.objectweb.asm",

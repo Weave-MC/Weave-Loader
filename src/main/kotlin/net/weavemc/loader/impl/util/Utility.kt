@@ -1,4 +1,4 @@
-package net.weavemc.loader.util
+package net.weavemc.loader.impl.util
 
 import kotlinx.serialization.json.Json
 import me.xtrm.klog.dsl.klog

@@ -1,4 +1,4 @@
-package net.weavemc.loader.util
+package net.weavemc.loader.impl.util
 
 import me.xtrm.klog.dsl.klog
 import net.weavemc.internals.GameInfo
@@ -24,6 +24,7 @@ internal object FileManager {
                 os.contains("mac") -> arrayOf("Library", "Application Support", "minecraft")
                 os.contains("nix") || os.contains("nux") || os.contains("aix") ->
                     arrayOf(".minecraft")
+
                 else -> return@run
             }
             val fullPath = Path(userHome, *minecraftPath)
@@ -38,8 +39,10 @@ internal object FileManager {
         logger.trace("Trying to find vanilla jar in classpath")
         val gameVersion = GameInfo.version.versionName
         val mclPath = buildPath("versions", gameVersion, "$gameVersion.jar")
-        val mmcPath = buildPath("libraries", "com", "mojang", "minecraft", gameVersion,
-            "minecraft-$gameVersion-client.jar")
+        val mmcPath = buildPath(
+            "libraries", "com", "mojang", "minecraft", gameVersion,
+            "minecraft-$gameVersion-client.jar"
+        )
         val classpath = System.getProperty("java.class.path")
         val paths = classpath?.split(File.pathSeparator)
         return paths?.find { it.endsWith(mclPath) || it.endsWith(mmcPath) }

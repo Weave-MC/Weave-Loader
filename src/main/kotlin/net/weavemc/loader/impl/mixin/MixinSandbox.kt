@@ -1,13 +1,13 @@
-package net.weavemc.loader.mixin
+package net.weavemc.loader.impl.mixin
 
 import com.grappenmaker.mappings.ClasspathLoaders
 import me.xtrm.klog.dsl.klog
 import net.weavemc.internals.asm
 import net.weavemc.internals.internalNameOf
 import net.weavemc.internals.named
-import net.weavemc.loader.util.asClassNode
-import net.weavemc.loader.util.asClassReader
-import net.weavemc.loader.util.illegalToReload
+import net.weavemc.loader.impl.util.asClassNode
+import net.weavemc.loader.impl.util.asClassReader
+import net.weavemc.loader.impl.util.illegalToReload
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes.ACC_INTERFACE
@@ -58,11 +58,11 @@ class SandboxedMixinLoader(
 ) : ClassLoader(parent) {
     private val injectedResources = mutableMapOf<String, ByteArray>()
     private val tempFiles = mutableMapOf<String, URL>()
-    private val loaderExclusions = mutableSetOf("net.weavemc.loader.mixin.MixinAccess")
+    private val loaderExclusions = mutableSetOf("net.weavemc.loader.impl.mixin.MixinAccess")
 
     private val systemClasses = illegalToReload + setOf(
         "kotlin.", "kotlinx.", "org.objectweb.asm.",
-        "net.weavemc.loader.mixin.SandboxedMixinState"
+        "net.weavemc.loader.impl.mixin.SandboxedMixinState"
     )
 
     /**
@@ -112,6 +112,7 @@ class SandboxedMixinLoader(
         }
         return findClass(name)
     }
+
     private fun shouldLoadParent(name: String) = name in loaderExclusions || systemClasses.any { name.startsWith(it) }
 
     /**
@@ -150,7 +151,7 @@ class SandboxedMixinLoader(
 private fun createMixinAccessor(loader: ClassLoader) =
     runCatching {
         loader
-            .loadClass("net.weavemc.loader.mixin.MixinAccessImpl")
+            .loadClass("net.weavemc.loader.impl.mixin.MixinAccessImpl")
             .getField("INSTANCE").also { it.isAccessible = true }[null] as MixinAccess
     }.onFailure {
         logger.error("Failed to create a mixin access instance", it)
@@ -188,17 +189,17 @@ class SandboxedMixinState(
 
         injectService(
             "org.spongepowered.asm.service.IMixinService",
-            "net.weavemc.loader.mixin.SandboxedMixinService"
+            "net.weavemc.loader.impl.mixin.SandboxedMixinService"
         )
 
         injectService(
             "org.spongepowered.asm.service.IMixinServiceBootstrap",
-            "net.weavemc.loader.mixin.DummyServiceBootstrap"
+            "net.weavemc.loader.impl.mixin.DummyServiceBootstrap"
         )
 
         injectService(
             "org.spongepowered.asm.service.IGlobalPropertyService",
-            "net.weavemc.loader.mixin.DummyPropertyService"
+            "net.weavemc.loader.impl.mixin.DummyPropertyService"
         )
 
         bootstrap()

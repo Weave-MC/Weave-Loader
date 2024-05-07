@@ -1,4 +1,4 @@
-package net.weavemc.loader
+package net.weavemc.loader.impl
 
 import com.grappenmaker.mappings.ClasspathLoaders
 import com.grappenmaker.mappings.remappingNames
@@ -8,9 +8,9 @@ import net.weavemc.api.ModInitializer
 import net.weavemc.internals.GameInfo
 import net.weavemc.internals.MinecraftVersion
 import net.weavemc.internals.ModConfig
-import net.weavemc.loader.bootstrap.transformer.URLClassLoaderAccessor
-import net.weavemc.loader.mixin.SandboxedMixinLoader
-import net.weavemc.loader.util.*
+import net.weavemc.loader.impl.bootstrap.transformer.URLClassLoaderAccessor
+import net.weavemc.loader.impl.mixin.SandboxedMixinLoader
+import net.weavemc.loader.impl.util.*
 import org.objectweb.asm.tree.ClassNode
 import java.io.File
 import java.lang.instrument.Instrumentation

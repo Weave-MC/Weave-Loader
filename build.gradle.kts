@@ -35,8 +35,8 @@ tasks {
     }
     jar {
         manifest.attributes(
-            "Premain-Class" to "net.weavemc.loader.bootstrap.AgentKt",
-            "Main-Class" to "net.weavemc.loader.bootstrap.AgentKt",
+            "Premain-Class" to "net.weavemc.loader.impl.bootstrap.AgentKt",
+            "Main-Class" to "net.weavemc.loader.impl.bootstrap.AgentKt",
             "Can-Retransform-Classes" to "true",
         )
         from("LICENSE")

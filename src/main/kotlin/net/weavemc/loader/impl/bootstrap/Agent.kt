@@ -1,15 +1,15 @@
-package net.weavemc.loader.bootstrap
+package net.weavemc.loader.impl.bootstrap
 
 import me.xtrm.klog.Level
 import me.xtrm.klog.dsl.klog
 import me.xtrm.klog.dsl.klogConfig
 import net.weavemc.api.Tweaker
 import net.weavemc.internals.ModConfig
-import net.weavemc.loader.WeaveLoader
-import net.weavemc.loader.bootstrap.transformer.ArgumentSanitizer
-import net.weavemc.loader.bootstrap.transformer.ModInitializerHook
-import net.weavemc.loader.bootstrap.transformer.URLClassLoaderTransformer
-import net.weavemc.loader.util.*
+import net.weavemc.loader.impl.WeaveLoader
+import net.weavemc.loader.impl.bootstrap.transformer.ArgumentSanitizer
+import net.weavemc.loader.impl.bootstrap.transformer.ModInitializerHook
+import net.weavemc.loader.impl.bootstrap.transformer.URLClassLoaderTransformer
+import net.weavemc.loader.impl.util.*
 import java.awt.GraphicsEnvironment
 import java.lang.instrument.Instrumentation
 import java.util.jar.JarFile

@@ -1,12 +1,12 @@
-package net.weavemc.loader
+package net.weavemc.loader.impl
 
 import com.grappenmaker.mappings.LambdaAwareRemapper
 import me.xtrm.klog.dsl.klog
 import net.weavemc.api.Hook
 import net.weavemc.internals.dump
-import net.weavemc.loader.bootstrap.transformer.SafeTransformer
-import net.weavemc.loader.util.*
-import net.weavemc.loader.util.MappingsHandler.remap
+import net.weavemc.loader.impl.bootstrap.SafeTransformer
+import net.weavemc.loader.impl.util.*
+import net.weavemc.loader.impl.util.MappingsHandler.remap
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
@@ -107,7 +107,7 @@ data class ModHook(
     override val targets: Set<String> = hook.targets.mapTo(hashSetOf()) {
         MappingsHandler.mapper(namespace, MappingsHandler.environmentNamespace).map(it)
     }
-): Modifier {
+) : Modifier {
     override fun apply(node: ClassNode, cfg: Hook.AssemblerConfig): ClassNode {
         hook.transform(node, cfg)
         return node

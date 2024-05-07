@@ -1,10 +1,10 @@
-package net.weavemc.loader.mixin
+package net.weavemc.loader.impl.mixin
 
 import me.xtrm.klog.dsl.klog
-import net.weavemc.loader.bootstrap.WeaveLogAppender
-import net.weavemc.loader.util.asClassNode
-import net.weavemc.loader.util.asClassReader
-import net.weavemc.loader.util.getJavaVersion
+import net.weavemc.loader.impl.bootstrap.WeaveLogAppender
+import net.weavemc.loader.impl.util.asClassNode
+import net.weavemc.loader.impl.util.asClassReader
+import net.weavemc.loader.impl.util.getJavaVersion
 import org.spongepowered.asm.launch.platform.container.ContainerHandleVirtual
 import org.spongepowered.asm.launch.platform.container.IContainerHandle
 import org.spongepowered.asm.logging.Level
@@ -70,6 +70,7 @@ internal class SandboxedMixinService : IMixinService {
     override fun getMaxCompatibilityLevel() = runCatching {
         MixinEnvironment.CompatibilityLevel.valueOf("JAVA_${getJavaVersion()}")
     }.getOrNull()
+
     override fun getLogger(name: String) = WeaveLoggerAdapter(name)
 }
 

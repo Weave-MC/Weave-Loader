@@ -1,12 +1,12 @@
-package net.weavemc.loader.bootstrap.transformer
+package net.weavemc.loader.impl.bootstrap.transformer
 
 import net.weavemc.internals.asm
-import net.weavemc.internals.getSingleton
 import net.weavemc.internals.internalNameOf
-import net.weavemc.loader.WeaveLoader
-import net.weavemc.loader.mixin.LoaderClassWriter
-import net.weavemc.loader.util.asClassNode
-import net.weavemc.loader.util.fatalError
+import net.weavemc.loader.impl.WeaveLoader
+import net.weavemc.loader.impl.bootstrap.SafeTransformer
+import net.weavemc.loader.impl.mixin.LoaderClassWriter
+import net.weavemc.loader.impl.util.asClassNode
+import net.weavemc.loader.impl.util.fatalError
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import java.lang.instrument.Instrumentation
@@ -16,7 +16,7 @@ import java.lang.instrument.Instrumentation
  *
  * @see [net.weavemc.api.ModInitializer.init]
  */
-internal class ModInitializerHook(val inst: Instrumentation): SafeTransformer {
+internal class ModInitializerHook(val inst: Instrumentation) : SafeTransformer {
     override fun transform(loader: ClassLoader?, className: String, originalClass: ByteArray): ByteArray? {
         if (className != "net/minecraft/client/main/Main" || loader == null) return null
 

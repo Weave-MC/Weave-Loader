@@ -1,7 +1,7 @@
-package net.weavemc.loader.bootstrap.transformer
+package net.weavemc.loader.impl.bootstrap
 
 import me.xtrm.klog.dsl.klog
-import net.weavemc.loader.util.exit
+import net.weavemc.loader.impl.util.exit
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.tree.ClassNode
 import java.lang.instrument.ClassFileTransformer
@@ -46,6 +46,6 @@ internal interface SafeTransformer : ClassFileTransformer {
         bytes
     }.getOrElse {
         klog.fatal("An error occurred while transforming {} (from {})", className, this.javaClass.name, it)
-        exit(-1)
+        exit(1)
     }
 }

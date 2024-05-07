@@ -1,9 +1,9 @@
-package net.weavemc.loader.bootstrap
+package net.weavemc.loader.impl.bootstrap
 
 import me.xtrm.klog.Appender
 import me.xtrm.klog.LogContext
 import me.xtrm.klog.dsl.klog
-import net.weavemc.loader.util.getOrCreateDirectory
+import net.weavemc.loader.impl.util.getOrCreateDirectory
 import java.io.FileOutputStream
 import java.io.PrintStream
 import java.nio.file.Files
