@@ -46,12 +46,12 @@ private fun callTweakers(inst: Instrumentation) {
 
     val tweakers = FileManager
         .getMods()
-        .map(ModJar::file)
-        .map(::JarFile)
-        .map(JarFile::configOrFatal)
+        .map { JarFile(it.file) }
+        .mapNotNull { runCatching { it.fetchModConfig(JSON) }.getOrNull() }
         .flatMap(ModConfig::tweakers)
 
     for (tweaker in tweakers) {
+        println("[Weave] Calling tweaker: $tweaker")
         instantiate<Tweaker>(tweaker).tweak(inst)
     }
 }
