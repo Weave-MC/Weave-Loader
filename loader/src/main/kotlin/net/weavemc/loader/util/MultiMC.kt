@@ -6,9 +6,10 @@ import kotlinx.serialization.Serializable
 data class MultiMCInstance(
     val components: List<MultiMCComponent>
 )
+
 @Serializable
 data class MultiMCComponent(
     val cachedName: String,
     val uid: String,
-    val version: String
+    val version: String? = null
 )

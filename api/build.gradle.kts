@@ -1,7 +1,6 @@
 plugins {
-    id("kotlin")
+    id("config-kotlin")
     `maven-publish`
-    relocate
 }
 
 dependencies {
@@ -9,8 +8,6 @@ dependencies {
     api(libs.mappingsUtil)
     compileOnly(libs.weaveInternals)
 }
-
-kotlin.compilerOptions.freeCompilerArgs.add("-Xjvm-default=all")
 
 publishing {
     repositories {

@@ -13,12 +13,13 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
+import java.security.AccessController
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
+import java.security.PrivilegedAction
 import java.util.jar.JarFile
 import javax.swing.JOptionPane
 import kotlin.io.path.*
-import kotlin.system.exitProcess
 
 /**
  * Grabs the directory for the specified directory, creating it if it doesn't exist.
@@ -130,6 +131,7 @@ inline fun <reified T> instantiate(className: String): T =
         ?: error("$className does not implement ${T::class.java.simpleName}!")
 
 internal fun fatalError(message: String): Nothing {
+    System.err.println("An error occurred: $message")
     JOptionPane.showMessageDialog(
         /* parentComponent = */ null,
         /* message = */ "An error occurred: $message",
@@ -137,7 +139,57 @@ internal fun fatalError(message: String): Nothing {
         /* messageType = */ JOptionPane.ERROR_MESSAGE
     )
 
-    exitProcess(-1)
+    exit(-1)
+    throw IllegalStateException("Exiting.")
+}
+
+/**
+ * Exits the JVM with the given error code, escaping any SecurityManager
+ * in place (looking at you Froge).
+ *
+ * @param errorCode the error code to exit with
+ */
+fun exit(errorCode: Int) {
+    runCatching {
+        val clazz = Class.forName("java.lang.Shutdown")
+        clazz.getDeclaredMethod("exit", Int::class.javaPrimitiveType).apply {
+            isAccessible = true
+        }.invoke(null, errorCode)
+    }.onFailure { e0 ->
+        runCatching {
+            exitRuntime(errorCode)
+        }.onFailure { e1 ->
+            if (getJavaVersion() <= 19) { // beware of class removal
+                AccessController.doPrivileged(PrivilegedAction<Void> {
+                    exitRuntime(errorCode)
+                    null
+                })
+            } else {
+                // this'll exit alright, but it's not pretty
+                e1.addSuppressed(e0)
+                throw RuntimeException("Exitting the JVM, no errors to report here.", e1)
+            }
+        }
+    }
+}
+
+private fun exitRuntime(errorCode: Int) {
+    val clazz = Class.forName("java.lang.Runtime")
+    val runtime = clazz.getDeclaredMethod("getRuntime").apply {
+        isAccessible = true
+    }.invoke(null)
+    clazz.getDeclaredMethod("exit", Int::class.javaPrimitiveType).apply {
+        isAccessible = true
+    }.invoke(runtime, errorCode)
+}
+
+internal fun getJavaVersion(): Int {
+    val version = System.getProperty("java.version", "1.6.0")
+    val part = if (version.startsWith("1."))
+        version.split(".")[1]
+    else
+        version.substringBefore(".")
+    return part.toInt()
 }
 
 fun JarFile.configOrFatal() = runCatching { fetchModConfig(JSON) }.onFailure {
@@ -169,18 +221,19 @@ fun File.createRemappedTemp(name: String, config: ModConfig): File {
 internal fun setGameInfo() {
     val cwd = Path(System.getProperty("user.dir"))
     val version = System.getProperty("weave.environment.version")
-        ?: if (cwd.pathString.contains("instances")) {
+        ?: cwd.takeIf { "instances" in it.pathString }?.run {
             val instance = cwd.parent
-            val instanceData =
-                JSON.decodeFromString<MultiMCInstance>(instance.resolve("mmc-pack.json").toFile().readText())
+            runCatching {
+                val instanceData = JSON.decodeFromString<MultiMCInstance>(
+                    instance.resolve("mmc-pack.json").toFile().readText()
+                )
 
-            instanceData.components.find { it.uid == "net.minecraft" }?.version
-                ?: fatalError("Failed to find \"Minecraft\" component in ${instance.pathString}'s mmc-pack.json")
-        } else {
-            """--version\s+(\S+)""".toRegex()
-                .find(System.getProperty("sun.java.command"))
-                ?.groupValues?.get(1) ?: fatalError("Could not parse version from command line arguments")
-        }
+                instanceData.components.find { it.uid == "net.minecraft" }?.version
+            }.getOrNull()
+        } ?: """--version\s+(\S+)""".toRegex()
+            .find(System.getProperty("sun.java.command"))
+            ?.groupValues?.get(1)
+        ?: fatalError("Could not determine game version")
 
     fun classExists(name: String): Boolean =
         GameInfo::class.java.classLoader.getResourceAsStream("${name.replace('.', '/')}.class") != null

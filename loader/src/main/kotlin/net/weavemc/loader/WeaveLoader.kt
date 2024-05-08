@@ -2,7 +2,6 @@ package net.weavemc.loader
 
 import com.grappenmaker.mappings.ClasspathLoaders
 import com.grappenmaker.mappings.remappingNames
-import kotlinx.serialization.json.Json
 import net.weavemc.api.Hook
 import net.weavemc.api.ModInitializer
 import net.weavemc.internals.GameInfo
@@ -11,11 +10,6 @@ import net.weavemc.internals.ModConfig
 import net.weavemc.loader.bootstrap.transformer.URLClassLoaderAccessor
 import net.weavemc.loader.mixin.SandboxedMixinLoader
 import net.weavemc.loader.util.*
-import net.weavemc.loader.util.FileManager
-import net.weavemc.loader.util.JSON
-import net.weavemc.loader.util.fatalError
-import net.weavemc.loader.util.launchStart
-import net.weavemc.loader.util.updateLaunchTimes
 import org.objectweb.asm.tree.ClassNode
 import java.io.File
 import java.lang.instrument.Instrumentation
@@ -53,15 +47,32 @@ class WeaveLoader(
     }
 
     private fun finalize() {
+        println("[Weave] Finalizing Weave")
         retrieveMods().forEach { it.registerAsMod() }
+        println("[Weave] Verifying dependencies")
         verifyDependencies()
+        println("[Weave] Populating mixin modifiers")
         populateMixinModifiers()
 
+        println("[Weave] calling preInit() for mods")
         // TODO remove
         // Invoke preInit() once everything is done.
         mods.forEach { weaveMod ->
             weaveMod.config.entryPoints.forEach { entrypoint ->
-                instantiate<ModInitializer>(entrypoint).preInit(instrumentation)
+                runCatching {
+                    instantiate<ModInitializer>(entrypoint)
+                }.onFailure {
+                    it.printStackTrace()
+                    println("Failed to instantiate $entrypoint#preInit")
+                }.onSuccess {
+                    runCatching {
+                        @Suppress("DEPRECATION")
+                        it.preInit(instrumentation)
+                    }.onFailure {
+                        it.printStackTrace()
+                        println("Exception thrown when invoking $entrypoint#preInit")
+                    }
+                }
             }
         }
 
@@ -76,7 +87,19 @@ class WeaveLoader(
     fun initializeMods() {
         mods.forEach { weaveMod ->
             weaveMod.config.entryPoints.forEach { entrypoint ->
-                instantiate<ModInitializer>(entrypoint).init()
+                runCatching {
+                    instantiate<ModInitializer>(entrypoint)
+                }.onFailure {
+                    it.printStackTrace()
+                    println("Failed to instantiate $entrypoint#init")
+                }.onSuccess {
+                    runCatching {
+                        it.init()
+                    }.onFailure {
+                        it.printStackTrace()
+                        println("Exception thrown when invoking $entrypoint#init")
+                    }
+                }
             }
         }
     }

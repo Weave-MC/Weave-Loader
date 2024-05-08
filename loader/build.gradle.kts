@@ -1,36 +1,37 @@
 plugins {
+    id("config-kotlin")
+    id("config-shade")
     `maven-publish`
-    id("kotlin")
-    id("shade")
-    id("relocate")
 }
 
 repositories {
-    maven("https://repo.spongepowered.org/repository/maven-public/")
+    maven("https://maven.fabricmc.net/")
 }
 
 dependencies {
-    implementation(libs.kxSer)
-    implementation(libs.bundles.asm)
-    implementation(project(":api"))
-    implementation(libs.weaveInternals)
-    implementation(libs.mappingsUtil)
-    implementation(libs.bundles.mixin)
+    shade(project(":api"))
+    shade(libs.kxSer)
+    shade(libs.bundles.asm)
+    shade(libs.weaveInternals)
+    shade(libs.mappingsUtil)
+    shade(libs.mixin) {
+        exclude(group = "com.google.guava")
+        exclude(group = "com.google.code.gson")
+    }
 }
 
 tasks.jar {
     manifest.attributes(
         "Premain-Class" to "net.weavemc.loader.bootstrap.AgentKt",
+        "Main-Class" to "net.weavemc.loader.bootstrap.AgentKt",
         "Can-Retransform-Classes" to "true",
-        "Main-Class" to "net.weavemc.loader.bootstrap.AgentKt"
     )
 }
 
 publishing {
     repositories {
-        maven {
+        maven("https://repo.weavemc.dev/releases") {
             name = "WeaveMC"
-            url = uri("https://repo.weavemc.dev/releases")
             credentials(PasswordCredentials::class)
             authentication {
                 create<BasicAuthentication>("basic")

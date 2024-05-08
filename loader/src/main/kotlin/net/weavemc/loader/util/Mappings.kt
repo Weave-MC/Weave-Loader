@@ -3,7 +3,8 @@ package net.weavemc.loader.util
 import com.grappenmaker.mappings.*
 import net.weavemc.internals.GameInfo
 import net.weavemc.internals.MappingsRetrieval
-import net.weavemc.internals.MappingsType.*
+import net.weavemc.internals.MappingsType.MCP
+import net.weavemc.internals.MappingsType.MOJANG
 import net.weavemc.internals.MinecraftClient
 import net.weavemc.internals.MinecraftVersion
 import net.weavemc.loader.InjectionClassWriter
@@ -14,12 +15,18 @@ import org.objectweb.asm.commons.Remapper
 import org.objectweb.asm.commons.SimpleRemapper
 import org.objectweb.asm.tree.ClassNode
 import java.io.File
+import java.util.*
 import java.util.jar.JarFile
 
 object MappingsHandler {
-    private val vanillaJar = FileManager.getVanillaMinecraftJar()
+    private val relocationVisitor by lazy { relocate() }
+    private val vanillaJar by lazy {
+        FileManager.getVanillaMinecraftJar()
+    }
 
     val mergedMappings by lazy {
+        println("Loading merged mappings for ${GameInfo.version.versionName}")
+        println(" - Vanilla jar: $vanillaJar")
         MappingsRetrieval.loadMergedWeaveMappings(GameInfo.version.versionName, vanillaJar)
     }
 
@@ -122,7 +129,7 @@ object MappingsHandler {
         remapper: Remapper
     ) : LambdaAwareMethodRemapper(parent, remapper) {
         override fun visitInvokeDynamicInsn(name: String, descriptor: String, handle: Handle, vararg args: Any) {
-            if (annotations.contains("net/weavemc/relocate/spongepowered/asm/mixin/transformer/meta/MixinMerged"))
+            if (annotations.contains("org/spongepowered/asm/mixin/transformer/meta/MixinMerged"))
                 parent.visitInvokeDynamicInsn(name, descriptor, handle, args)
             else
                 super.visitInvokeDynamicInsn(name, descriptor, handle, *args)
@@ -139,11 +146,12 @@ object MappingsHandler {
     ) {
         val jarsToUse = (classpath + input).map { JarFile(it) }
 
-        remapJar(mappings, input, output, from, to, ClasspathLoaders.fromJars(jarsToUse).remappingNames(
-            mappings = mergedMappings.mappings,
-            from = "official",
-            to = from,
-        ), visitor = relocate()
+        remapJar(
+            mappings, input, output, from, to, ClasspathLoaders.fromJars(jarsToUse).remappingNames(
+                mappings = mergedMappings.mappings,
+                from = "official",
+                to = from,
+            ), visitor = relocationVisitor
         )
 
         jarsToUse.forEach { it.close() }
@@ -152,29 +160,30 @@ object MappingsHandler {
     fun isNamespaceAvailable(ns: String) = ns in mergedMappings.mappings.namespaces
 }
 
-// Oh yeah we love duplicating code
+private val relocationData: Properties by lazy {
+    val url = MappingsHandler::class.java.classLoader.getResource("weave-relocation-data.properties")
+    val stream = url?.openStream()
+
+    Properties().apply { stream?.use { load(it) } }
+}
+
 private fun relocate(): ((parent: ClassVisitor) -> ClassVisitor) {
-    /*
-    ------------------------------------------------------------------------
-    <THIS PORTION SHOULD BE UPDATED WHENEVER relocate.gradle.kts IS UPDATED>
-    ------------------------------------------------------------------------
-     */
-    val relocatePrefix = "net/weavemc/relocate"
-    val mapping = mapOf(
-        "org/objectweb/asm/" to "$relocatePrefix/asm/",
-        "com/google/" to "$relocatePrefix/google/",
-        "org/spongepowered/" to "$relocatePrefix/spongepowered/"
-    )
+    if (relocationData.isEmpty) {
+        println("Relocation data not found, skipping remapping.")
+        return { it }
+    }
+    val relocatePrefix = relocationData["target"].toString()
+        .replace(".", "/")
+    val packages = relocationData["packages"].toString()
+        .split(";")
+        .map { it.replace(".", "/") }
 
-    val mappingsExclusions = listOf("gson")
-    /*
-    -------------------------------------------------------------------------
-    </THIS PORTION SHOULD BE UPDATED WHENEVER relocate.gradle.kts IS UPDATED>
-    -------------------------------------------------------------------------
-     */
+    // Note the missing trailing slash in those packages, this makes it so that
+    // shadowJar won't rewrite them during relocation (since it's configured to target
+    // `org.objectweb.asm.`, not `org.objectweb.asm` for example)
+    val mapping = packages.associateWith { "$relocatePrefix/${it.substringAfterLast("/")}" }
 
-    fun findMapping(name: String) = mapping.entries.find { (k) -> name.startsWith(k) }
-        ?.takeIf { mappingsExclusions.none { it in name } }
+    fun findMapping(name: String) = mapping.entries.find { (k) -> name.startsWith("$k/") }
 
     fun remap(name: String) = findMapping(name)?.let { (k, v) -> name.replaceFirst(k, v) } ?: name
 

@@ -2,6 +2,7 @@ package net.weavemc.loader.mixin
 
 import net.weavemc.loader.util.asClassNode
 import net.weavemc.loader.util.asClassReader
+import net.weavemc.loader.util.getJavaVersion
 import org.spongepowered.asm.launch.platform.container.ContainerHandleVirtual
 import org.spongepowered.asm.launch.platform.container.IContainerHandle
 import org.spongepowered.asm.logging.LoggerAdapterConsole
@@ -60,8 +61,10 @@ internal class SandboxedMixinService : IMixinService {
     override fun getMixinContainers() = emptyList<IContainerHandle>()
     override fun getResourceAsStream(name: String): InputStream? = javaClass.classLoader.getResourceAsStream(name)
     override fun getSideName() = Constants.SIDE_CLIENT
-    override fun getMinCompatibilityLevel() = null
-    override fun getMaxCompatibilityLevel() = null
+    override fun getMinCompatibilityLevel() = MixinEnvironment.CompatibilityLevel.JAVA_7
+    override fun getMaxCompatibilityLevel() = runCatching {
+        MixinEnvironment.CompatibilityLevel.valueOf("JAVA_${getJavaVersion()}")
+    }.getOrNull()
     override fun getLogger(name: String) = LoggerAdapterConsole(name)
 }
 
