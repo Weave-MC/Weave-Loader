@@ -6,12 +6,10 @@ import org.objectweb.asm.ClassReader
 import org.objectweb.asm.tree.ClassNode
 import java.lang.instrument.ClassFileTransformer
 import java.security.ProtectionDomain
-import kotlin.io.path.Path
-import kotlin.io.path.createDirectories
-import kotlin.io.path.writeBytes
 
 private val checkBytecode = java.lang.Boolean.getBoolean("weave.loader.checkTransformedBytecode")
-private val dumpBytecode = java.lang.Boolean.getBoolean("weave.loader.dumpTransformedBytecode")
+
+private val logger by klog
 
 internal interface SafeTransformer : ClassFileTransformer {
     /**
@@ -29,23 +27,18 @@ internal interface SafeTransformer : ClassFileTransformer {
         classfileBuffer: ByteArray
     ) = runCatching {
         val bytes = transform(loader, className, classfileBuffer)
-        if (dumpBytecode && bytes != null) {
-            klog.trace("Dumping transformed bytecode for {}", className)
-            Path(".weave-transformed/$className.class").also {
-                it.parent.createDirectories()
-            }.writeBytes(bytes)
-        }
         if (checkBytecode && bytes != null) {
+            logger.trace("Checking transformed bytecode for {}", className)
             ClassNode().also {
                 ClassReader(bytes).accept(it, 0)
             }.apply {
                 check(this.name == className) { "Class name mismatch: expected $className, got ${this.name}" }
-                check(this.version <= 52) { "Class version mismatch: expected 52 or lower, got ${this.version}" }
+                check(this.version <= 52) { "Class version mismatch: expected 52 (Java 8), or lower, got ${this.version} (Java ${this.version - 52 + 8})" }
             }
         }
         bytes
     }.getOrElse {
-        klog.fatal("An error occurred while transforming {} (from {})", className, this.javaClass.name, it)
+        logger.fatal("An error occurred while transforming {} (from {})", className, this.javaClass.name, it)
         exit(1)
     }
 }
