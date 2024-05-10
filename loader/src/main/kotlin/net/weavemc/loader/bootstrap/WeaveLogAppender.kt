@@ -7,11 +7,9 @@ import net.weavemc.loader.util.getOrCreateDirectory
 import java.io.FileOutputStream
 import java.io.PrintStream
 import java.nio.file.Files
-import java.nio.file.Path
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.io.path.deleteIfExists
-import kotlin.io.path.exists
 
 /**
  * We have to do a bit of gymnastics to ensure we don't reinitialize our logfile, create two logfiles,
@@ -19,23 +17,20 @@ import kotlin.io.path.exists
  *
  * Since this class is loaded on two different classloaders, we need to pass it some state (here `initialized`)
  * to determine whether start a new logging session or continue an existing one.
- *
- * @param initialized Whether the logger has already been initialized
  */
 object WeaveLogAppender : Appender {
+    private val newline = System.lineSeparator()
     private val formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy_HH-mm-ss")
     private val logDir = getOrCreateDirectory("logs")
-    private val logFile: Path
+    private val logFile = logDir.resolve("weave-loader-${LocalDateTime.now().format(formatter)}.log")
 
     private val stdoutStream = WrappingStream(System.out)
     private val stderrStream = WrappingStream(System.err)
-    private val logFileStream: PrintStream
+    private val logFileStream = PrintStream(FileOutputStream(logFile.toFile(), true), true)
 
     private val logger by klog
 
     init {
-        logFile = fetchLogFile(false)
-        logFileStream = PrintStream(FileOutputStream(logFile.toFile(), false), true)
         symlinkLatest()
     }
 
@@ -70,19 +65,10 @@ object WeaveLogAppender : Appender {
         }
     }
 
-    private fun fetchLogFile(initialized: Boolean): Path {
-        val latestLog = logDir.resolve("latest.log")
-        if (!initialized || !latestLog.exists()) {
-            return logDir.resolve("weave-loader-${LocalDateTime.now().format(formatter)}.log")
-        }
-        // If the loader is already initialized, we will just write to the latest log
-        return latestLog
-    }
-
     internal class WrappingStream(private val stream: PrintStream) : PrintStream(stream) {
         override fun println(x: Any?) {
             // Use print with a manual newline to prevent Legacy Forge from redirecting to log4j
-            stream.print("$x\n")
+            stream.print("$x$newline")
         }
     }
 }
