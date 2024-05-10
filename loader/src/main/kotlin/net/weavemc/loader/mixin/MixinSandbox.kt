@@ -62,7 +62,7 @@ class SandboxedMixinLoader(
 
     private val systemClasses = illegalToReload + setOf(
         "kotlin.", "kotlinx.", "org.objectweb.asm.",
-        "net.weavemc.loader.mixin.SandboxedMixinState"
+        "me.xtrm.klog.", "net.weavemc.loader.mixin.SandboxedMixinState"
     )
 
     /**
@@ -106,12 +106,7 @@ class SandboxedMixinLoader(
         }
     }
 
-    override fun loadClass(name: String): Class<*> {
-        if (name.startsWith("me.xtrm.klog.") || name.startsWith("kotlin.")) {
-            return getSystemClassLoader().loadClass(name)
-        }
-        return findClass(name)
-    }
+    override fun loadClass(name: String): Class<*> = findClass(name)
     private fun shouldLoadParent(name: String) = name in loaderExclusions || systemClasses.any { name.startsWith(it) }
 
     /**
