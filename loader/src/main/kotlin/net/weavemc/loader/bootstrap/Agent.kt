@@ -51,12 +51,10 @@ fun premain(opt: String?, inst: Instrumentation) {
 }
 
 private fun Instrumentation.tryRetransform(className: String) {
-    val loadedClass = this.allLoadedClasses.firstOrNull { it.name == className }
-    if (loadedClass == null) {
-        Class.forName(className, false, ClassLoader.getSystemClassLoader())
-    } else {
-        this.retransformClasses(loadedClass)
-    }
+    val loadedClasses = this.allLoadedClasses
+    val clazz = Class.forName(className, false, ClassLoader.getSystemClassLoader())
+    if (clazz in loadedClasses)
+        this.retransformClasses(clazz)
 }
 
 private fun callTweakers(inst: Instrumentation) {
