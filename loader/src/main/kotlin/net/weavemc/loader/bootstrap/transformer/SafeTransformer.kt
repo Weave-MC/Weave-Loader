@@ -1,7 +1,6 @@
 package net.weavemc.loader.bootstrap.transformer
 
 import org.objectweb.asm.ClassReader
-import org.objectweb.asm.tree.ClassNode
 import java.lang.instrument.ClassFileTransformer
 import java.security.ProtectionDomain
 import kotlin.system.exitProcess
@@ -25,11 +24,8 @@ internal interface SafeTransformer : ClassFileTransformer {
     ) = runCatching {
         val bytes = transform(loader, className, classfileBuffer)
         if (checkBytecode && bytes != null) {
-            ClassNode().also {
-                ClassReader(bytes).accept(it, ClassReader.EXPAND_FRAMES)
-            }.apply {
-                check(this.name == className) { "Class name mismatch: expected $className, got ${this.name}" }
-                check(this.version <= 52) { "Class version mismatch: expected 52 or lower, got ${this.version}" }
+            ClassReader(bytes).run {
+                check(this.className == className) { "Class name mismatch: expected $className, got ${this.className}"}
             }
         }
         bytes
