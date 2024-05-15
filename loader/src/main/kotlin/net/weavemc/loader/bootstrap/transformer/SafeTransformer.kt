@@ -3,7 +3,6 @@ package net.weavemc.loader.bootstrap.transformer
 import me.xtrm.klog.dsl.klog
 import net.weavemc.loader.util.exit
 import org.objectweb.asm.ClassReader
-import org.objectweb.asm.tree.ClassNode
 import java.lang.instrument.ClassFileTransformer
 import java.security.ProtectionDomain
 
@@ -29,11 +28,8 @@ internal interface SafeTransformer : ClassFileTransformer {
         val bytes = transform(loader, className, classfileBuffer)
         if (checkBytecode && bytes != null) {
             logger.trace("Checking transformed bytecode for {}", className)
-            ClassNode().also {
-                ClassReader(bytes).accept(it, 0)
-            }.apply {
-                check(this.name == className) { "Class name mismatch: expected $className, got ${this.name}" }
-                check(this.version <= 52) { "Class version mismatch: expected 52 (Java 8), or lower, got ${this.version} (Java ${this.version - 52 + 8})" }
+            ClassReader(bytes).run {
+                check(this.className == className) { "Class name mismatch: expected $className, got ${this.className}"}
             }
         }
         bytes
