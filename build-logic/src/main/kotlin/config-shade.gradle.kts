@@ -23,7 +23,7 @@ val packagesList = listOf(
 
 tasks {
     val createRelocationData by creating(CreateRelocationData::class) {
-        shadedPackage.set(targetPackage)
+        shadedPackage = targetPackage
         relocationList.addAll(packagesList)
     }
 

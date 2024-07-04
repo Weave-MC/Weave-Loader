@@ -1,12 +1,10 @@
 subprojects {
-    val projectGroup: String by project
-    val projectVersion: String by project
-
-    group = projectGroup
-    version = projectVersion
+    group = "net.weavemc"
+    version = "1.0.0-b.3"
 
     repositories {
         mavenCentral()
+        mavenLocal()
         maven("https://repo.weavemc.dev/releases")
     }
 }

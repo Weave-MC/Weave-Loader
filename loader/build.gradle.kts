@@ -1,7 +1,7 @@
 plugins {
     id("config-kotlin")
     id("config-shade")
-    `maven-publish`
+    id("config-publish")
 }
 
 repositories {
@@ -10,35 +10,27 @@ repositories {
 
 dependencies {
     shade(project(":api"))
-    shade(libs.kxSer)
+    shade(libs.kxser.json)
     shade(libs.bundles.asm)
-    shade(libs.weaveInternals)
-    shade(libs.mappingsUtil)
+    shade(project(":internals"))
+    shade(libs.mappings)
     shade(libs.mixin) {
         exclude(group = "com.google.guava")
         exclude(group = "com.google.code.gson")
     }
 }
 
-tasks.jar {
-    manifest.attributes(
-        "Premain-Class" to "net.weavemc.loader.bootstrap.AgentKt",
-        "Main-Class" to "net.weavemc.loader.bootstrap.AgentKt",
-        "Can-Retransform-Classes" to "true",
-    )
+tasks {
+    jar {
+        manifest.attributes(
+            "Premain-Class" to "net.weavemc.loader.bootstrap.AgentKt",
+            "Main-Class" to "net.weavemc.loader.bootstrap.AgentKt",
+            "Can-Retransform-Classes" to "true",
+        )
+    }
 }
 
 publishing {
-    repositories {
-        maven("https://repo.weavemc.dev/releases") {
-            name = "WeaveMC"
-            credentials(PasswordCredentials::class)
-            authentication {
-                create<BasicAuthentication>("basic")
-            }
-        }
-    }
-
     publications {
         create<MavenPublication>("maven") {
             from(components["java"])
