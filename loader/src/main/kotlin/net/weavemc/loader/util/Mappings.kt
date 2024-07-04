@@ -7,22 +7,18 @@ import net.weavemc.internals.MappingsType.MCP
 import net.weavemc.internals.MappingsType.MOJANG
 import net.weavemc.internals.MinecraftClient
 import net.weavemc.internals.MinecraftVersion
-import net.weavemc.loader.InjectionClassWriter
 import net.weavemc.loader.WeaveLoader
 import org.objectweb.asm.*
 import org.objectweb.asm.commons.ClassRemapper
 import org.objectweb.asm.commons.Remapper
 import org.objectweb.asm.commons.SimpleRemapper
-import org.objectweb.asm.tree.ClassNode
 import java.io.File
 import java.util.*
 import java.util.jar.JarFile
 
 object MappingsHandler {
-    private val relocationVisitor by lazy { relocate() }
-    private val vanillaJar by lazy {
-        FileManager.getVanillaMinecraftJar()
-    }
+    val relocationRemapper by lazy { createRelocationRemapper() }
+    private val vanillaJar by lazy { FileManager.getVanillaMinecraftJar() }
 
     val mergedMappings by lazy {
         println("Loading merged mappings for ${GameInfo.version.versionName}")
@@ -74,20 +70,6 @@ object MappingsHandler {
         reader.accept(MinecraftRemapper(writer, remapper), 0)
 
         return writer.toByteArray()
-    }
-
-    internal fun ClassNode.remap(remapper: Remapper, flags: Int = ClassWriter.COMPUTE_MAXS): ClassNode {
-        val classWriter = InjectionClassWriter(flags)
-        accept(classWriter)
-
-        val bytes = classWriter.toByteArray()
-        val remapped = bytes.remap(remapper, true)
-
-        val classReader = ClassReader(remapped)
-        val classNode = ClassNode()
-        classReader.accept(classNode, 0)
-
-        return classNode
     }
 
     class SimpleAnnotationNode(
@@ -151,8 +133,8 @@ object MappingsHandler {
                 mappings = mergedMappings.mappings,
                 from = "official",
                 to = from,
-            ), visitor = relocationVisitor
-        )
+            )
+        ) { if (relocationRemapper != null) ClassRemapper(it, relocationRemapper) else it }
 
         jarsToUse.forEach { it.close() }
     }
@@ -167,29 +149,22 @@ private val relocationData: Properties by lazy {
     Properties().apply { stream?.use { load(it) } }
 }
 
-private fun relocate(): ((parent: ClassVisitor) -> ClassVisitor) {
+private fun createRelocationRemapper(): Remapper? {
     if (relocationData.isEmpty) {
         println("Relocation data not found, skipping remapping.")
-        return { it }
+        return null
     }
-    val relocatePrefix = relocationData["target"].toString()
-        .replace(".", "/")
-    val packages = relocationData["packages"].toString()
-        .split(";")
-        .map { it.replace(".", "/") }
+
+    val relocatePrefix = relocationData["target"].toString().replace(".", "/")
+    val packages = relocationData["packages"].toString().split(";").map { it.replace(".", "/") }
 
     // Note the missing trailing slash in those packages, this makes it so that
     // shadowJar won't rewrite them during relocation (since it's configured to target
     // `org.objectweb.asm.`, not `org.objectweb.asm` for example)
     val mapping = packages.associateWith { "$relocatePrefix/${it.substringAfterLast("/")}" }
-
     fun findMapping(name: String) = mapping.entries.find { (k) -> name.startsWith("$k/") }
 
-    fun remap(name: String) = findMapping(name)?.let { (k, v) -> name.replaceFirst(k, v) } ?: name
-
-    val remapper = object : Remapper() {
-        override fun map(name: String) = remap(name)
+    return object : Remapper() {
+        override fun map(name: String) = findMapping(name)?.let { (k, v) -> name.replaceFirst(k, v) } ?: name
     }
-
-    return { parent -> ClassRemapper(parent, remapper) }
 }

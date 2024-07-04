@@ -4,13 +4,17 @@ plugins {
     id("com.github.johnrengelman.shadow")
 }
 
+repositories {
+    mavenCentral()
+}
+
 val shade: Configuration by configurations.creating
 val api: Configuration by configurations.getting
 api.extendsFrom(shade)
 
 val targetPackage = "net.weavemc.loader.shaded"
 val packagesList = listOf(
-    "com.grappenmaker",
+    "com.grappenmaker.mappings",
     "org.objectweb.asm",
     "org.spongepowered",
     "kotlin",

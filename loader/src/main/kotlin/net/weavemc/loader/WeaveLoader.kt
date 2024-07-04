@@ -1,11 +1,9 @@
 package net.weavemc.loader
 
-import com.grappenmaker.mappings.ClasspathLoaders
-import com.grappenmaker.mappings.remappingNames
+import com.grappenmaker.mappings.*
 import net.weavemc.api.Hook
 import net.weavemc.api.ModInitializer
 import net.weavemc.internals.GameInfo
-import net.weavemc.internals.MinecraftVersion
 import net.weavemc.internals.ModConfig
 import net.weavemc.loader.bootstrap.transformer.URLClassLoaderAccessor
 import net.weavemc.loader.mixin.SandboxedMixinLoader
@@ -20,20 +18,40 @@ import java.util.jar.JarFile
  */
 class WeaveLoader(
     private val classLoader: URLClassLoaderAccessor,
-    private val instrumentation: Instrumentation
+    private val instrumentation: Instrumentation,
+    private val mappedModJars: List<File>
 ) {
     /**
      * Stored list of [WeaveMod]s.
      *
      * @see ModConfig
      */
-    val mods: MutableList<WeaveMod> = mutableListOf()
+    val mods: MutableList<WeaveMod> = mutableListOf(
+        // Fake base game mod so dependencies can be made on them
+        // TODO: proper versioned dependencies, eg. optional, version greater/less than...
+        WeaveMod(
+            modId = "minecraft", config = ModConfig(
+                name = "Minecraft",
+                modId = "minecraft",
+                entryPoints = emptyList(),
+                mixinConfigs = emptyList(),
+                hooks = emptyList(),
+                tweakers = emptyList(),
+                namespace = MappingsHandler.environmentNamespace,
+                dependencies = emptyList(),
+                compiledFor = GameInfo.version.versionName
+            )
+        )
+    )
+
     private val mixinInstances = mutableMapOf<String, SandboxedMixinLoader>()
 
     companion object {
         private var INSTANCE: WeaveLoader? = null
+
         @JvmStatic
-        fun getInstance() = INSTANCE ?: fatalError("Attempted to retrieve WeaveLoader instance before it has been instantiated!")
+        fun getInstance() =
+            INSTANCE ?: fatalError("Attempted to retrieve WeaveLoader instance before it has been instantiated!")
     }
 
     init {
@@ -48,11 +66,13 @@ class WeaveLoader(
 
     private fun finalize() {
         println("[Weave] Finalizing Weave")
-        retrieveMods().forEach { it.registerAsMod() }
+        mappedModJars.forEach { it.registerAsMod() }
         println("[Weave] Verifying dependencies")
         verifyDependencies()
         println("[Weave] Populating mixin modifiers")
         populateMixinModifiers()
+        println("[Weave] Setting up access wideners")
+        setupAccessWideners()
 
         println("[Weave] calling preInit() for mods")
         // TODO remove
@@ -147,12 +167,31 @@ class WeaveLoader(
             InjectionHandler.registerModifier(object : Modifier {
                 override val namespace = ns
                 override val targets = targets.mapTo(hashSetOf()) { mapper.map(it.replace('.', '/')) }
-                override fun apply(node: ClassNode, cfg: Hook.AssemblerConfig): ClassNode {
+                override fun apply(node: ClassNode, cfg: Hook.AssemblerConfig) {
                     cfg.computeFrames()
-                    return state.transform(node.name, node)
+                    state.transform(node.name, node)
                 }
             })
         }
+    }
+
+    private fun setupAccessWideners() {
+        val tree = mods.asSequence().flatMap { it.config.accessWideners }.mapNotNull { aw ->
+            val res = javaClass.classLoader.getResourceAsStream(aw) ?: return@mapNotNull let {
+                println("[Weave] Could not load access widener configuration $aw")
+                null
+            }
+
+            loadAccessWidener(res.readBytes().decodeToString().trim().lines())
+                .remap(MappingsHandler.mergedMappings.mappings, MappingsHandler.environmentNamespace)
+        }.join().toTree()
+
+        InjectionHandler.registerModifier(object : Modifier {
+            override val namespace = MappingsHandler.environmentNamespace
+            override val targets = tree.classes.mapTo(hashSetOf()) { it.key }
+
+            override fun apply(node: ClassNode, cfg: Hook.AssemblerConfig) = node.applyWidener(tree)
+        })
     }
 
     /**
@@ -181,31 +220,4 @@ class WeaveLoader(
             println("[Weave] Registered ${this.name}")
         }
     }
-
-    private fun FileManager.ModJar.parseAndMap(): File {
-        val fileName = file.name.substringBeforeLast('.')
-
-        return JarFile(file).use {
-            val config = it.configOrFatal()
-            val compiledFor = config.compiledFor
-
-            if (compiledFor != null && GameInfo.version != MinecraftVersion.fromVersionName(compiledFor)) {
-                val extra = if (!isSpecific) {
-                    " Hint: this mod was placed in the general mods folder. Consider putting mods in a version-specific mods folder"
-                } else ""
-
-                fatalError(
-                    "Mod ${config.modId} was compiled for version $compiledFor, current version is ${GameInfo.version.versionName}.$extra"
-                )
-            }
-
-            if (!MappingsHandler.isNamespaceAvailable(config.namespace)) {
-                fatalError("Mod ${config.modId} was mapped in namespace ${config.namespace}, which is not available!")
-            }
-
-            file.createRemappedTemp(fileName, config)
-        }
-    }
-
-    private fun retrieveMods() = FileManager.getMods().map { it.parseAndMap() }
 }

@@ -10,6 +10,7 @@ val toolchainTarget = JavaLanguageVersion.of(8)
 
 repositories {
     mavenCentral()
+    mavenLocal()
 }
 
 base {
@@ -24,5 +25,6 @@ kotlin {
         languageVersion.set(KotlinVersion.KOTLIN_1_9)
         apiVersion.set(KotlinVersion.KOTLIN_1_9)
     }
+
     jvmToolchain(8)
 }

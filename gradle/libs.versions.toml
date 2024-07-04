@@ -1,10 +1,10 @@
 [versions]
 asm = "9.7"
 mixin = "0.13.4+mixin.0.8.5"
-kotlin = "2.0.0-RC2"
+kotlin = "2.0.0"
 kxSer = "1.5.1"
-mappingsUtil = "0.1.3"
-weaveInternals = "1.0.0-b.2"
+mappingsUtil = "0.1.6"
+weaveInternals = "1.0.0-b.3"
 gradle-shadow = "8.1.1"
 
 [libraries]

@@ -6,10 +6,11 @@ import net.weavemc.loader.bootstrap.transformer.SafeTransformer
 import net.weavemc.loader.bootstrap.transformer.URLClassLoaderAccessor
 import net.weavemc.loader.bootstrap.transformer.URLClassLoaderTransformer
 import net.weavemc.loader.util.*
+import java.io.File
 import java.lang.instrument.Instrumentation
 
 object Bootstrap {
-    fun bootstrap(inst: Instrumentation) {
+    fun bootstrap(inst: Instrumentation, mods: List<File>) {
         inst.addTransformer(object: SafeTransformer {
             override fun transform(loader: ClassLoader?, className: String, originalClass: ByteArray): ByteArray? {
                 if (className == "net/minecraft/client/main/Main") {
@@ -40,8 +41,9 @@ object Bootstrap {
                     val wlc = loader.loadClass("net.weavemc.loader.WeaveLoader")
                     wlc.getConstructor(
                         URLClassLoaderAccessor::class.java,
-                        Instrumentation::class.java
-                    ).newInstance(clAccessor, inst)
+                        Instrumentation::class.java,
+                        java.util.List::class.java
+                    ).newInstance(clAccessor, inst, mods)
                 }
 
                 return null
@@ -59,6 +61,4 @@ object Bootstrap {
             """.trimIndent()
         )
     }
-
-
 }

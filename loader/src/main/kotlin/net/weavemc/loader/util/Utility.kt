@@ -47,9 +47,6 @@ internal fun File.toSha256(): String {
 
 internal val JSON = Json { ignoreUnknownKeys = true }
 
-internal inline fun <reified T> Set<T>.pushToFirst(element: T): List<T> =
-    listOfNotNull(element.takeIf { it in this }) + (this - element)
-
 // Copied from Weave-Gradle
 object DownloadUtil {
     /**
@@ -126,6 +123,12 @@ fun MethodNode.hasMixinAnnotation(name: String): Boolean {
 
 inline fun <reified T> instantiate(className: String): T =
     Class.forName(className)
+        .getConstructor()
+        .newInstance() as? T
+        ?: error("$className does not implement ${T::class.java.simpleName}!")
+
+inline fun <reified T> instantiate(className: String, loader: ClassLoader?): T =
+    Class.forName(className, false, loader)
         .getConstructor()
         .newInstance() as? T
         ?: error("$className does not implement ${T::class.java.simpleName}!")

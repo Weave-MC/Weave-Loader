@@ -1,10 +1,10 @@
 package net.weavemc.loader
 
 import com.grappenmaker.mappings.LambdaAwareRemapper
+import com.grappenmaker.mappings.remap
 import net.weavemc.api.Hook
 import net.weavemc.internals.dump
 import net.weavemc.loader.bootstrap.transformer.SafeTransformer
-import net.weavemc.loader.util.MappingsHandler.remap
 import net.weavemc.loader.util.*
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
@@ -30,8 +30,9 @@ object InjectionHandler : SafeTransformer {
         modifiers += modifier
     }
 
-    private fun ClassNode.remap(from: String, to: String) =
-        if (from == to) this else this.remap(MappingsHandler.mapper(from, to))
+    private fun ClassNode.remap(from: String, to: String) {
+        if (from != to) remap(MappingsHandler.mapper(from, to))
+    }
 
     override fun transform(
         loader: ClassLoader?,
@@ -43,38 +44,35 @@ object InjectionHandler : SafeTransformer {
 
         with(MappingsHandler) {
             val classReader = originalClass.asClassReader()
-            val originalNode = classReader.asClassNode()
+            val node = classReader.asClassNode()
 
             // Hack: temporarily preserve already @MixinMerged methods, such that collisions will never occur
-            val potentialConflicts = originalNode.methods.filter { it.hasMixinAnnotation("MixinMerged") }
+            val potentialConflicts = node.methods.filter { it.hasMixinAnnotation("MixinMerged") }
             val conflictsMapping = hashMapOf<String, String>()
             val inverseConflictsMapping = hashMapOf<String, String>()
 
             for (m in potentialConflicts) {
                 val tempName = "potentialConflict${Random.nextUInt()}"
-                conflictsMapping["${originalNode.name}.${m.name}${m.desc}"] = tempName
-                inverseConflictsMapping["${originalNode.name}.${tempName}${m.desc}"] = m.name
+                conflictsMapping["${node.name}.${m.name}${m.desc}"] = tempName
+                inverseConflictsMapping["${node.name}.${tempName}${m.desc}"] = m.name
             }
 
-            val classNode = ClassNode()
-            originalNode.accept(LambdaAwareRemapper(classNode, SimpleRemapper(conflictsMapping)))
+            node.remap(SimpleRemapper(conflictsMapping))
 
             val hookConfig = AssemblerConfigImpl()
+            val modNs = groupedModifiers.keys
 
-            val modifierNamespaces = groupedModifiers.keys.pushToFirst(environmentNamespace)
-            val start = classNode to environmentNamespace
+            // first FROM env namespace to all other namespaces to apply modifiers,
+            // then finally remap to env namespace and apply its modifiers, instantly done.
+            val nsOrder = (listOf(environmentNamespace) + (modNs - environmentNamespace)) + environmentNamespace
 
-            val (finalNode, lastNamespace) = modifierNamespaces.fold(start) { (modifiedNode, lastNamespace), currentNamespace ->
-                val mappedNode = modifiedNode.remap(lastNamespace, currentNamespace)
-                val nextNode = groupedModifiers.getValue(currentNamespace)
-                    .fold(mappedNode) { acc, curr -> curr.apply(acc, hookConfig) }
-
-                nextNode to currentNamespace
+            nsOrder.windowed(2).forEach { (last, curr) ->
+                node.remap(last, curr)
+                groupedModifiers.getValue(curr).forEach { it.apply(node, hookConfig) }
             }
 
             val classWriter = InjectionClassWriter(hookConfig.classWriterFlags, classReader)
-            finalNode.remap(lastNamespace, environmentNamespace)
-                .accept(LambdaAwareRemapper(classWriter, SimpleRemapper(inverseConflictsMapping)))
+            node.accept(LambdaAwareRemapper(classWriter, SimpleRemapper(inverseConflictsMapping)))
 
             if (dumpBytecode) {
                 val bytecodeOut = FileManager.DUMP_DIRECTORY.resolve("$className.class")
@@ -93,7 +91,7 @@ object InjectionHandler : SafeTransformer {
 interface Modifier {
     val namespace: String
     val targets: Set<String>
-    fun apply(node: ClassNode, cfg: Hook.AssemblerConfig): ClassNode
+    fun apply(node: ClassNode, cfg: Hook.AssemblerConfig)
 }
 
 /**
@@ -107,10 +105,7 @@ data class ModHook(
         MappingsHandler.mapper(namespace, MappingsHandler.environmentNamespace).map(it)
     }
 ): Modifier {
-    override fun apply(node: ClassNode, cfg: Hook.AssemblerConfig): ClassNode {
-        hook.transform(node, cfg)
-        return node
-    }
+    override fun apply(node: ClassNode, cfg: Hook.AssemblerConfig) = hook.transform(node, cfg)
 }
 
 class AssemblerConfigImpl : Hook.AssemblerConfig {

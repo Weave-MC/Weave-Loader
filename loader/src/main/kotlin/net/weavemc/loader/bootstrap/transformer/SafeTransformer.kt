@@ -22,16 +22,24 @@ internal interface SafeTransformer : ClassFileTransformer {
         protectionDomain: ProtectionDomain?,
         classfileBuffer: ByteArray
     ) = runCatching {
-        val bytes = transform(loader, className, classfileBuffer)
-        if (checkBytecode && bytes != null) {
-            ClassReader(bytes).run {
-                check(this.className == className) { "Class name mismatch: expected $className, got ${this.className}"}
-            }
-        }
-        bytes
+        transform(loader, className, classfileBuffer)
+            .also { if (checkBytecode && it != null) verifyBytes(className, classfileBuffer, it) }
     }.getOrElse {
         it.printStackTrace()
-        println("An error occurred while transforming $className (from ${this.javaClass.name}): ${it.message}")
+        println("An error occurred while transforming $className (from ${javaClass.name}): ${it.message}")
         exitProcess(1)
+    }
+
+    private fun verifyBytes(className: String, original: ByteArray, transformed: ByteArray) {
+        val reader = ClassReader(transformed)
+        val transformedName = reader.className
+
+        val originalVersion = (original[6].toInt() and 0xFF shl 8) or (original[7].toInt() and 0xFF)
+        val transformedVersion = reader.readShort(6).toInt()
+
+        check(transformedName == className) { "Class name mismatch: expected $className, got $transformedName" }
+        check(transformedVersion <= originalVersion) {
+            "Class version mismatch: expected $originalVersion or lower, got $transformedVersion"
+        }
     }
 }

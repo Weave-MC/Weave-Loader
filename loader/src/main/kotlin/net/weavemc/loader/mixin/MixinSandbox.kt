@@ -231,11 +231,10 @@ class SandboxedMixinState(
 
     /**
      * Transforms a class represented by given [node] with a certain [internalName] using the mixin environment
+     * Returns whether a transformation has been performed
      */
-    fun transform(internalName: String, node: ClassNode): ClassNode {
+    fun transform(internalName: String, node: ClassNode): Boolean =
         transform(transformer, internalName.replace('/', '.'), node)
-        return node
-    }
 
     private fun injectService(name: String, value: String) =
         loader.injectResource("META-INF/services/$name", value.encodeToByteArray())
@@ -248,6 +247,8 @@ internal sealed interface MixinAccess {
     fun addMixin(name: String)
     fun transform(transformer: Any, internalName: String, bytes: ByteArray): ByteArray
     fun transform(transformer: Any, internalName: String, node: ClassNode): Boolean
+    fun generateClass(transformer: Any, internalName: String): ByteArray?
+    fun produceInjectedClasses(transformer: Any): Map<String, ByteArray>
     fun findTargets(transformer: Any): Set<String>
 }
 
@@ -255,6 +256,7 @@ internal sealed interface MixinAccess {
 private data object MixinAccessImpl : MixinAccess {
     private val env get() = MixinEnvironment.getDefaultEnvironment()
     private var hasForcedSelect = false
+    private var injectedClasses: Map<String, ByteArray>? = null
 
     override fun bootstrap() = MixinBootstrap.init()
     override fun validate() {
@@ -275,6 +277,25 @@ private data object MixinAccessImpl : MixinAccess {
 
     override fun transform(transformer: Any, internalName: String, node: ClassNode): Boolean =
         (transformer as IMixinTransformer).transformClass(env, internalName, node)
+
+    override fun generateClass(transformer: Any, internalName: String): ByteArray? =
+        (transformer as IMixinTransformer).generateClass(env, internalName)
+
+    // TODO: properly append these to the game classloader (reflective defineClass?)
+    override fun produceInjectedClasses(transformer: Any): Map<String, ByteArray> {
+        injectedClasses?.let { return it }
+
+        checkForcedSelect(transformer)
+        val registry = (transformer as IMixinTransformer).extensions.syntheticClassRegistry
+        val classes = registry.javaClass.getDeclaredField("classes")
+            .also { it.isAccessible = true }[registry] as Map<*, *>
+
+        return buildMap {
+            classes.keys.forEach {
+                if (it is String) generateClass(transformer, it)?.let { bytes -> put(it, bytes) }
+            }
+        }.also { injectedClasses = it }
+    }
 
     private fun checkForcedSelect(transformer: Any) {
         if (hasForcedSelect) return
@@ -297,9 +318,13 @@ private data object MixinAccessImpl : MixinAccess {
             .also { it.isAccessible = true }[processor] as List<*>)
             .filterIsInstance<IMixinConfig>()
 
-        return configs
-            .filter { it.name.startsWith("weave-mod-mixin/") }
-            .flatMapTo(hashSetOf()) { it.targets }
+        val mxnConfig = Class.forName("org.spongepowered.asm.mixin.transformer.MixinConfig")
+        val getClasses = mxnConfig.getMethod("getClasses").also { it.isAccessible = true }
+
+        @Suppress("UNCHECKED_CAST")
+        return configs.filter { it.name.startsWith("weave-mod-mixin/") }.flatMapTo(hashSetOf()) {
+            it.targets + if (mxnConfig.isInstance(it)) getClasses(it) as List<String> else emptyList()
+        }
     }
 }
 
