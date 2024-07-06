@@ -4,7 +4,6 @@ subprojects {
 
     repositories {
         mavenCentral()
-        mavenLocal()
         maven("https://repo.weavemc.dev/releases")
     }
 }

@@ -4,7 +4,7 @@ mixin = "0.13.4+mixin.0.8.5"
 
 # Gradle supports only up to 1.9.22, sadly, for kotlin-dsl
 # Applying two different versions of kotlin is possible, but hacky
-kotlin = "1.9.22"
+kotlin = "2.0.0"
 kxser = "1.7.1"
 mappings-util = "0.1.6"
 gradle-shadow = "8.1.1"
@@ -22,7 +22,7 @@ kotlin-compiler = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", versio
 kotlin-serialization = { module = "org.jetbrains.kotlin:kotlin-serialization", version.ref = "kotlin" }
 
 [plugins]
-serialization-dsl = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+serialization-dsl = { id = "org.jetbrains.kotlin.plugin.serialization", version = "1.9.22" }
 
 [bundles]
 asm = ["asm", "asm-tree", "asm-commons", "asm-util"]
