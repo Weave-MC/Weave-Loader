@@ -1,3 +1,5 @@
+@file:Suppress("VulnerableLibrariesLocal")
+
 plugins {
     id("config-kotlin")
     id("config-shade")
@@ -10,6 +12,7 @@ repositories {
 
 dependencies {
     shade(project(":api"))
+    shade(libs.klog)
     shade(libs.kxSer)
     shade(libs.bundles.asm)
     shade(libs.weaveInternals)

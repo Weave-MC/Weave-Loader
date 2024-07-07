@@ -1,5 +1,8 @@
 package net.weavemc.loader.bootstrap
 
+import me.xtrm.klog.Level
+import me.xtrm.klog.dsl.klog
+import me.xtrm.klog.dsl.klogConfig
 import net.weavemc.api.Tweaker
 import net.weavemc.internals.GameInfo
 import net.weavemc.internals.MinecraftVersion
@@ -16,13 +19,20 @@ import java.net.URL
 import java.net.URLClassLoader
 import java.util.jar.JarFile
 
+private val logger by klog
+
 /**
  * The JavaAgent's `premain()` method, this is where initialization of Weave Loader begins.
  * Weave Loader's initialization begins by instantiating [WeaveLoader]
  */
 @Suppress("UNUSED_PARAMETER")
 fun premain(opt: String?, inst: Instrumentation) {
-    println("[Weave] Attached Weave")
+    klogConfig {
+        defaultLevel = Level.INFO
+        appenders = mutableListOf(WeaveLogAppender)
+    }
+
+    logger.info("Attached Weave")
 
     setGameInfo()
 
@@ -50,7 +60,7 @@ fun premain(opt: String?, inst: Instrumentation) {
 class TweakerClassLoader(urls: List<URL>) : URLClassLoader(urls.toTypedArray(), ClassLoader.getSystemClassLoader())
 
 private fun callTweakers(inst: Instrumentation, mods: List<File>) {
-    println("[Weave] Calling tweakers")
+    logger.info("Calling tweakers")
 
     val tweakers = mods
         .mapNotNull { runCatching { JarFile(it).use { it.fetchModConfig(JSON) } }.getOrNull() }
@@ -60,7 +70,7 @@ private fun callTweakers(inst: Instrumentation, mods: List<File>) {
     val loader = TweakerClassLoader(mods.map { it.toURI().toURL() })
 
     for (tweaker in tweakers) {
-        println("[Weave] Calling tweaker: $tweaker")
+        logger.trace("Calling tweaker: $tweaker")
         instantiate<Tweaker>(tweaker, loader).tweak(inst)
     }
 }

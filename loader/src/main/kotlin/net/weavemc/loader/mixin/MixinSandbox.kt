@@ -1,6 +1,7 @@
 package net.weavemc.loader.mixin
 
 import com.grappenmaker.mappings.ClasspathLoaders
+import me.xtrm.klog.dsl.klog
 import net.weavemc.internals.asm
 import net.weavemc.internals.internalNameOf
 import net.weavemc.internals.named
@@ -28,6 +29,8 @@ import java.security.ProtectionDomain
 import java.util.*
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
+
+private val logger by klog
 
 /**
  * Implements a [ClassFileTransformer] that passes all loaded classes through the wrapped [mixin] state
@@ -59,7 +62,7 @@ class SandboxedMixinLoader(
 
     private val systemClasses = illegalToReload + setOf(
         "kotlin.", "kotlinx.", "org.objectweb.asm.",
-        "net.weavemc.loader.mixin.SandboxedMixinState"
+        "me.xtrm.klog.", "net.weavemc.loader.mixin.SandboxedMixinState"
     )
 
     /**
@@ -139,22 +142,20 @@ class SandboxedMixinLoader(
     internal fun getClassBytes(name: String) = loader(name) ?: getResourceAsStream("$name.class")?.readBytes()
 }
 
-private fun createMixinAccessor(loader: ClassLoader) =
-    runCatching {
-        loader
-            .loadClass("net.weavemc.loader.mixin.MixinAccessImpl")
-            .getField("INSTANCE").also { it.isAccessible = true }[null] as MixinAccess
-    }.onFailure {
-        println("Failed to create a mixin access instance:")
-        it.printStackTrace()
+private fun createMixinAccessor(loader: ClassLoader) = runCatching {
+    loader
+        .loadClass("net.weavemc.loader.mixin.MixinAccessImpl")
+        .getField("INSTANCE").also { it.isAccessible = true }[null] as MixinAccess
+}.onFailure {
+    logger.error("Failed to create a mixin access instance", it)
 
-        val dummy = object {}
-        println(
-            "Creating accessor within $loader, which is nested within ${loader.parent}, " +
-                    "while this method is called within ${dummy.javaClass.classLoader}, " +
-                    "and MixinAccess is accessed from within ${MixinAccess::class.java.classLoader}"
-        )
-    }.getOrThrow()
+    val dummy = object {}
+    logger.debug(
+        "Creating accessor within $loader, which is nested within ${loader.parent}, " +
+                "while this method is called within ${dummy.javaClass.classLoader}, " +
+                "and MixinAccess is accessed from within ${MixinAccess::class.java.classLoader}"
+    )
+}.getOrThrow()
 
 /**
  * Keeps track of the state of the mixin environment. Allows you to interact with the sandbox.
