@@ -1,21 +1,17 @@
 package net.weavemc.loader.util
 
 import kotlinx.serialization.json.Json
+import me.xtrm.klog.dsl.klog
 import net.weavemc.internals.GameInfo
 import net.weavemc.internals.ModConfig
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodNode
 import java.io.File
-import java.io.IOException
-import java.net.URL
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.nio.file.StandardCopyOption
 import java.security.AccessController
-import java.security.MessageDigest
-import java.security.NoSuchAlgorithmException
 import java.security.PrivilegedAction
 import java.util.jar.JarFile
 import javax.swing.JOptionPane
@@ -38,83 +34,7 @@ internal fun getOrCreateDirectory(directory: String): Path {
 internal fun ByteArray.asClassReader(): ClassReader = ClassReader(this)
 internal fun ClassReader.asClassNode(): ClassNode = ClassNode().also { this.accept(it, 0) }
 
-internal fun File.toSha256(): String {
-    val bytes = Files.readAllBytes(toPath())
-    val messageDigest = MessageDigest.getInstance("SHA-256")
-    val digest = messageDigest.digest(bytes)
-    return digest.joinToString("") { it.toString(16).padStart(2, '0') }
-}
-
 internal val JSON = Json { ignoreUnknownKeys = true }
-
-// Copied from Weave-Gradle
-object DownloadUtil {
-    /**
-     * Returns the SHA1 checksum of the file as a [String]
-     *
-     * @param file The file to check.
-     * @return the SHA1 checksum of the file.
-     */
-    private fun checksum(file: Path) = try {
-        if (!file.exists()) null
-        else {
-            val digest = MessageDigest.getInstance("SHA-1")
-            file.inputStream().use { input ->
-                val buffer = ByteArray(0x2000)
-                var read: Int
-
-                while (input.read(buffer).also { read = it } >= 0) {
-                    digest.update(buffer, 0, read)
-                }
-            }
-
-            digest.digest().joinToString { "%02x".format(it) }
-        }
-    } catch (ex: IOException) {
-        ex.printStackTrace()
-        null
-    } catch (ignored: NoSuchAlgorithmException) {
-        null
-    }
-
-    /**
-     * Downloads a file from any URL
-     *
-     * @param url The URL to download from.
-     * @param path The path to download to.
-     */
-    private fun download(url: URL, path: Path) {
-        runCatching {
-            url.openStream().use { input ->
-                Files.createDirectories(path.parent)
-                Files.copy(input, path, StandardCopyOption.REPLACE_EXISTING)
-            }
-        }.onFailure { it.printStackTrace() }
-    }
-
-    fun download(url: String, path: String) = download(URL(url), Paths.get(path))
-
-    /**
-     * Fetches data from any URL
-     *
-     * @param url The URL to download from
-     */
-    private fun fetch(url: URL) = runCatching { url.openStream().readBytes().decodeToString() }
-        .onFailure { it.printStackTrace() }.getOrNull()
-
-    fun fetch(url: String) = fetch(URL(url))
-
-    /**
-     * Downloads and checksums a file.
-     *
-     * @param url The URL to download from.
-     * @param checksum The checksum to compare to.
-     * @param path The path to download to.
-     */
-    fun checksumAndDownload(url: URL, checksum: String, path: Path) {
-        if (checksum(path) != checksum) download(url, path)
-    }
-}
 
 fun MethodNode.hasMixinAnnotation(name: String): Boolean {
     val annotation = "spongepowered/asm/mixin/transformer/meta/$name;"
@@ -134,7 +54,7 @@ inline fun <reified T> instantiate(className: String, loader: ClassLoader?): T =
         ?: error("$className does not implement ${T::class.java.simpleName}!")
 
 internal fun fatalError(message: String): Nothing {
-    System.err.println("An error occurred: $message")
+    klog.fatal("An error occurred: $message")
     JOptionPane.showMessageDialog(
         /* parentComponent = */ null,
         /* message = */ "An error occurred: $message",
@@ -143,60 +63,54 @@ internal fun fatalError(message: String): Nothing {
     )
 
     exit(-1)
-    throw IllegalStateException("Exiting.")
 }
 
 /**
  * Exits the JVM with the given error code, escaping any SecurityManager
- * in place (looking at you Froge).
+ * in place.
  *
  * @param errorCode the error code to exit with
  */
-fun exit(errorCode: Int) {
+fun exit(errorCode: Int): Nothing {
     runCatching {
         val clazz = Class.forName("java.lang.Shutdown")
         clazz.getDeclaredMethod("exit", Int::class.javaPrimitiveType).apply {
             isAccessible = true
-        }.invoke(null, errorCode)
+        }(null, errorCode)
     }.onFailure { e0 ->
         runCatching {
             exitRuntime(errorCode)
         }.onFailure { e1 ->
-            if (getJavaVersion() <= 19) { // beware of class removal
+            if (getJavaVersion() <= 19) {
+                @Suppress("DEPRECATION")
                 AccessController.doPrivileged(PrivilegedAction<Void> {
                     exitRuntime(errorCode)
                     null
                 })
             } else {
-                // this'll exit alright, but it's not pretty
                 e1.addSuppressed(e0)
-                throw RuntimeException("Exitting the JVM, no errors to report here.", e1)
+                throw RuntimeException("Exiting the JVM, no errors to report here.", e1)
             }
         }
     }
+
+    throw IllegalStateException("This should never be reached")
 }
 
 private fun exitRuntime(errorCode: Int) {
     val clazz = Class.forName("java.lang.Runtime")
-    val runtime = clazz.getDeclaredMethod("getRuntime").apply {
-        isAccessible = true
-    }.invoke(null)
-    clazz.getDeclaredMethod("exit", Int::class.javaPrimitiveType).apply {
-        isAccessible = true
-    }.invoke(runtime, errorCode)
+    val runtime = clazz.getDeclaredMethod("getRuntime").also { it.isAccessible = true }(null)
+    clazz.getDeclaredMethod("exit", Int::class.javaPrimitiveType).also { it.isAccessible = true }(runtime, errorCode)
 }
 
 internal fun getJavaVersion(): Int {
     val version = System.getProperty("java.version", "1.6.0")
-    val part = if (version.startsWith("1."))
-        version.split(".")[1]
-    else
-        version.substringBefore(".")
+    val part = if (version.startsWith("1.")) version.split(".")[1] else version.substringBefore(".")
     return part.toInt()
 }
 
 fun JarFile.configOrFatal() = runCatching { fetchModConfig(JSON) }.onFailure {
-    println("Possibly non-weave mod failed to load:")
+    klog.error("Possibly non-weave mod failed to load:")
     it.printStackTrace()
 
     fatalError("Mod file ${this.name} is possibly not a Weave mod!")

@@ -1,3 +1,5 @@
+@file:Suppress("VulnerableLibrariesLocal")
+
 plugins {
     id("config-kotlin")
     id("config-shade")
@@ -10,9 +12,10 @@ repositories {
 
 dependencies {
     shade(project(":api"))
+    shade(project(":internals"))
+    shade(libs.klog)
     shade(libs.kxser.json)
     shade(libs.bundles.asm)
-    shade(project(":internals"))
     shade(libs.mappings)
     shade(libs.mixin) {
         exclude(group = "com.google.guava")

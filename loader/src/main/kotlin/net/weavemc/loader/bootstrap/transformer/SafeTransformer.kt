@@ -1,11 +1,13 @@
 package net.weavemc.loader.bootstrap.transformer
 
+import me.xtrm.klog.dsl.klog
+import net.weavemc.loader.util.exit
 import org.objectweb.asm.ClassReader
 import java.lang.instrument.ClassFileTransformer
 import java.security.ProtectionDomain
-import kotlin.system.exitProcess
 
-val checkBytecode = java.lang.Boolean.getBoolean("weave.loader.checkTransformedBytecode")
+private val checkBytecode = java.lang.Boolean.getBoolean("weave.loader.checkTransformedBytecode")
+private val logger by klog
 
 internal interface SafeTransformer : ClassFileTransformer {
     /**
@@ -23,11 +25,11 @@ internal interface SafeTransformer : ClassFileTransformer {
         classfileBuffer: ByteArray
     ) = runCatching {
         transform(loader, className, classfileBuffer)
-            .also { if (checkBytecode && it != null) verifyBytes(className, classfileBuffer, it) }
+            ?.also { if (checkBytecode) verifyBytes(className, classfileBuffer, it) }
     }.getOrElse {
         it.printStackTrace()
-        println("An error occurred while transforming $className (from ${javaClass.name}): ${it.message}")
-        exitProcess(1)
+        logger.fatal("An error occurred while transforming {} (from {})", className, javaClass.name, it)
+        exit(1)
     }
 
     private fun verifyBytes(className: String, original: ByteArray, transformed: ByteArray) {
