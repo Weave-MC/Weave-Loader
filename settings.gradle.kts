@@ -1,9 +1,10 @@
+enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
+
 pluginManagement {
     repositories {
         mavenCentral()
         gradlePluginPortal()
         maven("https://repo.weavemc.dev")
-        mavenLocal()
     }
 }
 
@@ -12,4 +13,4 @@ plugins {
 }
 
 includeBuild("build-logic")
-include("loader", "api", "internals", "gradle-plugin")
+include("loader", "internals", "gradle-plugin")

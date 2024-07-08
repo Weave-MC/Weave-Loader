@@ -8,7 +8,7 @@ dependencies {
     implementation(libs.bundles.asm)
     implementation(libs.kxser.json)
     implementation(libs.mappings)
-    implementation(project(":internals"))
+    implementation(projects.internals)
 }
 
 kotlin {

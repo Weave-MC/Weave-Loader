@@ -6,7 +6,7 @@ plugins {
 dependencies {
     api(libs.bundles.asm)
     api(libs.mappings)
-    compileOnly(project(":internals"))
+    compileOnly(projects.internals)
 }
 
 publishing {

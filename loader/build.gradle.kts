@@ -10,9 +10,15 @@ repositories {
     maven("https://maven.fabricmc.net/")
 }
 
+kotlin {
+    compilerOptions {
+        explicitApi()
+        optIn.add("net.weavemc.loader.impl.bootstrap.PublicButInternal")
+    }
+}
+
 dependencies {
-    shade(project(":api"))
-    shade(project(":internals"))
+    shade(projects.internals)
     shade(libs.klog)
     shade(libs.kxser.json)
     shade(libs.bundles.asm)
@@ -26,8 +32,8 @@ dependencies {
 tasks {
     jar {
         manifest.attributes(
-            "Premain-Class" to "net.weavemc.loader.bootstrap.AgentKt",
-            "Main-Class" to "net.weavemc.loader.bootstrap.AgentKt",
+            "Premain-Class" to "net.weavemc.loader.impl.bootstrap.AgentKt",
+            "Main-Class" to "net.weavemc.loader.impl.bootstrap.AgentKt",
             "Can-Retransform-Classes" to "true",
         )
     }
