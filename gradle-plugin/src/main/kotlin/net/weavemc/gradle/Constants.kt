@@ -1,4 +1,4 @@
-package net.weavemc.gradle.util
+package net.weavemc.gradle
 
 import kotlinx.serialization.json.Json
 import net.weavemc.internals.MinecraftVersion
@@ -23,11 +23,6 @@ object Constants {
      * The global JSON serializer
      */
     val JSON = Json { ignoreUnknownKeys = true }
-
-    /**
-     * The version manifest URL
-     */
-    const val VERSION_MANIFEST = "https://launchermeta.mojang.com/mc/game/version_manifest_v2.json"
 }
 
 val MinecraftVersion.cacheDirectory get() = Constants.CACHE_DIR.resolve("cache-${versionName}").also { it.mkdirs() }

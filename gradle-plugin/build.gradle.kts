@@ -32,3 +32,9 @@ gradlePlugin {
 base {
     archivesName = "Weave-Gradle"
 }
+
+tasks {
+    processResources {
+        expand("version" to version)
+    }
+}

@@ -5,3 +5,5 @@ dependencyResolutionManagement {
         }
     }
 }
+
+rootProject.name = "weave-build-logic"

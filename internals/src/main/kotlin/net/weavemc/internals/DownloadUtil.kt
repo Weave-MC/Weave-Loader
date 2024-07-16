@@ -1,4 +1,4 @@
-package net.weavemc.gradle.util
+package net.weavemc.internals
 
 import java.io.IOException
 import java.net.URL
@@ -46,7 +46,7 @@ object DownloadUtil {
      * @param url The URL to download from.
      * @param path The path to download to.
      */
-    private fun download(url: URL, path: Path) {
+    fun download(url: URL, path: Path) {
         runCatching {
             url.openStream().use { input ->
                 Files.createDirectories(path.parent)

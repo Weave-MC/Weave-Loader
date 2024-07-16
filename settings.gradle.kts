@@ -13,4 +13,11 @@ plugins {
 }
 
 includeBuild("build-logic")
-include("loader", "internals", "gradle-plugin")
+include(
+    ":loader",
+    ":internals",
+    ":gradle-plugin",
+    ":gradle-plugin:launcher",
+)
+
+rootProject.name = "Weave"

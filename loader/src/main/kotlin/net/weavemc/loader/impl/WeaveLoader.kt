@@ -193,7 +193,7 @@ public class WeaveLoader(
 
             loadAccessWidener(res.readBytes().decodeToString().trim().lines())
                 .remap(MappingsHandler.mergedMappings.mappings, MappingsHandler.environmentNamespace)
-        }.join().toTree()
+        }.takeIf { it.count() > 0 }?.join()?.toTree() ?: return
 
         InjectionHandler.registerModifier(object : Modifier {
             override val namespace = MappingsHandler.environmentNamespace
