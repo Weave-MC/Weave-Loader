@@ -1,5 +1,7 @@
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+
 plugins {
-    `kotlin-dsl`
+    id("org.gradle.kotlin.kotlin-dsl") version "4.4.0"
 }
 
 repositories {
@@ -14,7 +16,7 @@ dependencies {
 
 kotlin {
     compilerOptions {
-        languageVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_9
-        apiVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_9
+        languageVersion = KotlinVersion.KOTLIN_2_0
+        apiVersion = KotlinVersion.KOTLIN_2_0
     }
 }
