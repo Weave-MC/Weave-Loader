@@ -1,7 +1,7 @@
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
-    id("org.gradle.kotlin.kotlin-dsl") version "4.4.0"
+    `kotlin-dsl`
 }
 
 repositories {
