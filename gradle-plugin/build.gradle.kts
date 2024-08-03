@@ -1,21 +1,17 @@
 plugins {
-    `kotlin-dsl`
-    alias(libs.plugins.serialization.dsl)
+    id("config-kotlin")
+    `java-gradle-plugin`
     id("config-publish")
 }
 
 dependencies {
+    compileOnly(gradleApi())
+    compileOnly(gradleKotlinDsl())
+
     implementation(libs.bundles.asm)
     implementation(libs.kxser.json)
     implementation(libs.mappings)
     implementation(projects.internals)
-}
-
-kotlin {
-    jvmToolchain(8)
-    compilerOptions {
-        languageVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_1_9
-    }
 }
 
 gradlePlugin {
@@ -29,6 +25,4 @@ gradlePlugin {
     }
 }
 
-base {
-    archivesName = "Weave-Gradle"
-}
+base.archivesName = "Weave-Gradle"

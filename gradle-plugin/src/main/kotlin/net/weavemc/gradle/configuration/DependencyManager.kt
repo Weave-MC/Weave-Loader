@@ -9,6 +9,7 @@ import net.weavemc.internals.MinecraftVersion
 import org.gradle.api.Project
 import org.gradle.api.logging.LogLevel
 import org.gradle.kotlin.dsl.get
+import org.gradle.kotlin.dsl.maven
 import org.objectweb.asm.ClassVisitor
 import java.io.File
 import java.net.URL
@@ -35,10 +36,7 @@ private fun Project.addMinecraftAssets(version: MinecraftVersion) {
     val client = versionInfo.downloads.client
     DownloadUtil.checksumAndDownload(URL(client.url), client.sha1, version.minecraftJarCache.toPath())
 
-    repositories.maven {
-        name = "mojang"
-        setUrl("https://libraries.minecraft.net/")
-    }
+    repositories.maven("https://libraries.minecraft.net/")
 
     versionInfo.libraries.filter { "twitch-platform" !in it.name && "twitch-external" !in it.name }
         .forEach { dependencies.add("compileOnly", it.name) }

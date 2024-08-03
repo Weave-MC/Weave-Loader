@@ -45,7 +45,7 @@ class WeaveGradle : Plugin<Project> {
             )
 
             val version = ext.version.getOrElse(MinecraftVersion.V1_8_9)
-            pullDeps(version, ext.configuration.get().namespace)
+            it.pullDeps(version, ext.configuration.get().namespace)
         }
 
         val writeModConfig = project.tasks.register<WriteModConfig>("writeModConfig")

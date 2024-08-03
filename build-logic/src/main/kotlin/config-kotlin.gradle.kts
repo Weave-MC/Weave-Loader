@@ -2,8 +2,8 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
     `java-library`
-    kotlin("jvm")
-    kotlin("plugin.serialization")
+    id("org.jetbrains.kotlin.jvm")
+    id("org.jetbrains.kotlin.plugin.serialization")
 }
 
 base {
@@ -15,8 +15,8 @@ java.withSourcesJar()
 kotlin {
     compilerOptions {
         freeCompilerArgs.add("-Xjvm-default=all")
-        languageVersion = KotlinVersion.KOTLIN_1_9
-        apiVersion = KotlinVersion.KOTLIN_1_9
+        languageVersion = KotlinVersion.KOTLIN_2_0
+        apiVersion = KotlinVersion.KOTLIN_2_0
     }
 
     jvmToolchain(8)
