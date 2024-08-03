@@ -36,6 +36,27 @@ tasks {
             "Main-Class" to "net.weavemc.loader.impl.bootstrap.AgentKt",
             "Can-Retransform-Classes" to "true",
         )
+
+        manifest.attributes(
+            mapOf(
+                "Specification-Title" to "Weave Loader API",
+                "Specification-Version" to "0",
+                "Specification-Vendor" to "WeaveMC",
+                "Implementation-Title" to "Weave Loader",
+                "Implementation-Version" to "${project.version}",
+                "Implementation-Vendor" to "WeaveMC",
+            ), "net.weavemc.loader.api"
+        )
+        manifest.attributes(
+            mapOf(
+                "Specification-Title" to "Weave Loader",
+                "Specification-Version" to "0", // we're still in beta, so this is 0
+                "Specification-Vendor" to "WeaveMC",
+                "Implementation-Title" to "Weave Loader",
+                "Implementation-Version" to "${project.version}",
+                "Implementation-Vendor" to "WeaveMC",
+            ), "net.weavemc.loader.impl"
+        )
     }
 }
 
