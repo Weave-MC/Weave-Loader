@@ -7,7 +7,7 @@ plugins {
 publishing {
     repositories {
         maven {
-            name = "WeaveReleases"
+            name = "WeaveMC"
             url = uri("https://repo.weavemc.dev/releases")
             credentials(PasswordCredentials::class)
             authentication {
