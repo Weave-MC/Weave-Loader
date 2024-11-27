@@ -2,7 +2,7 @@ pluginManagement {
     repositories {
         mavenCentral()
         gradlePluginPortal()
-        maven(url = "https://repo.weavemc.dev")
+        /*maven(url = "https://repo.weavemc.dev")*/
         mavenLocal()
     }
 
