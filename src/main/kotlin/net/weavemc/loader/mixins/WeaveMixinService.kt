@@ -1,6 +1,6 @@
 package net.weavemc.loader.mixins
 
-import net.weavemc.loader.mappings.XSrgMapper
+import net.weavemc.loader.mappings.KinRemapper
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.commons.ClassRemapper
 import org.objectweb.asm.tree.ClassNode
@@ -24,7 +24,6 @@ import java.net.URL
  * @see IMixinService
  */
 public class WeaveMixinService : IMixinService, IClassProvider, IClassBytecodeProvider {
-
     /**
      * Lock used to track transformer re-entrance
      * when co-operative loads and transformations are
@@ -40,7 +39,7 @@ public class WeaveMixinService : IMixinService, IClassProvider, IClassBytecodePr
             private set
     }
 
-    private val remapper = XSrgMapper("/lunar/lunar_named_b5_1.8.9.xsrg")
+    private val remapper = KinRemapper("/lunar/lunar_named_b5_1.8.9.kin")
     private val classCache = mutableMapOf<String, ClassNode>()
 
     /**
