@@ -13,6 +13,7 @@ import org.objectweb.asm.commons.SimpleRemapper
 import java.io.File
 import java.util.*
 import java.util.jar.JarFile
+import kotlin.system.measureTimeMillis
 
 public object MappingsHandler {
     private val logger by klog
@@ -22,7 +23,13 @@ public object MappingsHandler {
     public val mergedMappings: WeaveMappings by lazy {
         logger.info("Loading merged mappings for ${GameInfo.version.versionName}")
         logger.debug("Vanilla jar: $vanillaJar")
-        MappingsRetrieval.loadMergedWeaveMappings(GameInfo.version.versionName, vanillaJar)
+
+        val mappings: WeaveMappings
+        measureTimeMillis {
+            mappings = MappingsRetrieval.loadMergedWeaveMappings(GameInfo.version.versionName, vanillaJar)
+        }.let { logger.info("Took ${it}ms to load mappings") }
+
+        mappings
     }
 
     public val environmentNamespace: String by lazy {

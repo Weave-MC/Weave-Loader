@@ -18,18 +18,18 @@ import kotlin.io.path.createDirectories
 import kotlin.random.Random
 import kotlin.random.nextUInt
 
-internal object InjectionHandler : SafeTransformer {
+public object InjectionHandler : SafeTransformer {
     /**
      * JVM argument to dump bytecode to disk. Can be enabled by adding
      * `-DdumpBytecode=true` to your JVM arguments when launching with Weave.
      *
      * Defaults to `false`.
      */
-    val dumpBytecode = System.getProperty("dumpBytecode")?.toBoolean() ?: false
+    public val dumpBytecode: Boolean = System.getProperty("dumpBytecode")?.toBoolean() ?: false
 
     private val modifiers = mutableListOf<Modifier>()
 
-    fun registerModifier(modifier: Modifier) {
+    public fun registerModifier(modifier: Modifier) {
         modifiers += modifier
     }
 
@@ -60,7 +60,20 @@ internal object InjectionHandler : SafeTransformer {
                 inverseConflictsMapping["${node.name}.${tempName}${m.desc}"] = m.name
             }
 
-            node.remap(SimpleRemapper(conflictsMapping))
+            // Hack: SimpleRemapper.map() can return null, and that breaks remap()
+            node.remap(object : SimpleRemapper(conflictsMapping) {
+                override fun map(key: String): String {
+                    return super.map(key) ?: key.run {
+                        // for an unknown reason, `key` isn't just internal name only
+                        // for example, <owner>.<name><descriptor> is sometimes passed to this method
+
+                        if (contains('.')) {
+                            if (contains('(')) substringAfter('.').substringBefore('(')
+                            else substringAfter('.')
+                        } else this
+                    }
+                }
+            })
 
             val hookConfig = AssemblerConfigImpl()
             val modNs = groupedModifiers.keys
@@ -91,16 +104,16 @@ internal object InjectionHandler : SafeTransformer {
     }
 }
 
-internal interface Modifier {
-    val namespace: String
-    val targets: Set<String>
-    fun apply(node: ClassNode, cfg: Hook.AssemblerConfig)
+public interface Modifier {
+    public val namespace: String
+    public val targets: Set<String>
+    public fun apply(node: ClassNode, cfg: Hook.AssemblerConfig)
 }
 
 /**
  * @param hook Hook class
  */
-internal data class ModHook(
+public data class ModHook(
     override val namespace: String,
     val hook: Hook,
     // TODO: jank
@@ -108,7 +121,7 @@ internal data class ModHook(
         MappingsHandler.mapper(namespace, MappingsHandler.environmentNamespace).map(it)
     }
 ): Modifier {
-    override fun apply(node: ClassNode, cfg: Hook.AssemblerConfig) = hook.transform(node, cfg)
+    override fun apply(node: ClassNode, cfg: Hook.AssemblerConfig): Unit = hook.transform(node, cfg)
 }
 
 public class AssemblerConfigImpl : Hook.AssemblerConfig {
