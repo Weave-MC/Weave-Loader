@@ -1,9 +1,11 @@
-subprojects {
-    val projectGroup: String by project
-    val projectVersion: String by project
+plugins {
+    alias(libs.plugins.kotlin.jvm) apply false
+    alias(libs.plugins.serialization.dsl) apply false
+}
 
-    group = projectGroup
-    version = projectVersion
+subprojects {
+    group = "net.weavemc"
+    version = "1.0.0-b.3"
 
     repositories {
         mavenCentral()

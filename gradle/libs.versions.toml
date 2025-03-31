@@ -1,10 +1,10 @@
 [versions]
 asm = "9.7"
 mixin = "0.13.4+mixin.0.8.5"
+
 kotlin = "2.0.0"
-kxSer = "1.5.1"
-mappingsUtil = "0.1.6"
-weaveInternals = "1.0.0-b.3"
+kxser = "1.7.1"
+mappings-util = "0.1.6"
 gradle-shadow = "8.1.1"
 klog = "0.0.5"
 
@@ -15,13 +15,15 @@ asm-commons = { module = "org.ow2.asm:asm-commons", version.ref = "asm" }
 asm-util = { module = "org.ow2.asm:asm-util", version.ref = "asm" }
 klog = { module = "me.xtrm:klog", version.ref = "klog" }
 mixin = { module = "net.fabricmc:sponge-mixin", version.ref = "mixin" }
-kxSer = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kxSer" }
-mappingsUtil = { module = "io.github.770grappenmaker:mappings-util", version.ref = "mappingsUtil" }
-weaveInternals = { module = "net.weavemc:internals", version.ref = "weaveInternals" }
-
+kxser-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kxser" }
+mappings = { module = "io.github.770grappenmaker:mappings-util", version.ref = "mappings-util" }
 gradle-shadow = { module = "com.github.johnrengelman.shadow:com.github.johnrengelman.shadow.gradle.plugin", version.ref = "gradle-shadow" }
 kotlin-compiler = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 kotlin-serialization = { module = "org.jetbrains.kotlin:kotlin-serialization", version.ref = "kotlin" }
+
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+serialization-dsl = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 
 [bundles]
 asm = ["asm", "asm-tree", "asm-commons", "asm-util"]

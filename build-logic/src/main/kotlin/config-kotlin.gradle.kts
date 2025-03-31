@@ -2,19 +2,12 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
     `java-library`
-    kotlin("jvm")
-    kotlin("plugin.serialization")
-}
-
-val toolchainTarget = JavaLanguageVersion.of(8)
-
-repositories {
-    mavenCentral()
-    mavenLocal()
+    id("org.jetbrains.kotlin.jvm")
+    id("org.jetbrains.kotlin.plugin.serialization")
 }
 
 base {
-    archivesName.set("weave-${project.name}")
+    archivesName = "weave-${project.name}"
 }
 
 java.withSourcesJar()
@@ -22,8 +15,8 @@ java.withSourcesJar()
 kotlin {
     compilerOptions {
         freeCompilerArgs.add("-Xjvm-default=all")
-        languageVersion.set(KotlinVersion.KOTLIN_1_9)
-        apiVersion.set(KotlinVersion.KOTLIN_1_9)
+        languageVersion = KotlinVersion.KOTLIN_2_0
+        apiVersion = KotlinVersion.KOTLIN_2_0
     }
 
     jvmToolchain(8)

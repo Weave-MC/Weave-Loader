@@ -1,18 +1,18 @@
+enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
+
 pluginManagement {
     repositories {
         mavenCentral()
         gradlePluginPortal()
         maven("https://repo.weavemc.dev")
-        mavenLocal()
     }
 }
 
 plugins {
-	id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.+"
+	id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0"
 }
 
-val projectName: String by settings
-rootProject.name = projectName
+rootProject.name = "Weave-Loader"
 
 includeBuild("build-logic")
-include("loader", "api")
+include("loader", "internals", "gradle-plugin")

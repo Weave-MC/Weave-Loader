@@ -53,12 +53,14 @@ jobs:
           path: |
             api/build/libs/
             loader/build/libs/
+            internals/build/libs/
+            gradle-plugin/build/libs/
 
       - name: Create release
         if: github.event_name == 'release'
         working-directory: loader/build/libs
         run: |
-          agent=Weave-Loader-Agent-${{github.event.release.name}}.jar
+          agent=weave-loader-${{github.event.release.name}}-all.jar
           sha256sum $agent > $agent.sha256
           gh release upload ${{github.ref_name}} $agent $agent.sha256
         env:

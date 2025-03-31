@@ -12,7 +12,7 @@ val shade: Configuration by configurations.creating
 val api: Configuration by configurations.getting
 api.extendsFrom(shade)
 
-val targetPackage = "net.weavemc.loader.shaded"
+val targetPackage = "net.weavemc.loader.impl.shaded"
 val packagesList = listOf(
     "com.grappenmaker.mappings",
     "org.objectweb.asm",
@@ -23,7 +23,7 @@ val packagesList = listOf(
 
 tasks {
     val createRelocationData by creating(CreateRelocationData::class) {
-        shadedPackage.set(targetPackage)
+        shadedPackage = targetPackage
         relocationList.addAll(packagesList)
     }
 

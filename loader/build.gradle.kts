@@ -3,45 +3,64 @@
 plugins {
     id("config-kotlin")
     id("config-shade")
-    `maven-publish`
+    id("config-publish")
 }
 
 repositories {
     maven("https://maven.fabricmc.net/")
 }
 
+kotlin {
+    compilerOptions {
+        explicitApi()
+        optIn.add("net.weavemc.loader.impl.bootstrap.PublicButInternal")
+    }
+}
+
 dependencies {
-    shade(project(":api"))
+    shade(projects.internals)
     shade(libs.klog)
-    shade(libs.kxSer)
+    shade(libs.kxser.json)
     shade(libs.bundles.asm)
-    shade(libs.weaveInternals)
-    shade(libs.mappingsUtil)
+    shade(libs.mappings)
     shade(libs.mixin) {
         exclude(group = "com.google.guava")
         exclude(group = "com.google.code.gson")
     }
 }
 
-tasks.jar {
-    manifest.attributes(
-        "Premain-Class" to "net.weavemc.loader.bootstrap.AgentKt",
-        "Main-Class" to "net.weavemc.loader.bootstrap.AgentKt",
-        "Can-Retransform-Classes" to "true",
-    )
+tasks {
+    jar {
+        manifest.attributes(
+            "Premain-Class" to "net.weavemc.loader.impl.bootstrap.AgentKt",
+            "Main-Class" to "net.weavemc.loader.impl.bootstrap.AgentKt",
+            "Can-Retransform-Classes" to "true",
+        )
+
+        manifest.attributes(
+            mapOf(
+                "Specification-Title" to "Weave Loader API",
+                "Specification-Version" to "0",
+                "Specification-Vendor" to "WeaveMC",
+                "Implementation-Title" to "Weave Loader",
+                "Implementation-Version" to "${project.version}",
+                "Implementation-Vendor" to "WeaveMC",
+            ), "net.weavemc.loader.api"
+        )
+        manifest.attributes(
+            mapOf(
+                "Specification-Title" to "Weave Loader",
+                "Specification-Version" to "0", // we're still in beta, so this is 0
+                "Specification-Vendor" to "WeaveMC",
+                "Implementation-Title" to "Weave Loader",
+                "Implementation-Version" to "${project.version}",
+                "Implementation-Vendor" to "WeaveMC",
+            ), "net.weavemc.loader.impl"
+        )
+    }
 }
 
 publishing {
-    repositories {
-        maven("https://repo.weavemc.dev/releases") {
-            name = "WeaveMC"
-            credentials(PasswordCredentials::class)
-            authentication {
-                create<BasicAuthentication>("basic")
-            }
-        }
-    }
-
     publications {
         create<MavenPublication>("maven") {
             from(components["java"])
