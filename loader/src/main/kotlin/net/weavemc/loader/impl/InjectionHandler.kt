@@ -84,7 +84,7 @@ public object InjectionHandler : SafeTransformer {
 
             nsOrder.windowed(2).forEach { (last, curr) ->
                 node.remap(last, curr)
-                groupedModifiers.getValue(curr).forEach { it.apply(node, hookConfig) }
+                groupedModifiers[curr]?.forEach { it.apply(node, hookConfig) }
             }
 
             val classWriter = InjectionClassWriter(hookConfig.classWriterFlags, classReader)

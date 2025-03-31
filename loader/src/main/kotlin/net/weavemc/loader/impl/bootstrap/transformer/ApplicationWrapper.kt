@@ -98,8 +98,8 @@ public object ApplicationWrapper {
         }
     }
 
-    private class WrappingLoader : URLClassLoader(emptyArray(), getSystemClassLoader()) {
-        override fun loadClass(name: String, resolve: Boolean) =
+    public class WrappingLoader : URLClassLoader(emptyArray(), getSystemClassLoader()) {
+        override fun loadClass(name: String, resolve: Boolean): Class<*> =
             findClass(name).also { if (resolve) resolveClass(it) }
 
         override fun findClass(name: String): Class<*> {
