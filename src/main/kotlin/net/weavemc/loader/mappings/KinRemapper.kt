@@ -30,6 +30,9 @@ internal class KinRemapper(resource: String) : Remapper() {
         if (prefix.isEmpty()) suffix else "$prefix\$$suffix"
 
     private fun DataInputStream.readClassMapping(obfedName: String, deobfedName: String) {
+        classes[obfedName] = deobfedName
+        classesReverse[deobfedName] = obfedName
+
         repeat(readInt()) {
             readClassMapping(constructName(obfedName, readUTF()), constructName(deobfedName, readUTF()))
         }

@@ -225,11 +225,11 @@ public class WeaveMixinService : IMixinService, IClassProvider, IClassBytecodePr
      * @return The resultant class tree.
      */
     override fun getClassNode(name: String): ClassNode =
-        this.classCache.computeIfAbsent(remapper.mapReverse(name.replace('.', '/'))) {
-            val bytes = this.javaClass.classLoader.getResourceAsStream("$it.class")!!
+        classCache.computeIfAbsent(remapper.mapReverse(name.replace('.', '/'))) {
+            val bytes = javaClass.classLoader.getResourceAsStream("$it.class") ?: throw ClassNotFoundException(name)
             val cn = ClassNode()
             ClassReader(bytes).accept(
-                ClassRemapper(cn, this.remapper),
+                ClassRemapper(cn, remapper),
                 ClassReader.EXPAND_FRAMES
             )
             cn
