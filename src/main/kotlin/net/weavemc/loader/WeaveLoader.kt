@@ -9,6 +9,7 @@ import net.weavemc.loader.bootstrap.URLClassLoaderAccessor
 import net.weavemc.loader.mixins.WeaveMixinService
 import net.weavemc.loader.mixins.WeaveMixinTransformer
 import org.spongepowered.asm.launch.MixinBootstrap
+import org.spongepowered.asm.mixin.MixinEnvironment
 import org.spongepowered.asm.mixin.Mixins
 import org.spongepowered.asm.service.MixinService
 import java.lang.instrument.Instrumentation
@@ -38,9 +39,11 @@ public object WeaveLoader {
     @OptIn(ExperimentalSerializationApi::class)
     public fun init(inst: Instrumentation) {
         println("[Weave] Initializing Weave")
+        println("[Weave] 0.2.7 legacy-weave fixed for modern lunar - hi from @jiminnn")
 
         MixinBootstrap.init()
         check(MixinService.getService() is WeaveMixinService) { "Active mixin service is NOT WeaveMixinService" }
+        ensureDefaultMixinPhase()
 
         inst.addTransformer(WeaveMixinTransformer)
         inst.addTransformer(HookManager)
@@ -105,6 +108,17 @@ public object WeaveLoader {
         createDirectories(Paths.get(System.getProperty("user.home"), ".weave", "mods")
             .apply { if (exists() && !isDirectory()) Files.delete(this) })
 
+
+    private fun ensureDefaultMixinPhase() {
+        // Legacy loader is initialized late in Lunar. Ensure mixin's active phase matches the environment
+        // our transformer supplies to avoid "Current environment must match the supplied environment".
+        MixinEnvironment.init(MixinEnvironment.Phase.DEFAULT)
+        runCatching {
+            MixinEnvironment::class.java.getDeclaredMethod("gotoPhase", MixinEnvironment.Phase::class.java)
+                .also { it.isAccessible = true }
+                .invoke(null, MixinEnvironment.Phase.DEFAULT)
+        }
+    }
     private inline fun <reified T> instantiate(className: String): T =
         Class.forName(className)
             .getConstructor()

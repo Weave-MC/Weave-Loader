@@ -4,6 +4,7 @@
 />
 
 # Weave Loader, A Universal Minecraft Mod Loader
+## Weave Loader 0.2.7 fix (named it 0.2.9 because 0.2.8 already exists)
 
 Weave Loader is a tool designed to simplify the process of modding Minecraft. It allows
 developers to easily create mods by providing a simple and intuitive API for interacting with Minecraft's codebase,

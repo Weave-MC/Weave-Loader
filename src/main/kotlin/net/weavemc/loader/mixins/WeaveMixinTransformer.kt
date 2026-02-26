@@ -17,7 +17,7 @@ internal object WeaveMixinTransformer: SafeTransformer {
      */
     override fun transform(loader: ClassLoader, className: String, originalClass: ByteArray): ByteArray? {
         return WeaveMixinService.transformer.transformClass(
-            MixinEnvironment.getDefaultEnvironment(),
+            MixinEnvironment.getCurrentEnvironment(),
             className.replace('/', '.'),
             originalClass
         )
