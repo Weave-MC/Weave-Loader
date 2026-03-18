@@ -1,14 +1,12 @@
 package net.weavemc.loader.impl
 
 import com.grappenmaker.mappings.LambdaAwareRemapper
-import me.xtrm.klog.dsl.klog
 import com.grappenmaker.mappings.remap
-import net.weavemc.loader.api.Hook
+import me.xtrm.klog.dsl.klog
+import net.weavemc.api.Hook
 import net.weavemc.internals.dump
 import net.weavemc.loader.impl.bootstrap.transformer.SafeTransformer
 import net.weavemc.loader.impl.util.*
-import net.weavemc.loader.impl.util.asClassNode
-import net.weavemc.loader.impl.util.asClassReader
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes

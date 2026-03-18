@@ -1,4 +1,4 @@
-package net.weavemc.loader.api.event
+package net.weavemc.api.event
 
 import java.lang.reflect.Method
 import java.util.concurrent.ConcurrentHashMap

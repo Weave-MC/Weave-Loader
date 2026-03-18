@@ -5,17 +5,23 @@ plugins {
 
 dependencies {
     api(libs.bundles.asm)
+    implementation(libs.internals)
     implementation(libs.kxser.json)
     implementation(libs.mappings)
+}
+
+kotlin {
+    explicitApi()
 }
 
 publishing {
     publications {
         create<MavenPublication>("maven") {
             from(components["java"])
+
             groupId = "net.weavemc"
-            artifactId = "internals"
-            version = libs.versions.internals.get().toString()
+            artifactId = project.name
+            version = libs.versions.api.get().toString()
         }
     }
 }

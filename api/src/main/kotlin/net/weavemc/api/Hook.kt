@@ -1,4 +1,4 @@
-package net.weavemc.loader.api
+package net.weavemc.api
 
 import org.objectweb.asm.tree.ClassNode
 

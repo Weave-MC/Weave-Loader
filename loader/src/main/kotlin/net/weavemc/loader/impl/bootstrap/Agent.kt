@@ -3,7 +3,7 @@ package net.weavemc.loader.impl.bootstrap
 import me.xtrm.klog.Level
 import me.xtrm.klog.dsl.klog
 import me.xtrm.klog.dsl.klogConfig
-import net.weavemc.loader.api.Tweaker
+import net.weavemc.api.Tweaker
 import net.weavemc.internals.GameInfo
 import net.weavemc.internals.MinecraftVersion
 import net.weavemc.internals.ModConfig
@@ -12,9 +12,6 @@ import net.weavemc.loader.impl.bootstrap.transformer.ArgumentSanitizer
 import net.weavemc.loader.impl.bootstrap.transformer.ModInitializerHook
 import net.weavemc.loader.impl.bootstrap.transformer.URLClassLoaderTransformer
 import net.weavemc.loader.impl.util.*
-import net.weavemc.loader.impl.util.JSON
-import net.weavemc.loader.impl.util.fatalError
-import net.weavemc.loader.impl.util.setGameInfo
 import java.awt.GraphicsEnvironment
 import java.io.File
 import java.lang.instrument.Instrumentation

@@ -3,6 +3,7 @@ kotlin = "2.3.0"
 
 internals = "1.0.0-b.6"
 loader = "1.0.0-b.6"
+api = "1.0.0-b.6"
 
 asm = "9.7"
 mixin = "0.13.4+mixin.0.8.5"
@@ -14,6 +15,7 @@ klog = "0.0.5"
 
 [libraries]
 internals = { group = "net.weavemc", name = "internals", version.ref = "internals" }
+api = { group = "net.weavemc.api", name = "api", version.ref = "api" }
 loader = { group = "net.weavemc", name = "loader", version.ref = "loader" }
 
 asm = { module = "org.ow2.asm:asm", version.ref = "asm" }

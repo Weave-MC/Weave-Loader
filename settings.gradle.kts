@@ -21,6 +21,12 @@ includeBuild("internals") {
             .using(project(":"))
     }
 }
+includeBuild("api") {
+    dependencySubstitution {
+        substitute(module("net.weavemc.api:api"))
+            .using(project(":"))
+    }
+}
 includeBuild("loader") {
     dependencySubstitution {
         substitute(module("net.weavemc:loader"))

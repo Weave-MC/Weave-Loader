@@ -1,0 +1,15 @@
+dependencyResolutionManagement {
+    versionCatalogs {
+        create("libs") {
+            from(files("../gradle/libs.versions.toml"))
+        }
+    }
+
+    repositories {
+        mavenCentral()
+    }
+}
+
+rootProject.name = "api"
+
+include("v1_8")

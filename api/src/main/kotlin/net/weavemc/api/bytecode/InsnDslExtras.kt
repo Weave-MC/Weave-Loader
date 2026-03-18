@@ -1,12 +1,12 @@
-package net.weavemc.loader.api.bytecode
+package net.weavemc.api.bytecode
 
-import net.weavemc.loader.api.event.Event
-import net.weavemc.loader.api.event.EventBus
+import net.weavemc.api.event.Event
+import net.weavemc.api.event.EventBus
 import net.weavemc.internals.InsnBuilder
 import net.weavemc.internals.internalNameOf
 
 /**
- * Pops an [Event] off the stack and posts the [Event] to the [EventBus]
+ * Pops an [net.weavemc.api.event.Event] off the stack and posts the [net.weavemc.api.event.Event] to the [EventBus]
  */
 public fun InsnBuilder.postEvent() {
     invokestatic(

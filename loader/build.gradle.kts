@@ -19,6 +19,7 @@ kotlin {
 
 dependencies {
     shade(libs.internals)
+    shade(libs.api)
     shade(libs.klog)
     shade(libs.kxser.json)
     shade(libs.bundles.asm)
@@ -66,7 +67,7 @@ publishing {
             from(components["java"])
             groupId = "net.weavemc"
             artifactId = "loader"
-            version = "${project.version}"
+            version = libs.versions.loader.get().toString()
         }
     }
 }

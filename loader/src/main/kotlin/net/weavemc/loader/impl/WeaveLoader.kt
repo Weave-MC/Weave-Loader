@@ -2,17 +2,14 @@ package net.weavemc.loader.impl
 
 import com.grappenmaker.mappings.*
 import me.xtrm.klog.Logger
-import net.weavemc.loader.api.Hook
-import net.weavemc.loader.api.ModInitializer
+import net.weavemc.api.Hook
+import net.weavemc.api.ModInitializer
 import net.weavemc.internals.GameInfo
 import net.weavemc.internals.ModConfig
 import net.weavemc.loader.impl.bootstrap.PublicButInternal
 import net.weavemc.loader.impl.bootstrap.transformer.URLClassLoaderAccessor
-import net.weavemc.loader.impl.util.*
-import net.weavemc.loader.impl.util.fatalError
-import net.weavemc.loader.impl.util.launchStart
-import net.weavemc.loader.impl.util.updateLaunchTimes
 import net.weavemc.loader.impl.mixin.SandboxedMixinLoader
+import net.weavemc.loader.impl.util.*
 import org.objectweb.asm.tree.ClassNode
 import java.io.File
 import java.lang.instrument.Instrumentation
