@@ -68,6 +68,7 @@ class WeaveGradle : Plugin<Project> {
         @TaskAction
         fun run() {
             val config = ext.configuration.get()
+            println("config = ${config}")
             output.get().asFile.writeText(Constants.JSON.encodeToString(config))
         }
     }

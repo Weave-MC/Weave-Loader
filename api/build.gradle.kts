@@ -19,7 +19,7 @@ publishing {
         create<MavenPublication>("maven") {
             from(components["java"])
 
-            groupId = "net.weavemc"
+            groupId = "net.weavemc.api"
             artifactId = project.name
             version = libs.versions.api.get().toString()
         }

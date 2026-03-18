@@ -4,6 +4,9 @@ plugins {
     id("config-publish")
 }
 
+group = "net.weavemc.gradle"
+version = libs.versions.plugin.get().toString()
+
 dependencies {
     compileOnly(gradleApi())
     compileOnly(gradleKotlinDsl())
@@ -17,7 +20,7 @@ dependencies {
 gradlePlugin {
     plugins {
         val weave by creating {
-            id = "net.weavemc.gradle"
+            id = group.toString()
             displayName = "Weave-Gradle"
             description = "Provides various utilities for Weave modders to develop and package their mods"
             implementationClass = "net.weavemc.gradle.WeaveGradle"

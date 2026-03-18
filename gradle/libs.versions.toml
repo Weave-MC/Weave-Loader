@@ -4,11 +4,14 @@ kotlin = "2.3.0"
 internals = "1.0.0-b.6"
 loader = "1.0.0-b.6"
 api = "1.0.0-b.6"
+plugin = "1.0.0-b.6"
 
 asm = "9.7"
 mixin = "0.13.4+mixin.0.8.5"
 
 kxser = "1.7.1"
+maven-resolver = "1.9.27"
+maven-resolver-provider = "3.9.14"
 mappings-util = "0.1.6"
 gradle-shadow = "9.4.0"
 klog = "0.0.5"
@@ -29,6 +32,11 @@ mappings = { module = "io.github.770grappenmaker:mappings-util", version.ref = "
 gradle-shadow = { module = "com.gradleup.shadow:com.gradleup.shadow.gradle.plugin", version.ref = "gradle-shadow" }
 kotlin-compiler = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 kotlin-serialization = { module = "org.jetbrains.kotlin:kotlin-serialization", version.ref = "kotlin" }
+maven-resolver-api = { group = "org.apache.maven.resolver", name = "maven-resolver-api", version.ref = "maven-resolver" }
+maven-resolver-impl = { group = "org.apache.maven.resolver", name = "maven-resolver-impl", version.ref = "maven-resolver" }
+maven-resolver-connector-basic = { group = "org.apache.maven.resolver", name = "maven-resolver-connector-basic", version.ref = "maven-resolver" }
+maven-resolver-transport-http = { group = "org.apache.maven.resolver", name = "maven-resolver-transport-http", version.ref = "maven-resolver" }
+maven-resolver-provider = { group = "org.apache.maven", name = "maven-resolver-provider", version.ref = "maven-resolver-provider" }
 
 [plugins]
 gradle-shadow = { id = "com.gradleup.shadow", version.ref = "gradle-shadow" }
@@ -38,3 +46,4 @@ serialization-dsl = { id = "org.jetbrains.kotlin.plugin.serialization", version.
 [bundles]
 asm = ["asm", "asm-tree", "asm-commons", "asm-util"]
 kotlin-plugins = ["kotlin-compiler", "kotlin-serialization"]
+maven-resolver = ["maven-resolver-api", "maven-resolver-impl", "maven-resolver-connector-basic", "maven-resolver-transport-http", "maven-resolver-provider"]

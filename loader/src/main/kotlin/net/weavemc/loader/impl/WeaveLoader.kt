@@ -10,9 +10,22 @@ import net.weavemc.loader.impl.bootstrap.PublicButInternal
 import net.weavemc.loader.impl.bootstrap.transformer.URLClassLoaderAccessor
 import net.weavemc.loader.impl.mixin.SandboxedMixinLoader
 import net.weavemc.loader.impl.util.*
+import org.apache.maven.repository.internal.MavenRepositorySystemUtils
+import org.eclipse.aether.RepositorySystem
+import org.eclipse.aether.artifact.DefaultArtifact
+import org.eclipse.aether.connector.basic.BasicRepositoryConnectorFactory
+import org.eclipse.aether.impl.DefaultServiceLocator
+import org.eclipse.aether.repository.LocalRepository
+import org.eclipse.aether.repository.RemoteRepository
+import org.eclipse.aether.repository.RepositoryPolicy
+import org.eclipse.aether.resolution.ArtifactRequest
+import org.eclipse.aether.spi.connector.RepositoryConnectorFactory
+import org.eclipse.aether.spi.connector.transport.TransporterFactory
+import org.eclipse.aether.transport.http.HttpTransporterFactory
 import org.objectweb.asm.tree.ClassNode
 import java.io.File
 import java.lang.instrument.Instrumentation
+import java.nio.file.Paths
 import java.util.jar.JarFile
 
 /**
@@ -58,14 +71,68 @@ public class WeaveLoader(
             ?: fatalError("Attempted to retrieve WeaveLoader instance before it has been instantiated!")
     }
 
+    /**
+     * Called from [net.minecraft.client.main.Main.main].
+     *
+     * @see [net.weavemc.loader.impl.bootstrap.Bootstrap]
+     */
     init {
         logger.info("Initializing Weave")
 
         INSTANCE = this
         launchStart = System.currentTimeMillis()
         instrumentation.addTransformer(InjectionHandler)
+        addMinecraftApi()
 
         finalize()
+    }
+
+    private fun addMinecraftApi() {
+        val localRepoPath = Paths.get(System.getProperty("user.home"), ".weave", "maven-repository")
+
+        val locator = MavenRepositorySystemUtils.newServiceLocator().apply {
+            addService(RepositoryConnectorFactory::class.java, BasicRepositoryConnectorFactory::class.java)
+            addService(TransporterFactory::class.java, HttpTransporterFactory::class.java)
+
+            setErrorHandler(object : DefaultServiceLocator.ErrorHandler() {
+                override fun serviceCreationFailed(type: Class<*>?, impl: Class<*>?, exception: Throwable?) {
+                    exception?.printStackTrace()
+                }
+            })
+        }
+
+        val system = locator.getService(RepositorySystem::class.java)
+            ?: throw IllegalStateException("Could not initialize RepositorySystem")
+
+        val session = MavenRepositorySystemUtils.newSession()
+        session.checksumPolicy = RepositoryPolicy.CHECKSUM_POLICY_FAIL
+
+        // check local repo first
+        val localRepo = LocalRepository(localRepoPath.toFile())
+
+        session.localRepositoryManager = system.newLocalRepositoryManager(session, localRepo)
+
+        // in case it does not exist in the local repo
+        // TODO: add proper repo
+        val repo = RemoteRepository.Builder("weave-api-repo", "default", "")
+            .setPolicy(RepositoryPolicy(true, RepositoryPolicy.UPDATE_POLICY_DAILY, RepositoryPolicy.CHECKSUM_POLICY_FAIL))
+            .build()
+
+        // 6. Execute Request
+        val coords = "net.weavemc.api" +
+                ":api-v${GameInfo.version.mappingName.replace('.', '_')}" +
+                ":${weaveImplementationVersion}"
+        val artifactRequest = ArtifactRequest().apply {
+            artifact = DefaultArtifact(coords)
+            repositories = listOf(repo)
+        }
+
+        logger.trace("Resolving Weave API ($coords)...")
+        val result = system.resolveArtifact(session, artifactRequest)
+
+        val apiFile = result.artifact.file
+
+        apiFile.registerAsMod()
     }
 
     private fun finalize() {
@@ -202,7 +269,7 @@ public class WeaveLoader(
     /**
      * Registers mod's hooks and mixins then adds to mods list for later instantiation
      */
-    private fun File.registerAsMod() {
+    public fun File.registerAsMod() {
         logger.trace("Registering mod $name")
         classLoader.addWeaveURL(this.toURI().toURL())
 

@@ -4,6 +4,7 @@ import kotlinx.serialization.json.Json
 import me.xtrm.klog.dsl.klog
 import net.weavemc.internals.GameInfo
 import net.weavemc.internals.ModConfig
+import net.weavemc.loader.impl.WeaveLoader
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodNode
@@ -81,7 +82,7 @@ internal fun exit(errorCode: Int): Nothing {
         runCatching {
             exitRuntime(errorCode)
         }.onFailure { e1 ->
-            if (getJavaVersion() <= 19) {
+            if (javaVersion <= 19) {
                 @Suppress("DEPRECATION")
                 AccessController.doPrivileged(PrivilegedAction<Void> {
                     exitRuntime(errorCode)
@@ -103,10 +104,33 @@ private fun exitRuntime(errorCode: Int) {
     clazz.getDeclaredMethod("exit", Int::class.javaPrimitiveType).also { it.isAccessible = true }(runtime, errorCode)
 }
 
-internal fun getJavaVersion(): Int {
+public val javaVersion: Int by lazy {
     val version = System.getProperty("java.version", "1.6.0")
     val part = if (version.startsWith("1.")) version.split(".")[1] else version.substringBefore(".")
-    return part.toInt()
+    part.toInt()
+}
+
+public val weaveImplementationVersion: String by lazy {
+    val codeSource = WeaveLoader::class.java.protectionDomain.codeSource
+        ?: fatalError("Could not determine Code Source for Weave Loader")
+
+    val manifest = try {
+        // it may return `jar:file:.../loader.jar!/net/weavemc/loader/impl/WeaveLoader.class`, so we need to clean it first
+        val name = codeSource.location.toURI().toString()
+            .split(':').last()
+            .split('!').first()
+        JarFile(name).use { jar ->
+            jar.manifest ?: fatalError("Manifest not found in Weave Loader JAR")
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
+        fatalError("Failed to read manifest inside Weave Loader")
+    }
+
+    val section = manifest.getAttributes("net.weavemc.loader.impl")
+        ?: fatalError("Could not find manifest section for net.weavemc.loader.impl")
+
+    section.getValue("Implementation-Version") ?: fatalError("Implementation-Version is not present in Manifest")
 }
 
 internal fun JarFile.configOrFatal() = runCatching { fetchModConfig(JSON) }.onFailure {
@@ -121,14 +145,14 @@ internal fun JarFile.fetchModConfig(json: Json): ModConfig {
     return json.decodeFromString<ModConfig>(getInputStream(configEntry).readBytes().decodeToString())
 }
 
-internal fun File.createRemappedTemp(name: String, config: ModConfig): File {
-    val temp = File.createTempFile(name, "-weavemod.jar")
+public fun File.createRemappedTemp(name: String, fromNamespace: String, suffix: String = "-weavemod.jar"): File {
+    val temp = File.createTempFile(name, suffix)
     MappingsHandler.remapModJar(
         mappings = MappingsHandler.mergedMappings.mappings,
         input = this,
         output = temp,
         classpath = listOf(FileManager.getVanillaMinecraftJar()),
-        from = config.namespace
+        from = fromNamespace
     )
 
     temp.deleteOnExit()

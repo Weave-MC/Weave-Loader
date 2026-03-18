@@ -27,7 +27,10 @@ object Constants {
     /**
      * The global JSON serializer
      */
-    val JSON = Json { ignoreUnknownKeys = true }
+    val JSON = Json {
+        ignoreUnknownKeys = true
+        prettyPrint = true
+    }
 
     /**
      * The version manifest URL

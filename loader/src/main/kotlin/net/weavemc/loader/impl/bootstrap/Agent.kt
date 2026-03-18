@@ -99,7 +99,7 @@ private fun FileManager.ModJar.parseAndMap(): File {
             fatalError("Mod ${config.modId} was mapped in namespace ${config.namespace}, which is not available!")
         }
 
-        file.createRemappedTemp(fileName, config)
+        file.createRemappedTemp(fileName, config.namespace)
     }
 }
 

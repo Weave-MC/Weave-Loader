@@ -1,6 +1,6 @@
 package net.weavemc.testingmod
 
-import net.weavemc.loader.api.ModInitializer
+import net.weavemc.api.ModInitializer
 import java.lang.instrument.Instrumentation
 
 class TestingMod : ModInitializer {

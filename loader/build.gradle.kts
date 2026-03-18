@@ -6,6 +6,8 @@ plugins {
     id("config-publish")
 }
 
+val loaderVersion = libs.versions.loader.get().toString()
+
 repositories {
     maven("https://maven.fabricmc.net/")
 }
@@ -23,6 +25,7 @@ dependencies {
     shade(libs.klog)
     shade(libs.kxser.json)
     shade(libs.bundles.asm)
+    shade(libs.bundles.maven.resolver)
     shade(libs.mappings)
     shade(libs.mixin) {
         exclude(group = "com.google.guava")
@@ -40,21 +43,11 @@ tasks {
 
         manifest.attributes(
             mapOf(
-                "Specification-Title" to "Weave Loader API",
-                "Specification-Version" to "0",
-                "Specification-Vendor" to "WeaveMC",
-                "Implementation-Title" to "Weave Loader",
-                "Implementation-Version" to "${project.version}",
-                "Implementation-Vendor" to "WeaveMC",
-            ), "net.weavemc.loader.api"
-        )
-        manifest.attributes(
-            mapOf(
                 "Specification-Title" to "Weave Loader",
                 "Specification-Version" to "0", // we're still in beta, so this is 0
                 "Specification-Vendor" to "WeaveMC",
                 "Implementation-Title" to "Weave Loader",
-                "Implementation-Version" to "${project.version}",
+                "Implementation-Version" to loaderVersion,
                 "Implementation-Vendor" to "WeaveMC",
             ), "net.weavemc.loader.impl"
         )
@@ -67,7 +60,7 @@ publishing {
             from(components["java"])
             groupId = "net.weavemc"
             artifactId = "loader"
-            version = libs.versions.loader.get().toString()
+            version = loaderVersion
         }
     }
 }
