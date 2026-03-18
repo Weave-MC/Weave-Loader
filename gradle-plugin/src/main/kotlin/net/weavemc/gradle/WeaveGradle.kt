@@ -18,7 +18,10 @@ import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.bundling.Jar
-import org.gradle.kotlin.dsl.*
+import org.gradle.kotlin.dsl.create
+import org.gradle.kotlin.dsl.getByName
+import org.gradle.kotlin.dsl.named
+import org.gradle.kotlin.dsl.register
 
 /**
  * Gradle build system plugin used to automate the setup of a modding environment.
@@ -31,9 +34,9 @@ class WeaveGradle : Plugin<Project> {
      */
     override fun apply(project: Project) {
         // Applying our default plugins
-        project.pluginManager.apply(JavaPlugin::class)
+        project.pluginManager.apply(JavaPlugin::class.java)
 
-        val ext = project.extensions.create("weave", WeaveMinecraftExtension::class)
+        ext = project.extensions.create(Constants.WEAVE_EXTENSION, WeaveMinecraftExtension::class)
 
         project.afterEvaluate {
             if (!ext.configuration.isPresent) throw GradleException(
@@ -64,14 +67,17 @@ class WeaveGradle : Plugin<Project> {
 
         @TaskAction
         fun run() {
-            val config = project.extensions.getByName<WeaveMinecraftExtension>("minecraft").configuration.get()
+            val config = ext.configuration.get()
             output.get().asFile.writeText(Constants.JSON.encodeToString(config))
         }
+    }
+
+    companion object {
+        lateinit var ext: WeaveMinecraftExtension
     }
 }
 
 fun MinecraftVersion.loadMergedMappings() =
     MappingsRetrieval.loadMergedWeaveMappings(versionName, minecraftJarCache).mappings
-
 
 val Project.sourceSets get() = extensions.getByName<SourceSetContainer>("sourceSets")

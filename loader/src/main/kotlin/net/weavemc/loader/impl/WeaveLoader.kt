@@ -93,7 +93,6 @@ public class WeaveLoader(
                     logger.error("Failed to instantiate $entrypoint#preInit", it)
                 }.onSuccess {
                     runCatching {
-                        @Suppress("DEPRECATION")
                         it.preInit(instrumentation)
                     }.onFailure {
                         logger.error("Exception thrown when invoking $entrypoint#preInit", it)

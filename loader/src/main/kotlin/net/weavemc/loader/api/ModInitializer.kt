@@ -17,7 +17,6 @@ public interface ModInitializer {
      * @param inst Instrumentation object which can be used to register custom transformers
      * @since Weave-Loader 1.0.0-beta.1
      */
-    @Deprecated("", replaceWith = ReplaceWith("init()"))
     public fun preInit(inst: Instrumentation) {}
 
     /**

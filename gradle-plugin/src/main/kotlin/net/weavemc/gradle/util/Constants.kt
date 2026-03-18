@@ -11,7 +11,12 @@ import java.io.File
  */
 object Constants {
     /**
-     * The gradle cache directory.
+     * The name of the Gradle extension
+     */
+    const val WEAVE_EXTENSION = "weave"
+
+    /**
+     * The Gradle cache directory.
      *
      *  *  Windows: `"%USERPROFILE%\.gradle\caches\weave\"`
      *  *  Linux:   `"${HOME}/.gradle/caches/weave/"`

@@ -18,7 +18,7 @@ kotlin {
 }
 
 dependencies {
-    shade(projects.internals)
+    shade(libs.internals)
     shade(libs.klog)
     shade(libs.kxser.json)
     shade(libs.bundles.asm)

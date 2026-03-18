@@ -1,7 +1,7 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 plugins {
-    id("com.github.johnrengelman.shadow")
+    id("com.gradleup.shadow")
 }
 
 repositories {
@@ -78,8 +78,8 @@ tasks {
         mergeServiceFiles()
 
         afterEvaluate {
-            val jarTask = tasks.getByName<Jar>("jar")
-            manifest.inheritFrom(jarTask.manifest)
+            /*val jarTask = tasks.getByName<Jar>("jar")
+            manifest.inheritFrom(jarTask.manifest)*/
 
             // Fix mixin whining about a missing version
             manifest.attributes(mapOf(

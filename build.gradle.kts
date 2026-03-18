@@ -1,3 +1,4 @@
+/*
 plugins {
     alias(libs.plugins.kotlin.jvm) apply false
     alias(libs.plugins.serialization.dsl) apply false
@@ -11,4 +12,4 @@ subprojects {
         mavenCentral()
         maven("https://repo.weavemc.dev/releases")
     }
-}
+}*/

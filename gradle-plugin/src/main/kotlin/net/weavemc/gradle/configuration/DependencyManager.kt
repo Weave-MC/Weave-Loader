@@ -2,6 +2,7 @@ package net.weavemc.gradle.configuration
 
 import com.grappenmaker.mappings.*
 import kotlinx.serialization.Serializable
+import net.weavemc.gradle.WeaveGradle.Companion.ext
 import net.weavemc.gradle.loadMergedMappings
 import net.weavemc.gradle.sourceSets
 import net.weavemc.gradle.util.*
@@ -44,7 +45,6 @@ private fun Project.addMinecraftAssets(version: MinecraftVersion) {
 
 private fun Project.retrieveWideners(): List<File> {
     // Cursed code
-    val ext = extensions["minecraft"] as WeaveMinecraftExtension
     val wideners = ext.configuration.get().accessWideners.toHashSet()
     val widenerFiles = mutableListOf<File>()
 

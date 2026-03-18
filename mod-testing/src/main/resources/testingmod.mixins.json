@@ -1,0 +1,6 @@
+{
+  "compatibilityLevel": "JAVA_8",
+  "package": "net.weavemc.testingmod.mixin",
+  "mixins": [
+  ]
+}

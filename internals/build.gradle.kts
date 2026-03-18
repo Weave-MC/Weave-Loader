@@ -1,7 +1,12 @@
+import org.gradle.kotlin.dsl.libs
+
 plugins {
     id("config-kotlin")
     id("config-publish")
 }
+
+//group = libs.internals.get().module.group
+version = libs.versions.internals.get()
 
 dependencies {
     api(libs.bundles.asm)
