@@ -1,5 +1,3 @@
-import org.gradle.kotlin.dsl.`maven-publish`
-
 plugins {
     `maven-publish`
 }
@@ -13,6 +11,16 @@ publishing {
             authentication {
                 create<BasicAuthentication>("basic")
             }
+        }
+
+        maven {
+            name = "LocalTesting"
+            url = uri("${System.getProperty("user.home")}/.weave/testRepo")
+        }
+
+        maven {
+            name = "LocalRelativeTesting"
+            url = layout.buildDirectory.dir("localMaven").get().asFile.toURI()
         }
     }
 }
