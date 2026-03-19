@@ -17,6 +17,7 @@ import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
+import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.Delete
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Internal
@@ -70,6 +71,7 @@ class WeaveGradle : Plugin<Project> {
         project.tasks.named<Delete>("clean") { delete(writeModConfig) }
     }
 
+    @CacheableTask
     abstract class WriteModConfig : DefaultTask() {
         @get:Internal
         abstract val configuration: Property<ModConfig>

@@ -25,3 +25,20 @@ publishing {
         }
     }
 }
+
+val chainedTasks = listOf(
+    "clean",
+    "build",
+    "publishAllPublicationsToLocalTestingRepository",
+    "publishAllPublicationsToLocalRelativeTestingRepository",
+    "publishToMavenLocal"
+)
+
+chainedTasks.forEach { taskName ->
+    tasks.named(taskName) {
+        // find every subproject that actually has this task and depend on it
+        subprojects.forEach { sub ->
+            dependsOn(sub.tasks.matching { it.name == taskName })
+        }
+    }
+}
