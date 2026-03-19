@@ -17,6 +17,8 @@ val packagesList = listOf(
     "com.grappenmaker.mappings",
     "org.objectweb.asm",
     "org.spongepowered",
+    "org.apache.maven",
+    "org.eclipse.aether",
     "kotlin",
     "kotlinx",
 )

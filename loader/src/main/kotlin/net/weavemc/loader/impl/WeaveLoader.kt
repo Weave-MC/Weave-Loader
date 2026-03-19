@@ -10,11 +10,34 @@ import net.weavemc.loader.impl.bootstrap.PublicButInternal
 import net.weavemc.loader.impl.bootstrap.transformer.URLClassLoaderAccessor
 import net.weavemc.loader.impl.mixin.SandboxedMixinLoader
 import net.weavemc.loader.impl.util.*
+import org.apache.maven.model.building.DefaultModelBuilder
+import org.apache.maven.model.building.ModelBuilder
+import org.apache.maven.model.inheritance.DefaultInheritanceAssembler
+import org.apache.maven.model.inheritance.InheritanceAssembler
+import org.apache.maven.model.interpolation.ModelInterpolator
+import org.apache.maven.model.interpolation.StringSearchModelInterpolator
+import org.apache.maven.model.io.ModelReader
+import org.apache.maven.model.normalization.DefaultModelNormalizer
+import org.apache.maven.model.normalization.ModelNormalizer
+import org.apache.maven.model.path.DefaultModelPathTranslator
+import org.apache.maven.model.path.DefaultModelUrlNormalizer
+import org.apache.maven.model.path.ModelPathTranslator
+import org.apache.maven.model.path.ModelUrlNormalizer
+import org.apache.maven.model.superpom.DefaultSuperPomProvider
+import org.apache.maven.model.superpom.SuperPomProvider
+import org.apache.maven.model.validation.DefaultModelValidator
+import org.apache.maven.model.validation.ModelValidator
+import org.apache.maven.repository.internal.DefaultArtifactDescriptorReader
+import org.apache.maven.repository.internal.DefaultVersionRangeResolver
+import org.apache.maven.repository.internal.DefaultVersionResolver
 import org.apache.maven.repository.internal.MavenRepositorySystemUtils
 import org.eclipse.aether.RepositorySystem
 import org.eclipse.aether.artifact.DefaultArtifact
 import org.eclipse.aether.connector.basic.BasicRepositoryConnectorFactory
+import org.eclipse.aether.impl.ArtifactDescriptorReader
 import org.eclipse.aether.impl.DefaultServiceLocator
+import org.eclipse.aether.impl.VersionRangeResolver
+import org.eclipse.aether.impl.VersionResolver
 import org.eclipse.aether.repository.LocalRepository
 import org.eclipse.aether.repository.RemoteRepository
 import org.eclipse.aether.repository.RepositoryPolicy
@@ -27,6 +50,7 @@ import java.io.File
 import java.lang.instrument.Instrumentation
 import java.nio.file.Paths
 import java.util.jar.JarFile
+import kotlin.jvm.java
 
 /**
  * The main class of the Weave Loader.
@@ -101,6 +125,21 @@ public class WeaveLoader(
             addService(RepositoryConnectorFactory::class.java, BasicRepositoryConnectorFactory::class.java)
             addService(TransporterFactory::class.java, HttpTransporterFactory::class.java)
 
+            addService(ModelBuilder::class.java, DefaultModelBuilder::class.java)
+            addService(ModelReader::class.java, org.apache.maven.model.io.DefaultModelReader::class.java)
+            addService(ModelValidator::class.java, DefaultModelValidator::class.java)
+            addService(ModelNormalizer::class.java, DefaultModelNormalizer::class.java)
+            addService(ModelInterpolator::class.java, StringSearchModelInterpolator::class.java)
+            addService(ModelPathTranslator::class.java, DefaultModelPathTranslator::class.java)
+            addService(ModelUrlNormalizer::class.java, DefaultModelUrlNormalizer::class.java)
+            addService(SuperPomProvider::class.java, DefaultSuperPomProvider::class.java)
+            addService(InheritanceAssembler::class.java, DefaultInheritanceAssembler::class.java)
+
+            // Maven Resolver (Aether) components
+            addService(ArtifactDescriptorReader::class.java, DefaultArtifactDescriptorReader::class.java)
+            addService(VersionResolver::class.java, DefaultVersionResolver::class.java)
+            addService(VersionRangeResolver::class.java, DefaultVersionRangeResolver::class.java)
+
             setErrorHandler(object : DefaultServiceLocator.ErrorHandler() {
                 override fun serviceCreationFailed(type: Class<*>?, impl: Class<*>?, exception: Throwable?) {
                     exception?.printStackTrace()
@@ -127,7 +166,7 @@ public class WeaveLoader(
 
         val coords = "net.weavemc.api" +
                 ":api-v${GameInfo.version.mappingName.replace('.', '_')}" +
-                ":${weaveImplementationVersion}"
+                ":${weaveLoaderData["version"]}"
         val artifactRequest = ArtifactRequest().apply {
             artifact = DefaultArtifact(coords)
             repositories = listOf(repo)

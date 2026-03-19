@@ -14,6 +14,7 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.security.AccessController
 import java.security.PrivilegedAction
+import java.util.Properties
 import java.util.jar.JarFile
 import javax.swing.JOptionPane
 import kotlin.io.path.*
@@ -110,27 +111,11 @@ public val javaVersion: Int by lazy {
     part.toInt()
 }
 
-public val weaveImplementationVersion: String by lazy {
-    val codeSource = WeaveLoader::class.java.protectionDomain.codeSource
-        ?: fatalError("Could not determine Code Source for Weave Loader")
+public val weaveLoaderData: Properties by lazy {
+    val url = WeaveLoader::class.java.classLoader.getResource("weave-loader-data.properties")
+    val stream = url?.openStream()
 
-    val manifest = try {
-        // it may return `jar:file:.../loader.jar!/net/weavemc/loader/impl/WeaveLoader.class`, so we need to clean it first
-        val name = codeSource.location.toURI().toString()
-            .split(':').last()
-            .split('!').first()
-        JarFile(name).use { jar ->
-            jar.manifest ?: fatalError("Manifest not found in Weave Loader JAR")
-        }
-    } catch (e: Exception) {
-        e.printStackTrace()
-        fatalError("Failed to read manifest inside Weave Loader")
-    }
-
-    val section = manifest.getAttributes("net.weavemc.loader.impl")
-        ?: fatalError("Could not find manifest section for net.weavemc.loader.impl")
-
-    section.getValue("Implementation-Version") ?: fatalError("Implementation-Version is not present in Manifest")
+    Properties().apply { stream?.use { load(it) } }
 }
 
 internal fun JarFile.configOrFatal() = runCatching { fetchModConfig(JSON) }.onFailure {

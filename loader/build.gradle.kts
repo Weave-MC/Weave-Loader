@@ -1,5 +1,7 @@
 @file:Suppress("VulnerableLibrariesLocal")
 
+import java.util.*
+
 plugins {
     id("config-kotlin")
     id("config-shade")
@@ -34,6 +36,39 @@ dependencies {
 }
 
 tasks {
+    abstract class AddWeaveLoaderPropertiesTask : DefaultTask() {
+        @get:Input
+        abstract val version: Property<String>
+
+        @get:OutputFile
+        val propertiesFile: RegularFileProperty =
+            project.objects.fileProperty().convention(
+                project.layout.buildDirectory.file("tmp/weave-loader-data.properties")
+            )
+
+        @TaskAction
+        fun run() {
+            val properties = propertiesOf(
+                "version" to version.get(),
+            )
+
+            propertiesFile.get().asFile.outputStream().use {
+                properties.store(it, "Weave Loader Properties")
+            }
+        }
+
+        private fun propertiesOf(vararg props: Pair<String, Any?>) =
+            Properties().also { it += props }
+    }
+
+    val addWeaveLoaderProperties by creating(AddWeaveLoaderPropertiesTask::class) {
+        version = loaderVersion
+    }
+
+    shadowJar {
+        from(addWeaveLoaderProperties)
+    }
+
     jar {
         manifest.attributes(
             "Premain-Class" to "net.weavemc.loader.impl.bootstrap.AgentKt",
