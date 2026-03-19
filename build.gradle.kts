@@ -16,7 +16,16 @@ tasks.register("publish") {
     dependsOn(gradle.includedBuilds.map { it.task(":publish") })
 }
 
-val publishableProjects = listOf("internals", "api", "loader")
+val publishableProjects = listOf("internals", "api", "loader", "gradle-plugin")
+
+tasks.register("publishToGitHubPackages") {
+    group = "publishing"
+    publishableProjects.forEach { name ->
+        gradle.includedBuilds.find { it.name == name }?.task(":publishAllPublicationsToGitHubPackagesRepository")?.let {
+            dependsOn(it)
+        }
+    }
+}
 
 // LocalTesting (~/.weave/testRepo)
 tasks.register("publishToLocalTesting") {
