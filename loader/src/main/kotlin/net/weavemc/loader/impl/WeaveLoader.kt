@@ -88,7 +88,14 @@ public class WeaveLoader(
     }
 
     private fun addMinecraftApi() {
-        val localRepoPath = Paths.get(System.getProperty("user.home"), ".weave", "maven-repository")
+        val localRepoPath by systemProperty(
+            key = "weave.repo.local.path",
+            defaultValue = Paths.get(System.getProperty("user.home"), ".weave", "maven-repository").toString()
+        )
+        val remoteRepoUrl by systemProperty(
+            key = "weave.repo.remote.url",
+            defaultValue = ""
+        )
 
         val locator = MavenRepositorySystemUtils.newServiceLocator().apply {
             addService(RepositoryConnectorFactory::class.java, BasicRepositoryConnectorFactory::class.java)
@@ -108,17 +115,16 @@ public class WeaveLoader(
         session.checksumPolicy = RepositoryPolicy.CHECKSUM_POLICY_FAIL
 
         // check local repo first
-        val localRepo = LocalRepository(localRepoPath.toFile())
+        val localRepo = LocalRepository(localRepoPath)
 
         session.localRepositoryManager = system.newLocalRepositoryManager(session, localRepo)
 
         // in case it does not exist in the local repo
         // TODO: add proper repo
-        val repo = RemoteRepository.Builder("weave-api-repo", "default", "")
+        val repo = RemoteRepository.Builder("weave-api-repo", "default", remoteRepoUrl)
             .setPolicy(RepositoryPolicy(true, RepositoryPolicy.UPDATE_POLICY_DAILY, RepositoryPolicy.CHECKSUM_POLICY_FAIL))
             .build()
 
-        // 6. Execute Request
         val coords = "net.weavemc.api" +
                 ":api-v${GameInfo.version.mappingName.replace('.', '_')}" +
                 ":${weaveImplementationVersion}"
