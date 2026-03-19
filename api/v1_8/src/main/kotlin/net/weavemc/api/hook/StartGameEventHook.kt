@@ -12,7 +12,7 @@ import org.objectweb.asm.tree.ClassNode
 /**
  * Corresponds to [StartGameEvent.Pre] and [StartGameEvent.Post].
  */
-internal object StartGameEventHook : Hook("net/minecraft/client/Minecraft") {
+internal class StartGameEventHook : Hook("net/minecraft/client/Minecraft") {
     /**
      * Inserts a call to [net.minecraft.client.Minecraft.startGame] using the Event Bus.
      *

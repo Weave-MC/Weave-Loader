@@ -10,7 +10,7 @@ import net.weavemc.internals.named
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
 
-internal object PacketEventHook : Hook("net/minecraft/network/NetworkManager") {
+internal class PacketEventHook : Hook("net/minecraft/network/NetworkManager") {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         node.methods.filter { it.name == "sendPacket" }.forEach {
             it.instructions.insert(asm {

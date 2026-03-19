@@ -10,7 +10,7 @@ import net.weavemc.internals.named
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
 
-internal object ChatReceivedEventHook : Hook("net/minecraft/client/gui/GuiNewChat") {
+internal class ChatReceivedEventHook : Hook("net/minecraft/client/gui/GuiNewChat") {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         node.methods.named("printChatMessageWithOptionalDeletion").instructions.insert(asm {
             new(internalNameOf<ChatReceivedEvent>())

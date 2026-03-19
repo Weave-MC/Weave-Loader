@@ -8,12 +8,18 @@ import net.weavemc.gradle.util.localCache
 import net.weavemc.gradle.util.minecraftJarCache
 import net.weavemc.internals.MappingsRetrieval
 import net.weavemc.internals.MinecraftVersion
+import net.weavemc.internals.ModConfig
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.plugins.JavaPlugin
+import org.gradle.api.provider.Property
+import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.Delete
+import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.api.tasks.TaskAction
@@ -51,7 +57,10 @@ class WeaveGradle : Plugin<Project> {
             it.pullDeps(version, ext.configuration.get().namespace)
         }
 
-        val writeModConfig = project.tasks.register<WriteModConfig>("writeModConfig")
+        val writeModConfig = project.tasks.register<WriteModConfig>("writeModConfig") {
+            configuration.set(ext.configuration)
+            output.set(project.localCache().map { it.file("weave.mod.json") })
+        }
 
         project.tasks.named<Jar>("jar") {
             dependsOn(writeModConfig)
@@ -61,15 +70,24 @@ class WeaveGradle : Plugin<Project> {
         project.tasks.named<Delete>("clean") { delete(writeModConfig) }
     }
 
-    open class WriteModConfig : DefaultTask() {
+    abstract class WriteModConfig : DefaultTask() {
+        @get:Internal
+        abstract val configuration: Property<ModConfig>
+
+        @get:Input
+        protected val configurationJson: Provider<String> = configuration.map {
+            Constants.JSON.encodeToString(it)
+        }
+
         @get:OutputFile
-        val output = project.localCache().map { it.file("weave.mod.json") }
+        abstract val output: RegularFileProperty
 
         @TaskAction
         fun run() {
-            val config = ext.configuration.get()
-            println("config = ${config}")
-            output.get().asFile.writeText(Constants.JSON.encodeToString(config))
+            val json = configurationJson.get()
+            val outputFile = output.get().asFile
+            outputFile.parentFile?.mkdirs()
+            outputFile.writeText(json)
         }
     }
 

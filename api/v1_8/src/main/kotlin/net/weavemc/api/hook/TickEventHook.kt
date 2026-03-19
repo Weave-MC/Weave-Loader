@@ -16,7 +16,7 @@ import org.objectweb.asm.tree.ClassNode
  *
  * @see net.minecraft.util.Timer.ticksPerSecond
  */
-internal object TickEventHook : Hook("net/minecraft/client/Minecraft") {
+internal class TickEventHook : Hook("net/minecraft/client/Minecraft") {
     /**
      * Inserts a call to the [net.minecraft.client.Minecraft.runTick] method to post
      * a 'tick'.

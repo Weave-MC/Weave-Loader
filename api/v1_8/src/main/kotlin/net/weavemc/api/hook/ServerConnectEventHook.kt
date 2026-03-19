@@ -11,7 +11,7 @@ import org.objectweb.asm.tree.ClassNode
 /**
  * Corresponds to [ServerConnectEvent].
  */
-internal object ServerConnectEventHook : Hook("net/minecraft/client/multiplayer/GuiConnecting") {
+internal class ServerConnectEventHook : Hook("net/minecraft/client/multiplayer/GuiConnecting") {
     /**
      * Inserts a call to [ServerConnectEvent] at the head of [net.minecraft.client.multiplayer.GuiConnecting.connect].
      */

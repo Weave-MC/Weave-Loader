@@ -12,7 +12,7 @@ import org.objectweb.asm.tree.LdcInsnNode
 /**
  * Corresponds to [RenderWorldEvent].
  */
-internal object RenderWorldEventHook : Hook("net/minecraft/client/renderer/EntityRenderer") {
+internal class RenderWorldEventHook : Hook("net/minecraft/client/renderer/EntityRenderer") {
     /**
      * Inserts a call to [RenderWorldEvent]'s constructor at the head of
      * [net.minecraft.client.renderer.EntityRenderer.renderWorldPass], which

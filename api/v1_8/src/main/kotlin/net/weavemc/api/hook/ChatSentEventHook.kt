@@ -10,7 +10,7 @@ import net.weavemc.internals.named
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
 
-internal object ChatSentEventHook : Hook("net/minecraft/client/entity/EntityPlayerSP") {
+internal class ChatSentEventHook : Hook("net/minecraft/client/entity/EntityPlayerSP") {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         node.methods.named("sendChatMessage").instructions.insert(asm {
             new(internalNameOf<ChatSentEvent>())

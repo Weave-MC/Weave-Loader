@@ -9,7 +9,7 @@ import net.weavemc.internals.named
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodInsnNode
 
-internal object KeyboardEventHook : Hook("net/minecraft/client/Minecraft") {
+internal class KeyboardEventHook : Hook("net/minecraft/client/Minecraft") {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         node.methods.named("runTick").let { mn ->
             mn.instructions.insert(

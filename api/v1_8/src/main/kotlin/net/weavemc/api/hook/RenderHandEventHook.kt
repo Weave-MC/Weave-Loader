@@ -13,7 +13,7 @@ import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.JumpInsnNode
 import org.objectweb.asm.tree.LdcInsnNode
 
-internal object RenderHandEventHook : Hook("net/minecraft/client/renderer/EntityRenderer") {
+internal class RenderHandEventHook : Hook("net/minecraft/client/renderer/EntityRenderer") {
     /**
      * Inserts a call to [RenderHandEvent] in [net.minecraft.client.renderer.EntityRenderer.renderWorldPass].
      */

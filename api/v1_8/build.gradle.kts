@@ -8,7 +8,26 @@ weave {
     configure {
         name = "Weave-API"
         modId = "net.weavemc.api"
-        hooks = listOf()
+        hooks = listOf(
+            "ChatReceivedEventHook",
+            "ChatSentEventHook",
+            "EntityListEventAddHook",
+            "EntityListEventRemoveHook",
+            "GuiOpenEventHook",
+            "KeyboardEventHook",
+            "MouseEventHook",
+            "PlayerListEventHook",
+            "RenderGameOverlayHook",
+            "RenderHandEventHook",
+            "RenderLivingEventHook",
+            "RenderWorldEventHook",
+            "ServerConnectEventHook",
+            "ShutdownEventHook",
+            "StartGameEventHook",
+            "TickEventHook",
+            "WorldEventHook",
+            "PacketEventHook",
+        ).map { "net.weavemc.api.hook.$it" }
         mcpMappings()
     }
     version("1.8.9")

@@ -155,6 +155,8 @@ public fun File.createRemappedTemp(name: String, fromNamespace: String, suffix: 
         from = fromNamespace
     )
 
+    klog.debug("Remapped mod jar from ${temp.absolutePath} to ${temp.absolutePath}")
+
     temp.deleteOnExit()
     return temp
 }

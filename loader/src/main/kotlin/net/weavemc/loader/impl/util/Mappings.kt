@@ -40,7 +40,7 @@ public object MappingsHandler {
         }
     }
 
-    internal fun classLoaderBytesProvider(expectedNamespace: String): (String) -> ByteArray? {
+    public fun classLoaderBytesProvider(expectedNamespace: String): (String) -> ByteArray? {
         val names = if (expectedNamespace != "official") mergedMappings.mappings.asASMMapping(
             from = expectedNamespace,
             to = "official",
@@ -60,15 +60,15 @@ public object MappingsHandler {
         MappingsRemapper(mergedMappings.mappings, from, to, loader = classLoaderBytesProvider(from))
     }
 
-    internal val environmentRemapper = mapper("official", environmentNamespace)
-    internal val environmentUnmapper = environmentRemapper.reverse()
+    public val environmentRemapper: MappingsRemapper = mapper("official", environmentNamespace)
+    public val environmentUnmapper: MappingsRemapper = environmentRemapper.reverse()
 
     private val mappable by lazy {
         val id = mergedMappings.mappings.namespace("official")
         mergedMappings.mappings.classes.mapTo(hashSetOf()) { it.names[id] }
     }
 
-    internal fun ByteArray.remap(remapper: Remapper, bypassMappableCheck: Boolean = false): ByteArray {
+    public fun ByteArray.remap(remapper: Remapper, bypassMappableCheck: Boolean = false): ByteArray {
         val reader = ClassReader(this)
         if (reader.className !in mappable && !bypassMappableCheck) return this
 
@@ -124,7 +124,7 @@ public object MappingsHandler {
         }
     }
 
-    internal fun remapModJar(
+    public fun remapModJar(
         mappings: Mappings,
         input: File,
         output: File,

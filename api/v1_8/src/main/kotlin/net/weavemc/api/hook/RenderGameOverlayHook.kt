@@ -9,7 +9,7 @@ import net.weavemc.internals.named
 import org.objectweb.asm.Opcodes.RETURN
 import org.objectweb.asm.tree.ClassNode
 
-internal object RenderGameOverlayHook : Hook(
+internal class RenderGameOverlayHook : Hook(
     "net/minecraft/client/gui/GuiIngame",
     "net/minecraftforge/client/GuiIngameForge"
 ) {

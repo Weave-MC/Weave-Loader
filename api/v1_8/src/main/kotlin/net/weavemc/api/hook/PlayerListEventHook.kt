@@ -9,7 +9,7 @@ import net.weavemc.internals.named
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodInsnNode
 
-internal object PlayerListEventHook : Hook("net/minecraft/client/network/NetHandlerPlayClient") {
+internal class PlayerListEventHook : Hook("net/minecraft/client/network/NetHandlerPlayClient") {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
         val addInsn = asm {
             new(internalNameOf<PlayerListEvent.Add>())

@@ -11,7 +11,7 @@ import org.objectweb.asm.tree.LabelNode
 /**
  * Corresponds to [WorldEvent.Load] and [WorldEvent.Unload].
  */
-internal object WorldEventHook : Hook("net/minecraft/client/Minecraft") {
+internal class WorldEventHook : Hook("net/minecraft/client/Minecraft") {
     /**
      * Inserts a call to [WorldEvent.Load] and [WorldEvent.Unload] using the Event Bus.
      *

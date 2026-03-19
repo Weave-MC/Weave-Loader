@@ -132,7 +132,13 @@ public class WeaveLoader(
 
         val apiFile = result.artifact.file
 
-        apiFile.registerAsMod()
+        apiFile
+            .createRemappedTemp(
+                name = "weave-api",
+                fromNamespace = JarFile(apiFile).configOrFatal().namespace,
+                suffix = "weaveapi"
+            )
+            .registerAsMod()
     }
 
     private fun finalize() {
