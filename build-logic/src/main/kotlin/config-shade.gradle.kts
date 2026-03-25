@@ -18,6 +18,7 @@ val packagesList = listOf(
     "org.objectweb.asm",
     "org.spongepowered",
     "org.apache.maven",
+    "org.apache.http",
     "org.eclipse.aether",
     "kotlin",
     "kotlinx",
