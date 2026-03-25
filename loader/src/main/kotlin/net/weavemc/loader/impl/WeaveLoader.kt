@@ -118,7 +118,7 @@ public class WeaveLoader(
         )
         val remoteRepoUrl by systemProperty(
             key = "weave.repo.remote.url",
-            defaultValue = ""
+            defaultValue = "https://gitlab.com/api/v4/projects/80566527/packages/maven" // https://gitlab.com/weave-mc/weave
         )
 
         val locator = MavenRepositorySystemUtils.newServiceLocator().apply {
@@ -159,7 +159,6 @@ public class WeaveLoader(
         session.localRepositoryManager = system.newLocalRepositoryManager(session, localRepo)
 
         // in case it does not exist in the local repo
-        // TODO: add proper repo
         val repo = RemoteRepository.Builder("weave-api-repo", "default", remoteRepoUrl)
             .setPolicy(RepositoryPolicy(true, RepositoryPolicy.UPDATE_POLICY_DAILY, RepositoryPolicy.CHECKSUM_POLICY_FAIL))
             .build()

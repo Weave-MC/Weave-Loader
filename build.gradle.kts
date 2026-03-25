@@ -27,6 +27,15 @@ tasks.register("publishToGitHubPackages") {
     }
 }
 
+tasks.register("publishToGitLabPackageRegistry") {
+    group = "publishing"
+    publishableProjects.forEach { name ->
+        gradle.includedBuilds.find { it.name == name }?.task(":publishAllPublicationsToGitLabPackageRegistryRepository")?.let {
+            dependsOn(it)
+        }
+    }
+}
+
 // LocalTesting (~/.weave/testRepo)
 tasks.register("publishToLocalTesting") {
     group = "publishing"

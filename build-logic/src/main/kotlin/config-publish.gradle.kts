@@ -1,5 +1,3 @@
-import com.github.javaparser.printer.concretesyntaxmodel.CsmElement.token
-
 plugins {
     `maven-publish`
 }
@@ -23,6 +21,21 @@ publishing {
                 password = System.getenv("GITHUB_TOKEN") ?: project.findProperty("gpr.key") as String?
             }
         }
+
+        repositories {
+            maven {
+                name = "GitLabPackageRegistry"
+                url = uri("https://gitlab.com/api/v4/projects/80566527/packages/maven") // https://gitlab.com/weave-mc/weave
+                credentials(HttpHeaderCredentials::class) {
+                    name = "Private-Token"
+                    value = findProperty("gitLabPrivateToken") as String?
+                }
+                authentication {
+                    create("header", HttpHeaderAuthentication::class)
+                }
+            }
+        }
+
 
         maven {
             name = "LocalTesting"

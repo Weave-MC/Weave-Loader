@@ -30,6 +30,7 @@ val chainedTasks = listOf(
     "clean",
     "build",
     "publishAllPublicationsToGitHubPackagesRepository",
+    "publishAllPublicationsToGitLabPackageRegistryRepository",
     "publishAllPublicationsToLocalTestingRepository",
     "publishAllPublicationsToLocalRelativeTestingRepository",
     "publishToMavenLocal"
