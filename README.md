@@ -18,7 +18,7 @@ while supporting injection into clients that are somewhat closed-off to develope
 | Client  |     Supported      |
 |---------|:------------------:|
 | Vanilla | :white_check_mark: |
-| Forge   | :white_check_mark: |
+| Forge   |        :x:         |
 | Lunar   | :white_check_mark: |
 | Badlion |        :x:         |
 | Feather |        :x:         |
@@ -63,7 +63,7 @@ depending on your operating system:
 
 ```bash
 chmod +x ./gradlew
-./gradlew agent
+./gradlew build
 ```
 </details>
 
@@ -71,7 +71,7 @@ chmod +x ./gradlew
 <summary><b>Windows</b></summary>
 
 ```powershell
-.\gradlew.bat agent
+.\gradlew.bat build
 ```
 </details>
 
