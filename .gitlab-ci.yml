@@ -66,6 +66,7 @@ build-modules:
 publish-to-registry:
   extends: .gradle-setup
   stage: publish
+  needs: []
   script:
     - ./gradlew publishToGitLabPackageRegistry
   rules:
