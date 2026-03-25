@@ -1,10 +1,10 @@
 [versions]
 kotlin = "2.3.0"
 
-internals = "1.0.0-b.6"
-loader = "1.0.0-b.6"
-api = "1.0.0-b.6"
-plugin = "1.0.0-b.6"
+internals = "1.1.0"
+loader = "1.1.0"
+api = "1.1.0"
+plugin = "1.1.0"
 
 asm = "9.7"
 mixin = "0.13.4+mixin.0.8.5"
