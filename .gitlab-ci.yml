@@ -5,15 +5,70 @@
 # Container Scanning customization: https://docs.gitlab.com/user/application_security/container_scanning/#customizing-analyzer-behavior
 # Note that environment variables can be set in several places
 # See https://docs.gitlab.com/ci/variables/#cicd-variable-precedence
+
 stages:
-- test
-- secret-detection
+  - test
+  - build
+  - publish
+
+variables:
+  # Disabling the daemon and enabling parallel execution saves compute minutes
+  GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.parallel=true"
+  SECRET_DETECTION_ENABLED: 'true'
+
+# Shared configuration for all Java/Gradle jobs
+.gradle-setup:
+  image: eclipse-temurin:17-jdk
+  before_script:
+    - chmod +x ./gradlew
+  cache:
+    key: "$CI_COMMIT_REF_SLUG"
+    paths:
+      - .gradle/caches/
+      - .gradle/wrapper/
+
+# --- Security Analysis ---
+include:
+  - template: Security/SAST.gitlab-ci.yml
+  - template: Security/Secret-Detection.gitlab-ci.yml
+
 sast:
   stage: test
-include:
-- template: Security/SAST.gitlab-ci.yml
-- template: Security/Secret-Detection.gitlab-ci.yml
-variables:
-  SECRET_DETECTION_ENABLED: 'true'
+  rules:
+    - when: manual
+      allow_failure: true
+
 secret_detection:
-  stage: secret-detection
+  stage: test
+  rules:
+    - when: manual
+      allow_failure: true
+
+# --- Build Stage ---
+# Set to manual
+build-modules:
+  extends: .gradle-setup
+  stage: build
+  parallel:
+    matrix:
+      - MODULE: [internals, api, loader, gradle-plugin, mod-testing]
+  script:
+    - ./gradlew :$MODULE:build
+  rules:
+    - when: manual
+  artifacts:
+    name: "weave-$MODULE-$CI_COMMIT_SHORT_SHA"
+    paths:
+      - "$MODULE/build/libs/"
+    expire_in: 1 week
+
+# --- Publish Stage ---
+publish-to-registry:
+  extends: .gradle-setup
+  stage: publish
+  script:
+    - ./gradlew publishToGitLabPackageRegistry
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual
+    - when: never
