@@ -15,14 +15,15 @@ while supporting injection into clients that are somewhat closed-off to develope
 <tr><th>Supported Clients</th><th>Supported Versions</th></tr>
 <tr><td>
         
-| Client  |     Supported      |
-|---------|:------------------:|
-| Vanilla | :white_check_mark: |
-| Forge   |        :x:         |
-| Lunar   | :white_check_mark: |
-| Badlion |        :x:         |
-| Feather |        :x:         |
-| Labymod | :white_check_mark: |
+| Client    |     Supported      |
+|-----------|:------------------:|
+| Vanilla   | :white_check_mark: |
+| Forge     |        :x:         |
+| Lunar     | :white_check_mark: |
+| Badlion   |        :x:         |
+| Feather   |        :x:         |
+| Labymod 4 | :white_check_mark: |
+| Labymod 3 | :white_check_mark: |
 
 </td><td>
     
