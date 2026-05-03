@@ -15,8 +15,8 @@ java.withSourcesJar()
 kotlin {
     compilerOptions {
         freeCompilerArgs.add("-Xjvm-default=all")
-        languageVersion = KotlinVersion.KOTLIN_2_0
-        apiVersion = KotlinVersion.KOTLIN_2_0
+        languageVersion = KotlinVersion.KOTLIN_2_3
+        apiVersion = KotlinVersion.KOTLIN_2_3
     }
 
     jvmToolchain(8)
