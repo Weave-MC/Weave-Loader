@@ -77,6 +77,8 @@ chmod +x ./gradlew
 ```
 </details>
 
+Once build the full Weave-Leader should be loaded inside of `/loader/build/libs/` and you will want the `weave-loader-all.jar`
+
 ## Usage
 
 To use Weave-Loader, you have two options:
