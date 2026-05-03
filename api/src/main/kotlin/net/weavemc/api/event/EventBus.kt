@@ -24,9 +24,11 @@ public object EventBus {
      */
     @JvmStatic
     public fun subscribe(obj: Any) {
-        obj.javaClass.declaredMethods
-            .filter { it.isAnnotationPresent(SubscribeEvent::class.java) && it.parameterCount == 1 }
-            .forEach { getListeners(it.parameterTypes.first()) += ReflectEventConsumer(obj, it) }
+        generateSequence(obj.javaClass) { it.superclass }.toList().forEach { currentClass ->
+            currentClass.declaredMethods
+                .filter { it.isAnnotationPresent(SubscribeEvent::class.java) && it.parameterCount == 1 }
+                .forEach { getListeners(it.parameterTypes.first()) += ReflectEventConsumer(obj, it) }
+        }
     }
 
     /**
