@@ -39,8 +39,8 @@ repositories {
 
 dependencies {
     api(libs.bundles.asm)
-    implementation(libs.internals)
-    implementation(libs.api)
+    implementation("net.weavemc:internals")
+    implementation(projects.api)
 }
 
 publishing {
@@ -50,7 +50,7 @@ publishing {
 
             groupId = "net.weavemc.api"
             artifactId = "api-${project.name}"
-            version = libs.versions.api.get().toString()
+            this.version = version
         }
     }
 }

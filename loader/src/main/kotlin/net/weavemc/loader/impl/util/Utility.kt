@@ -130,13 +130,18 @@ internal fun JarFile.fetchModConfig(json: Json): ModConfig {
     return json.decodeFromString<ModConfig>(getInputStream(configEntry).readBytes().decodeToString())
 }
 
-public fun File.createRemappedTemp(name: String, fromNamespace: String, suffix: String = "-weavemod.jar"): File {
+public fun File.createRemappedTemp(
+    name: String,
+    fromNamespace: String,
+    suffix: String = "-weavemod.jar",
+    classpath: List<File> = listOf(MappingsHandler.minecraftRuntimeJar)
+): File {
     val temp = File.createTempFile(name, suffix)
     MappingsHandler.remapModJar(
         mappings = MappingsHandler.mergedMappings.mappings,
         input = this,
         output = temp,
-        classpath = listOf(FileManager.getVanillaMinecraftJar()),
+        classpath = classpath,
         from = fromNamespace
     )
 

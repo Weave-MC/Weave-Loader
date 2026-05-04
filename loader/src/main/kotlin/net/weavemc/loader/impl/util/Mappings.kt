@@ -1,6 +1,8 @@
 package net.weavemc.loader.impl.util
 
 import com.grappenmaker.mappings.*
+import com.grappenmaker.mappings.format.*
+import com.grappenmaker.mappings.remap.*
 import me.xtrm.klog.dsl.klog
 import net.weavemc.internals.*
 import net.weavemc.internals.MappingsType.MCP
@@ -19,6 +21,9 @@ public object MappingsHandler {
     private val logger by klog
     public val relocationRemapper: Remapper? by lazy { createRelocationRemapper() }
     public val vanillaJar: File by lazy { FileManager.getVanillaMinecraftJar() }
+    public val minecraftRuntimeJar: File by lazy {
+        vanillaJar.createRemappedTemp("minecraft", "official", classpath = emptyList())
+    }
 
     public val mergedMappings: WeaveMappings by lazy {
         logger.info("Loading merged mappings for ${GameInfo.version.versionName}")
@@ -32,7 +37,15 @@ public object MappingsHandler {
         mappings
     }
 
-    public val environmentNamespace: String by lazy {
+    public val environmentRuntimeNamespace: String by lazy {
+        System.getProperty("weave.environment.namespace") ?: when (GameInfo.client) {
+            MinecraftClient.LUNAR -> if (GameInfo.version < MinecraftVersion.V1_16_5) MCP.named else MOJANG.named
+            MinecraftClient.FORGE -> MCP.srg
+            MinecraftClient.VANILLA, MinecraftClient.LABYMOD, MinecraftClient.BADLION -> "official"
+        }
+    }
+
+    public val environmentClasspathNamespace: String by lazy {
         System.getProperty("weave.environment.namespace") ?: when (GameInfo.client) {
             MinecraftClient.LUNAR -> if (GameInfo.version < MinecraftVersion.V1_16_5) MCP.named else MOJANG.named
             MinecraftClient.FORGE -> MCP.srg
@@ -41,14 +54,14 @@ public object MappingsHandler {
     }
 
     public fun classLoaderBytesProvider(expectedNamespace: String): (String) -> ByteArray? {
-        val names = if (expectedNamespace != "official") mergedMappings.mappings.asASMMapping(
+        val names = if (expectedNamespace != environmentClasspathNamespace) mergedMappings.mappings.asASMMapping(
             from = expectedNamespace,
-            to = "official",
+            to = environmentClasspathNamespace,
             includeMethods = false,
             includeFields = false
         ) else emptyMap()
 
-        val mapper = SimpleRemapper(names.toList().associate { (k, v) -> v to k })
+        val mapper = SimpleRemapper(Opcodes.ASM9, names.toList().associate { (k, v) -> v to k })
         val callback = ClasspathLoaders.fromLoader(WeaveLoader::class.java.classLoader)
 
         return { name -> callback(names[name] ?: name)?.remap(mapper) }
@@ -59,9 +72,6 @@ public object MappingsHandler {
     public fun mapper(from: String, to: String): MappingsRemapper = cachedMappers.getOrPut(from to to) {
         MappingsRemapper(mergedMappings.mappings, from, to, loader = classLoaderBytesProvider(from))
     }
-
-    public val environmentRemapper: MappingsRemapper = mapper("official", environmentNamespace)
-    public val environmentUnmapper: MappingsRemapper = environmentRemapper.reverse()
 
     private val mappable by lazy {
         val id = mergedMappings.mappings.namespace("official")
@@ -129,7 +139,7 @@ public object MappingsHandler {
         input: File,
         output: File,
         from: String = "official",
-        to: String = environmentNamespace,
+        to: String = environmentRuntimeNamespace,
         classpath: List<File> = listOf(),
     ) {
         val jarsToUse = (classpath + input).map { JarFile(it) }
@@ -170,7 +180,7 @@ private fun createRelocationRemapper(): Remapper? {
     val mapping = packages.associateWith { "$relocatePrefix/${it.substringAfterLast("/")}" }
     fun findMapping(name: String) = mapping.entries.find { (k) -> name.startsWith("$k/") }
 
-    return object : Remapper() {
+    return object : Remapper(Opcodes.ASM9) {
         override fun map(name: String) = findMapping(name)?.let { (k, v) -> name.replaceFirst(k, v) } ?: name
     }
 }

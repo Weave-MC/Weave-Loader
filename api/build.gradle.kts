@@ -5,7 +5,7 @@ plugins {
 
 dependencies {
     api(libs.bundles.asm)
-    implementation(projects.internals)
+    implementation("net.weavemc:internals")
     implementation(libs.kxser.json)
     implementation(libs.mappings)
 }

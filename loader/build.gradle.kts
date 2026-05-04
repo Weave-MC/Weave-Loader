@@ -20,8 +20,8 @@ kotlin {
 }
 
 dependencies {
-    shade(projects.internals)
-    shade(projects.api)
+    shade("net.weavemc:internals")
+    shade("net.weavemc.api:api")
     shade(libs.klog)
     shade(libs.kxser.json)
     shade(libs.bundles.asm)
@@ -60,7 +60,7 @@ tasks {
     }
 
     val addWeaveLoaderProperties by registering(AddWeaveLoaderPropertiesTask::class) {
-        this.version = version
+        this.version = project.version.toString()
     }
 
     shadowJar {
@@ -93,7 +93,7 @@ publishing {
             from(components["java"])
             groupId = "net.weavemc"
             artifactId = "loader"
-            this.version = version
+            this.version = project.version.toString()
         }
     }
 }

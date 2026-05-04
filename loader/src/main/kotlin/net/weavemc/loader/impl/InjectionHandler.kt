@@ -1,7 +1,6 @@
 package net.weavemc.loader.impl
 
-import com.grappenmaker.mappings.LambdaAwareRemapper
-import com.grappenmaker.mappings.remap
+import com.grappenmaker.mappings.remap.*
 import me.xtrm.klog.dsl.klog
 import net.weavemc.api.Hook
 import net.weavemc.internals.dump
@@ -59,7 +58,7 @@ public object InjectionHandler : SafeTransformer {
             }
 
             // Hack: SimpleRemapper.map() can return null, and that breaks remap()
-            node.remap(object : SimpleRemapper(conflictsMapping) {
+            node.remap(object : SimpleRemapper(Opcodes.ASM9, conflictsMapping) {
                 override fun map(key: String): String {
                     return super.map(key) ?: key.run {
                         // for an unknown reason, `key` isn't just internal name only
@@ -78,15 +77,25 @@ public object InjectionHandler : SafeTransformer {
 
             // first FROM env namespace to all other namespaces to apply modifiers,
             // then finally remap to env namespace and apply its modifiers, instantly done.
-            val nsOrder = (listOf(environmentNamespace) + (modNs - environmentNamespace)) + environmentNamespace
+            val nsOrder = buildList {
+                add(environmentRuntimeNamespace)
+                addAll(modNs - environmentRuntimeNamespace)
+                add(environmentRuntimeNamespace)
+            }
 
-            nsOrder.windowed(2).forEach { (last, curr) ->
+            for (i in 0..<nsOrder.lastIndex) {
+                val last = nsOrder[i]
+                val curr = nsOrder[i + 1]
+
                 node.remap(last, curr)
                 groupedModifiers[curr]?.forEach { it.apply(node, hookConfig) }
             }
 
             val classWriter = InjectionClassWriter(hookConfig.classWriterFlags, classReader)
-            node.accept(LambdaAwareRemapper(classWriter, SimpleRemapper(inverseConflictsMapping)))
+            node.accept(LambdaAwareRemapper(
+                classWriter,
+                SimpleRemapper(Opcodes.ASM9, inverseConflictsMapping)
+            ))
 
             if (dumpBytecode) {
                 val bytecodeOut = FileManager.DUMP_DIRECTORY.resolve("$className.class")
@@ -116,7 +125,7 @@ public data class ModHook(
     val hook: Hook,
     // TODO: jank
     override val targets: Set<String> = hook.targets.mapTo(hashSetOf()) {
-        MappingsHandler.mapper(namespace, MappingsHandler.environmentNamespace).map(it)
+        MappingsHandler.mapper(namespace, MappingsHandler.environmentRuntimeNamespace).map(it)
     }
 ): Modifier {
     override fun apply(node: ClassNode, cfg: Hook.AssemblerConfig): Unit = hook.transform(node, cfg)
@@ -137,7 +146,7 @@ private class InjectionClassWriter(
     flags: Int,
     reader: ClassReader? = null,
 ) : ClassWriter(reader, flags) {
-    val bytesProvider = MappingsHandler.classLoaderBytesProvider(MappingsHandler.environmentNamespace)
+    val bytesProvider = MappingsHandler.classLoaderBytesProvider(MappingsHandler.environmentRuntimeNamespace)
 
     private fun ClassNode.isInterface(): Boolean = (this.access and Opcodes.ACC_INTERFACE) != 0
     private fun ClassReader.isAssignableFrom(target: ClassReader): Boolean {

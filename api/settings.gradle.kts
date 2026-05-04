@@ -4,10 +4,16 @@ dependencyResolutionManagement {
             from(files("../gradle/libs.versions.toml"))
         }
     }
+
+    repositories {
+        mavenCentral()
+    }
 }
 
 plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
 
-rootProject.name = "mod-testing"
+rootProject.name = "api"
+
+include("v1_8")

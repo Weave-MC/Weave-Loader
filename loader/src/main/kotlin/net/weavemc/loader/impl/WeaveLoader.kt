@@ -1,6 +1,8 @@
 package net.weavemc.loader.impl
 
 import com.grappenmaker.mappings.*
+import com.grappenmaker.mappings.format.*
+import com.grappenmaker.mappings.aw.*
 import me.xtrm.klog.Logger
 import net.weavemc.api.Hook
 import net.weavemc.api.ModInitializer
@@ -78,7 +80,20 @@ public class WeaveLoader(
                 mixinConfigs = emptyList(),
                 hooks = emptyList(),
                 tweakers = emptyList(),
-                namespace = MappingsHandler.environmentNamespace,
+                namespace = MappingsHandler.environmentRuntimeNamespace,
+                dependencies = listOf("java"),
+                compiledFor = GameInfo.version.versionName
+            )
+        ),
+        WeaveMod(
+            modId = "java", config = ModConfig(
+                name = "Java",
+                modId = "java",
+                entryPoints = emptyList(),
+                mixinConfigs = emptyList(),
+                hooks = emptyList(),
+                tweakers = emptyList(),
+                namespace = MappingsHandler.environmentRuntimeNamespace,
                 dependencies = emptyList(),
                 compiledFor = GameInfo.version.versionName
             )
@@ -285,7 +300,7 @@ public class WeaveLoader(
             val targets = state.findTargets(state.transformer)
             if (targets.isEmpty()) continue
 
-            val mapper = MappingsHandler.mapper(ns, MappingsHandler.environmentNamespace)
+            val mapper = MappingsHandler.mapper(ns, MappingsHandler.environmentRuntimeNamespace)
             InjectionHandler.registerModifier(object : Modifier {
                 override val namespace = ns
                 override val targets = targets.mapTo(hashSetOf()) { mapper.map(it.replace('.', '/')) }
@@ -305,11 +320,11 @@ public class WeaveLoader(
             }
 
             loadAccessWidener(res.readBytes().decodeToString().trim().lines())
-                .remap(MappingsHandler.mergedMappings.mappings, MappingsHandler.environmentNamespace)
+                .remap(MappingsHandler.mergedMappings.mappings, MappingsHandler.environmentRuntimeNamespace)
         }.reduceOrNull { acc, curr -> acc + curr }?.toTree() ?: return
 
         InjectionHandler.registerModifier(object : Modifier {
-            override val namespace = MappingsHandler.environmentNamespace
+            override val namespace = MappingsHandler.environmentRuntimeNamespace
             override val targets = tree.classes.mapTo(hashSetOf()) { it.key }
 
             override fun apply(node: ClassNode, cfg: Hook.AssemblerConfig) = node.applyWidener(tree)
