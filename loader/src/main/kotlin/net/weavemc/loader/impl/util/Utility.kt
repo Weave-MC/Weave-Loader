@@ -134,7 +134,7 @@ public fun File.createRemappedTemp(
     name: String,
     fromNamespace: String,
     suffix: String = "-weavemod.jar",
-    classpath: List<File> = listOf(MappingsHandler.minecraftRuntimeJar) // TODO
+    classpath: List<File> = listOf()
 ): File {
     val temp = File.createTempFile(name, suffix)
     MappingsHandler.remapModJar(
@@ -145,7 +145,7 @@ public fun File.createRemappedTemp(
         from = fromNamespace
     )
 
-    klog.debug("Remapped mod jar from ${temp.absolutePath} to ${temp.absolutePath}")
+    klog.debug("Remapped mod jar from $absolutePath to ${temp.absolutePath}")
 
     temp.deleteOnExit()
     return temp

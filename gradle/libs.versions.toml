@@ -8,7 +8,7 @@ mixin = "0.13.4+mixin.0.8.5"
 kxser = "1.7.1"
 maven-resolver = "1.9.27"
 maven-resolver-provider = "3.9.14"
-mappings-util = "0.2"
+mappings-util = "0.2.1"
 gradle-shadow = "9.4.0"
 klog = "0.0.5"
 

@@ -1,8 +1,15 @@
 package net.weavemc.loader.impl.util
 
-import com.grappenmaker.mappings.*
-import com.grappenmaker.mappings.format.*
-import com.grappenmaker.mappings.remap.*
+import com.grappenmaker.mappings.ClasspathLoader
+import com.grappenmaker.mappings.ClasspathLoaders
+import com.grappenmaker.mappings.asASMMapping
+import com.grappenmaker.mappings.format.Mappings
+import com.grappenmaker.mappings.remap.ExperimentalJarRemapper
+import com.grappenmaker.mappings.remap.LambdaAwareMethodRemapper
+import com.grappenmaker.mappings.remap.MappingsRemapper
+import com.grappenmaker.mappings.remap.performRemap
+import com.grappenmaker.mappings.remappingNames
+import kotlinx.coroutines.runBlocking
 import me.xtrm.klog.dsl.klog
 import net.weavemc.internals.*
 import net.weavemc.internals.MappingsType.MCP
@@ -11,9 +18,7 @@ import org.objectweb.asm.*
 import org.objectweb.asm.commons.ClassRemapper
 import org.objectweb.asm.commons.Remapper
 import org.objectweb.asm.commons.SimpleRemapper
-import org.objectweb.asm.util.TraceClassVisitor
 import java.io.File
-import java.io.PrintWriter
 import java.util.*
 import java.util.jar.JarFile
 import kotlin.system.measureTimeMillis
@@ -23,10 +28,6 @@ public object MappingsHandler {
     public val relocationRemapper: Remapper? by lazy { createRelocationRemapper() }
     public val vanillaJar: File by lazy { FileManager.getVanillaMinecraftJar() }
     public val vanillaClassLoader: ClasspathLoader by lazy { ClasspathLoaders.fromJar(JarFile(vanillaJar)) }
-
-    public val minecraftRuntimeJar: File by lazy {
-        vanillaJar.createRemappedTemp("minecraft", "official", classpath = emptyList())
-    }
 
     public val mergedMappings: WeaveMappings by lazy {
         logger.info("Loading merged mappings for ${GameInfo.version.versionName}")
@@ -136,6 +137,7 @@ public object MappingsHandler {
         }
     }
 
+    @OptIn(ExperimentalJarRemapper::class)
     public fun remapModJar(
         mappings: Mappings,
         input: File,
@@ -144,15 +146,35 @@ public object MappingsHandler {
         to: String = environmentRuntimeNamespace,
         classpath: List<File> = listOf(),
     ) {
-        val jarsToUse = (classpath + input).map { JarFile(it) }
+        val jarsToUse = classpath.map { JarFile(it) }
 
-        remapJar(
-            mappings, input, output, from, to, ClasspathLoaders.fromJars(jarsToUse).remappingNames(
-                mappings = mergedMappings.mappings,
-                from = "official",
-                to = from,
-            )
-        ) { if (relocationRemapper != null) ClassRemapper(it, relocationRemapper) else it }
+        runBlocking {
+            // TODO: we can make things a lot more efficient by using
+            // TODO: multithreading and grouping mods by namespace
+            performRemap {
+                copyResources = true
+                normalizeConstantPool = true
+                this.mappings = mappings
+                loader = ClasspathLoaders.compound(
+                    ClasspathLoaders.fromJars(jarsToUse).remappingNames(
+                        mappings = mergedMappings.mappings,
+                        from = "official",
+                        to = from,
+                    ),
+                    classLoaderBytesProvider(from)
+                )
+
+                task(input.toPath(), output.toPath(), from, to)
+                if (relocationRemapper != null) visitClasses { _, visitor -> ClassRemapper(visitor, relocationRemapper) }
+            }
+        }
+//        remapJar(
+//            mappings, input, output, from, to, ClasspathLoaders.fromJars(jarsToUse).remappingNames(
+//                mappings = mergedMappings.mappings,
+//                from = "official",
+//                to = from,
+//            )
+//        ) { if (relocationRemapper != null) ClassRemapper(it, relocationRemapper) else it }
 
         jarsToUse.forEach { it.close() }
     }
