@@ -1,12 +1,22 @@
+import net.weavemc.gradle.WeaveGradle
+import net.weavemc.gradle.configuration.WeaveMinecraftExtension
+
+buildscript {
+    dependencies {
+        classpath("net.weavemc.gradle:gradle-plugin")
+    }
+}
+
+apply<WeaveGradle>()
+
 plugins {
     alias(libs.plugins.kotlin.jvm)
-    id("net.weavemc.gradle")
 }
 
 group = "net.weavemc.testingmod"
 version = "unspecified"
 
-weave {
+the<WeaveMinecraftExtension>().apply {
     configure {
         name = "TestingMod"
         modId = "net.weavemc.testingmod"
@@ -22,8 +32,8 @@ repositories {
 }
 
 dependencies {
-    implementation(libs.internals)
-    implementation(libs.loader)
+    implementation("net.weavemc:internals")
+    implementation("net.weavemc:loader")
     testImplementation(kotlin("test"))
 }
 

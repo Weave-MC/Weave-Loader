@@ -6,6 +6,10 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
+repositories {
+    mavenCentral()
+}
+
 base {
     archivesName = "weave-${project.name}"
 }

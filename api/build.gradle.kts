@@ -5,7 +5,7 @@ plugins {
 
 dependencies {
     api(libs.bundles.asm)
-    implementation(libs.internals)
+    implementation(projects.internals)
     implementation(libs.kxser.json)
     implementation(libs.mappings)
 }
@@ -21,7 +21,7 @@ publishing {
 
             groupId = "net.weavemc.api"
             artifactId = project.name
-            version = libs.versions.api.get().toString()
+            this.version = version
         }
     }
 }

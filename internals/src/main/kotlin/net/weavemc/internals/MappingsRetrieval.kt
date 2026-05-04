@@ -1,6 +1,7 @@
 package net.weavemc.internals
 
 import com.grappenmaker.mappings.*
+import com.grappenmaker.mappings.format.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json

@@ -15,6 +15,8 @@ dependencies {
 }
 
 kotlin {
+    jvmToolchain(17)
+
     compilerOptions {
         languageVersion = KotlinVersion.KOTLIN_2_0
         apiVersion = KotlinVersion.KOTLIN_2_0

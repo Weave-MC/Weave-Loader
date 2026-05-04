@@ -5,7 +5,6 @@ plugins {
 }
 
 group = "net.weavemc.gradle"
-version = libs.versions.plugin.get().toString()
 
 dependencies {
     compileOnly(gradleApi())
@@ -14,7 +13,7 @@ dependencies {
     implementation(libs.bundles.asm)
     implementation(libs.kxser.json)
     implementation(libs.mappings)
-    implementation(libs.internals)
+    implementation(projects.internals)
 }
 
 gradlePlugin {

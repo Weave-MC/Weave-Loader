@@ -15,7 +15,7 @@ publishing {
             from(components["java"])
             groupId = "net.weavemc"
             artifactId = "internals"
-            version = libs.versions.internals.get().toString()
+            this.version = version
         }
     }
 }

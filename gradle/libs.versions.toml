@@ -1,26 +1,17 @@
 [versions]
 kotlin = "2.3.0"
 
-internals = "1.1.0"
-loader = "1.1.0"
-api = "1.1.0"
-plugin = "1.1.0"
-
-asm = "9.7"
+asm = "9.9.1"
 mixin = "0.13.4+mixin.0.8.5"
 
 kxser = "1.7.1"
 maven-resolver = "1.9.27"
 maven-resolver-provider = "3.9.14"
-mappings-util = "0.1.7"
+mappings-util = "0.2"
 gradle-shadow = "9.4.0"
 klog = "0.0.5"
 
 [libraries]
-internals = { group = "net.weavemc", name = "internals", version.ref = "internals" }
-api = { group = "net.weavemc.api", name = "api", version.ref = "api" }
-loader = { group = "net.weavemc", name = "loader", version.ref = "loader" }
-
 asm = { module = "org.ow2.asm:asm", version.ref = "asm" }
 asm-tree = { module = "org.ow2.asm:asm-tree", version.ref = "asm" }
 asm-commons = { module = "org.ow2.asm:asm-commons", version.ref = "asm" }
@@ -28,7 +19,7 @@ asm-util = { module = "org.ow2.asm:asm-util", version.ref = "asm" }
 klog = { module = "me.xtrm:klog", version.ref = "klog" }
 mixin = { module = "net.fabricmc:sponge-mixin", version.ref = "mixin" }
 kxser-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kxser" }
-mappings = { module = "io.github.770grappenmaker:mappings-util", version.ref = "mappings-util" }
+mappings = { module = "nl.koenoostveen:mappings-util", version.ref = "mappings-util" }
 gradle-shadow = { module = "com.gradleup.shadow:com.gradleup.shadow.gradle.plugin", version.ref = "gradle-shadow" }
 kotlin-compiler = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 kotlin-serialization = { module = "org.jetbrains.kotlin:kotlin-serialization", version.ref = "kotlin" }

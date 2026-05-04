@@ -11,3 +11,10 @@ plugins {
 }
 
 rootProject.name = "mod-testing"
+includeBuild("..") {
+    dependencySubstitution {
+        substitute(module("net.weavemc:internals")).using(project(":internals"))
+        substitute(module("net.weavemc:loader")).using(project(":loader"))
+        substitute(module("net.weavemc.gradle:gradle-plugin")).using(project(":gradle-plugin"))
+    }
+}

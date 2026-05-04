@@ -1,6 +1,7 @@
 package net.weavemc.gradle.configuration
 
-import com.grappenmaker.mappings.*
+import com.grappenmaker.mappings.aw.*
+import com.grappenmaker.mappings.remap.*
 import kotlinx.serialization.Serializable
 import net.weavemc.gradle.WeaveGradle.Companion.ext
 import net.weavemc.gradle.loadMergedMappings
@@ -9,7 +10,6 @@ import net.weavemc.gradle.util.*
 import net.weavemc.internals.MinecraftVersion
 import org.gradle.api.Project
 import org.gradle.api.logging.LogLevel
-import org.gradle.kotlin.dsl.get
 import org.gradle.kotlin.dsl.maven
 import org.objectweb.asm.ClassVisitor
 import java.io.File
