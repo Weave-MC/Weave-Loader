@@ -3,6 +3,7 @@ plugins {
     id("config-publish")
 }
 
+group = "net.weavemc.api"
 version = libs.versions.weave.get()
 
 dependencies {

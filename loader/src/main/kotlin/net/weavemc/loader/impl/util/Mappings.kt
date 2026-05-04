@@ -7,12 +7,13 @@ import me.xtrm.klog.dsl.klog
 import net.weavemc.internals.*
 import net.weavemc.internals.MappingsType.MCP
 import net.weavemc.internals.MappingsType.MOJANG
-import net.weavemc.loader.impl.WeaveLoader
 import org.objectweb.asm.*
 import org.objectweb.asm.commons.ClassRemapper
 import org.objectweb.asm.commons.Remapper
 import org.objectweb.asm.commons.SimpleRemapper
+import org.objectweb.asm.util.TraceClassVisitor
 import java.io.File
+import java.io.PrintWriter
 import java.util.*
 import java.util.jar.JarFile
 import kotlin.system.measureTimeMillis
@@ -21,6 +22,8 @@ public object MappingsHandler {
     private val logger by klog
     public val relocationRemapper: Remapper? by lazy { createRelocationRemapper() }
     public val vanillaJar: File by lazy { FileManager.getVanillaMinecraftJar() }
+    public val vanillaClassLoader: ClasspathLoader by lazy { ClasspathLoaders.fromJar(JarFile(vanillaJar)) }
+
     public val minecraftRuntimeJar: File by lazy {
         vanillaJar.createRemappedTemp("minecraft", "official", classpath = emptyList())
     }
@@ -48,23 +51,29 @@ public object MappingsHandler {
     public val environmentClasspathNamespace: String by lazy {
         System.getProperty("weave.environment.namespace") ?: when (GameInfo.client) {
             MinecraftClient.LUNAR -> if (GameInfo.version < MinecraftVersion.V1_16_5) MCP.named else MOJANG.named
-            MinecraftClient.FORGE -> MCP.srg
-            MinecraftClient.VANILLA, MinecraftClient.LABYMOD, MinecraftClient.BADLION -> "official"
+            MinecraftClient.FORGE, MinecraftClient.VANILLA, MinecraftClient.LABYMOD, MinecraftClient.BADLION -> "official"
         }
     }
 
     public fun classLoaderBytesProvider(expectedNamespace: String): (String) -> ByteArray? {
-        val names = if (expectedNamespace != environmentClasspathNamespace) mergedMappings.mappings.asASMMapping(
+        val namesFrom = if (expectedNamespace != "official") mergedMappings.mappings.asASMMapping(
             from = expectedNamespace,
-            to = environmentClasspathNamespace,
+            to = "official",
             includeMethods = false,
             includeFields = false
         ) else emptyMap()
 
-        val mapper = SimpleRemapper(Opcodes.ASM9, names.toList().associate { (k, v) -> v to k })
-        val callback = ClasspathLoaders.fromLoader(WeaveLoader::class.java.classLoader)
+        val mapper = SimpleRemapper(Opcodes.ASM9, namesFrom.toList().associate { (k, v) -> v to k })
+        val cl = ClasspathLoaders.compound(
+            vanillaClassLoader,
+            ClasspathLoaders.fromSystemLoader().remappingNames(
+                mappings = mergedMappings.mappings,
+                from = environmentClasspathNamespace,
+                to = "official"
+            )
+        )
 
-        return { name -> callback(names[name] ?: name)?.remap(mapper) }
+        return { name -> cl(namesFrom[name] ?: name)?.remap(mapper) }
     }
 
     private val cachedMappers = mutableMapOf<Pair<String, String>, MappingsRemapper>()
@@ -73,17 +82,10 @@ public object MappingsHandler {
         MappingsRemapper(mergedMappings.mappings, from, to, loader = classLoaderBytesProvider(from))
     }
 
-    private val mappable by lazy {
-        val id = mergedMappings.mappings.namespace("official")
-        mergedMappings.mappings.classes.mapTo(hashSetOf()) { it.names[id] }
-    }
-
-    public fun ByteArray.remap(remapper: Remapper, bypassMappableCheck: Boolean = false): ByteArray {
+    public fun ByteArray.remap(remapper: Remapper): ByteArray {
         val reader = ClassReader(this)
-        if (reader.className !in mappable && !bypassMappableCheck) return this
-
-        val writer = ClassWriter(reader, 0)
-        reader.accept(MinecraftRemapper(writer, remapper), 0)
+        val writer = ClassWriter(0)
+        reader.accept(MinecraftRemapper(writer, remapper), ClassReader.SKIP_CODE)
 
         return writer.toByteArray()
     }

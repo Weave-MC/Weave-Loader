@@ -4,7 +4,10 @@ plugins {
     id("config-publish")
 }
 
-group = "net.weavemc.gradle"
+allprojects {
+    group = "net.weavemc.gradle"
+    version = libs.versions.weave.get()
+}
 
 dependencies {
     compileOnly(gradleApi())

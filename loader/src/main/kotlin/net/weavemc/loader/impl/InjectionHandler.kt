@@ -1,6 +1,7 @@
 package net.weavemc.loader.impl
 
-import com.grappenmaker.mappings.remap.*
+import com.grappenmaker.mappings.remap.LambdaAwareRemapper
+import com.grappenmaker.mappings.remap.remap
 import me.xtrm.klog.dsl.klog
 import net.weavemc.api.Hook
 import net.weavemc.internals.dump
@@ -176,7 +177,7 @@ private class InjectionClassWriter(
                 while (!class1.isAssignableFrom(class2))
                     class1 = bytesProvider(class1.superName)!!.asClassReader()
 
-                return class1.className
+                class1.className
             }
         }
     }

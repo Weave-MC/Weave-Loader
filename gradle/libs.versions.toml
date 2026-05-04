@@ -1,6 +1,5 @@
 [versions]
 weave = "1.1.1"
-
 kotlin = "2.3.0"
 
 asm = "9.9.1"

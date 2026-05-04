@@ -4,6 +4,7 @@ plugins {
     id("net.weavemc.gradle")
 }
 
+group = "net.weavemc.api"
 version = libs.versions.weave.get()
 
 weave {
