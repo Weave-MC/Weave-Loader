@@ -8,6 +8,8 @@ plugins {
     id("config-publish")
 }
 
+version = libs.versions.weave.get()
+
 repositories {
     maven("https://maven.fabricmc.net/")
 }

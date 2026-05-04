@@ -3,6 +3,8 @@ plugins {
     id("config-publish")
 }
 
+version = libs.versions.weave.get()
+
 dependencies {
     api(libs.bundles.asm)
     implementation(libs.kxser.json)

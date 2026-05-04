@@ -1,6 +1,4 @@
-allprojects {
-    version = "1.1.0"
-}
+version = libs.versions.weave.get()
 
 tasks.register("clean") {
     group = "build"
