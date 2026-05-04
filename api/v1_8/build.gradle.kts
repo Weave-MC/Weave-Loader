@@ -4,6 +4,8 @@ plugins {
     id("net.weavemc.gradle")
 }
 
+version = libs.versions.weave.get()
+
 weave {
     configure {
         name = "Weave-API"
