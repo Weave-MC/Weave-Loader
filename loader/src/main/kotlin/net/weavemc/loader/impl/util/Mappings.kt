@@ -30,6 +30,9 @@ public object MappingsHandler {
     public val relocationRemapper: Remapper? by lazy { createRelocationRemapper() }
     public val vanillaJar: File by lazy { FileManager.getVanillaMinecraftJar() }
     public val vanillaClassLoader: ClasspathLoader by lazy { ClasspathLoaders.fromJar(JarFile(vanillaJar)) }
+    public val minecraftRuntimeJar: File by lazy {
+        vanillaJar.createRemappedTemp("minecraft", "official", classpath = emptyList())
+    }
 
     public val mergedMappings: WeaveMappings by lazy {
         logger.info("Loading merged mappings for ${GameInfo.version.versionName}")
