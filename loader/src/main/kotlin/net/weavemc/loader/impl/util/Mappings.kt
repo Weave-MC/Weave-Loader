@@ -57,14 +57,15 @@ public object MappingsHandler {
     public val environmentClasspathNamespace: String by lazy {
         System.getProperty("weave.environment.namespace") ?: when (GameInfo.client) {
             MinecraftClient.LUNAR -> if (GameInfo.version < MinecraftVersion.V1_16_5) MCP.named else MOJANG.named
-            MinecraftClient.FORGE, MinecraftClient.VANILLA, MinecraftClient.LABYMOD, MinecraftClient.BADLION -> "official"
+            MinecraftClient.FORGE -> MCP.srg
+            MinecraftClient.VANILLA, MinecraftClient.LABYMOD, MinecraftClient.BADLION -> "official"
         }
     }
 
     public fun classLoaderBytesProvider(expectedNamespace: String): (String) -> ByteArray? {
-        val namesFrom = if (expectedNamespace != "official") mergedMappings.mappings.asASMMapping(
+        val names = if (expectedNamespace != environmentClasspathNamespace) mergedMappings.mappings.asASMMapping(
             from = expectedNamespace,
-            to = "official",
+            to = environmentClasspathNamespace,
             includeMethods = false,
             includeFields = false
         ) else emptyMap()
@@ -88,7 +89,12 @@ public object MappingsHandler {
         MappingsRemapper(mergedMappings.mappings, from, to, loader = classLoaderBytesProvider(from))
     }
 
-    public fun ByteArray.remap(remapper: Remapper): ByteArray {
+    private val mappable by lazy {
+        val id = mergedMappings.mappings.namespace("official")
+        mergedMappings.mappings.classes.mapTo(hashSetOf()) { it.names[id] }
+    }
+
+    public fun ByteArray.remap(remapper: Remapper, bypassMappableCheck: Boolean = false): ByteArray {
         val reader = ClassReader(this)
         val writer = ClassWriter(0)
         reader.accept(MinecraftRemapper(writer, remapper), ClassReader.SKIP_CODE)
