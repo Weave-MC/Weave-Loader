@@ -57,13 +57,13 @@ jobs:
           name: weave-${{ matrix.module }}
           path: ${{ matrix.module }}/build/libs/
 
-      - name: Create release
+      # - name: Create release
         # if: github.event_name == 'release'
-        if: false
-        working-directory: loader/build/libs
-        run: |
-          agent=weave-loader-${{github.event.release.name}}-all.jar
-          sha256sum $agent > $agent.sha256
-          gh release upload ${{github.ref_name}} $agent $agent.sha256
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # if: false
+        # working-directory: loader/build/libs
+        # run: |
+        #   agent=weave-loader-${{github.event.release.name}}-all.jar
+        #   sha256sum $agent > $agent.sha256
+        #   gh release upload ${{github.ref_name}} $agent $agent.sha256
+        # env:
+        #   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
