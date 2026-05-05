@@ -58,7 +58,8 @@ jobs:
           path: ${{ matrix.module }}/build/libs/
 
       - name: Create release
-        if: github.event_name == 'release'
+        # if: github.event_name == 'release'
+        if: false
         working-directory: loader/build/libs
         run: |
           agent=weave-loader-${{github.event.release.name}}-all.jar
