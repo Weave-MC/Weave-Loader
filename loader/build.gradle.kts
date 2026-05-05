@@ -1,5 +1,6 @@
 @file:Suppress("VulnerableLibrariesLocal")
 
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar.Companion.shadowJar
 import java.util.*
 
 plugins {
@@ -25,8 +26,8 @@ kotlin {
 }
 
 dependencies {
-    shade("net.weavemc:internals")
-    shade("net.weavemc.api:api")
+    shade(libs.weave.internals)
+    shade(libs.weave.api)
     shade(libs.klog)
     shade(libs.kxser.json)
     shade(libs.bundles.asm)
