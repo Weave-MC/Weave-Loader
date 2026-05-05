@@ -16,7 +16,7 @@ dependencies {
     implementation(libs.bundles.asm)
     implementation(libs.kxser.json)
     implementation(libs.mappings)
-    implementation("net.weavemc:internals")
+    implementation(libs.weave.internals)
 }
 
 gradlePlugin {

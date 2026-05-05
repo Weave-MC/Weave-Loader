@@ -13,6 +13,9 @@ gradle-shadow = "9.4.0"
 klog = "0.0.5"
 
 [libraries]
+weave-internals = { module = "net.weavemc:internals", version.ref = "weave" }
+weave-loader = { module = "net.weavemc:loader", version.ref = "weave" }
+
 asm = { module = "org.ow2.asm:asm", version.ref = "asm" }
 asm-tree = { module = "org.ow2.asm:asm-tree", version.ref = "asm" }
 asm-commons = { module = "org.ow2.asm:asm-commons", version.ref = "asm" }

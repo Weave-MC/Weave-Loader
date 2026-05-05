@@ -22,8 +22,8 @@ repositories {
 }
 
 dependencies {
-    implementation("net.weavemc:internals")
-    implementation("net.weavemc:loader")
+    implementation(libs.weave.internals)
+    implementation(libs.weave.loader)
     testImplementation(kotlin("test"))
 }
 

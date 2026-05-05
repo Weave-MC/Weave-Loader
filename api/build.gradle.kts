@@ -8,7 +8,7 @@ version = libs.versions.weave.get()
 
 dependencies {
     api(libs.bundles.asm)
-    implementation("net.weavemc:internals")
+    implementation(libs.weave.internals)
     implementation(libs.kxser.json)
     implementation(libs.mappings)
 }

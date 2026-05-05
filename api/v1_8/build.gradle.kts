@@ -42,7 +42,7 @@ repositories {
 
 dependencies {
     api(libs.bundles.asm)
-    implementation("net.weavemc:internals")
+    implementation(libs.weave.internals)
     implementation(projects.api)
 }
 
