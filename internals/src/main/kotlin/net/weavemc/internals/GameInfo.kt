@@ -12,7 +12,8 @@ enum class MinecraftVersion(
     V1_8_9(47, "1.8.9", "1.8", "1.8"),
     V1_12_2(340, "1.12.2", "1.12", "1.12"),
     V1_16_5(754, "1.16.5", "1.16", "1.16"),
-    V1_20_1(763, "1.20.1", "1.20","1.20");
+    V1_20_6(766, "1.20.6", "1.20","1.20"),
+    V1_21_11(774, "1.21.11", "1.21", "1.21");
 
     companion object {
         fun fromProtocol(protocol: Int): MinecraftVersion? = entries.find { it.protocol == protocol }
