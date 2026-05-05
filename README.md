@@ -18,7 +18,7 @@ while supporting injection into clients that are somewhat closed-off to develope
 | Client  |     Supported      |
 |---------|:------------------:|
 | Vanilla | :white_check_mark: |
-| Forge   |        :x:         |
+| Forge   | :white_check_mark: |
 | Lunar   | :white_check_mark: |
 | Badlion |        :x:         |
 | Feather |        :x:         |
