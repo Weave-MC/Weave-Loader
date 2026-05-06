@@ -1,0 +1,3 @@
+accessWidener v2 mcp-named
+
+accessible field net/minecraft/network/play/server/S3APacketTabComplete matches [Ljava/lang/String;

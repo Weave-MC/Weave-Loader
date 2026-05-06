@@ -10,7 +10,7 @@ version = libs.versions.weave.get()
 weave {
     configure {
         name = "Weave-API"
-        modId = "net.weavemc.api"
+        modId = "net.weavemc.api.${project.name}"
         hooks = listOf(
             "ChatReceivedEventHook",
             "ChatSentEventHook",
@@ -31,6 +31,7 @@ weave {
             "WorldEventHook",
             "PacketEventHook",
         ).map { "net.weavemc.api.hook.$it" }
+        accessWideners = listOf("net.weave.api.v1_8.accesswidener.txt")
         mcpMappings()
     }
     version("1.8.9")
