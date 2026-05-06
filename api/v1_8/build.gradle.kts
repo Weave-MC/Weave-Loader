@@ -14,6 +14,7 @@ weave {
         hooks = listOf(
             "ChatReceivedEventHook",
             "ChatSentEventHook",
+            "ClientConnectedToServerEventHook",
             "EntityListEventAddHook",
             "EntityListEventRemoveHook",
             "GuiOpenEventHook",
@@ -24,7 +25,6 @@ weave {
             "RenderHandEventHook",
             "RenderLivingEventHook",
             "RenderWorldEventHook",
-            "ServerConnectEventHook",
             "ShutdownEventHook",
             "StartGameEventHook",
             "TickEventHook",

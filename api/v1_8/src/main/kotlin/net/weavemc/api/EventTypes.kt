@@ -8,10 +8,10 @@ package net.weavemc.api
 
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiScreen
-import net.minecraft.client.multiplayer.ServerData
 import net.minecraft.client.renderer.entity.RendererLivingEntity
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityLivingBase
+import net.minecraft.network.NetworkManager
 import net.minecraft.network.Packet
 import net.minecraft.network.play.server.S38PacketPlayerListItem.AddPlayerData
 import net.minecraft.util.IChatComponent
@@ -267,22 +267,14 @@ class RenderWorldEvent(val partialTicks: Float) : Event()
 class RenderHandEvent(val partialTicks: Float) : CancellableEvent()
 
 /**
- * Non-cancellable event, called at the head of [net.minecraft.client.multiplayer.GuiConnecting.connect], therefore, in the
- * event that the player connects to a server, this event is called along-side the player clicking the
- * connect to server button.
+ * Non-cancellable event, called at the tail of [net.minecraft.client.network.NetHandlerLoginClient.handleLoginSuccess], therefor after a client has connected to a server
  *
- * @property ip   The IP address of the server.
- * @property port The port of the server.
+ * @property manager The Network Manager
  */
-class ServerConnectEvent(
-    val ip: String,
-    val port: Int,
-) : Event() {
-
-    /**
-     * The [ServerData] object of the server being connected to.
-     */
-    val serverData: ServerData = Minecraft.getMinecraft().currentServerData
+class ClientConnectedToServerEvent(val manager: NetworkManager) : Event() {
+    fun isLocal(): Boolean {
+        return this.manager.isLocalChannel
+    }
 }
 
 /**
