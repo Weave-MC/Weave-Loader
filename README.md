@@ -55,6 +55,8 @@ git clone --recursive https://github.com/Weave-MC/Weave-Loader
 cd Weave-Loader
 ```
 
+Building Weave-Loader requires a JDK of version 17 or higher. A good JDK distribution can be downloaded from [Adoptium.net](https://adoptium.net/temurin/releases?version=17&os=any&arch=any), but any OpenJDK compatible JDK suffices.
+
 You then need to give permission to the Gradle wrapper and run the `agent` task. This can be done a bit differently
 depending on your operating system:
 
@@ -74,6 +76,8 @@ chmod +x ./gradlew
 .\gradlew.bat build
 ```
 </details>
+
+Once built, the Weave-Loader artifact should have been generated in `loader/build/libs/`. The ready use use "shaded" or "fat" JAR should be present as well, under the name `weave-loader-all.jar`
 
 ## Usage
 
