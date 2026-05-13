@@ -76,15 +76,16 @@ abstract class Command @JvmOverloads constructor(
         name.compareTo(other.name, ignoreCase = !caseSensitive)
 
     protected fun Array<String>.distinctLast(): Array<String> {
-        if (this.size <= 1) {
+        if (size <= 1) {
             return this
         }
 
-        val seen = HashSet<String>(this.size)
-        val result = ArrayList<String>(this.size)
+        val seen = HashSet<String>(size)
+        val result = ArrayList<String>(size)
 
-        for (i in this.indices.reversed()) {
+        for (i in indices.reversed()) {
             val element = this[i]
+
             if (seen.add(element)) {
                 result.add(element)
             }

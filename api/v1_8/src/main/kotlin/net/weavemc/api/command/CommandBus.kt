@@ -18,107 +18,113 @@ import net.weavemc.api.event.SubscribeEvent
 object CommandBus {
     private val commands = mutableListOf<Command>()
 
+    private const val COMMAND_PREFIX = '/'
+
     private val WHITESPACE_REGEX = Regex("\\s+")
 
     private fun String.split(): List<String> = split(WHITESPACE_REGEX)
 
     init {
         arrayOf(
-            ChatListener,
-            TabCompletionListener
+            Listener.ChatListener,
+            Listener.TabCompletionListener
         ).forEach(EventBus::subscribe)
     }
 
     /**
      * Commands can be registered at any time during the client lifecycle.
      *
-     * @param command The command instance to register.
+     * @param commands The command instances to register.
      */
     @JvmStatic
-    fun register(command: Command) {
-        commands.add(command)
+    fun register(vararg commands: Command) {
+        this.commands.addAll(commands)
     }
 
-    private object ChatListener {
-        @SubscribeEvent
-        fun onChatSentEvent(event: ChatSentEvent) {
-            val message = event.message.trim()
+    private object Listener {
+        object ChatListener {
+            @SubscribeEvent
+            fun onChatSentEvent(event: ChatSentEvent) {
+                val message = event.message.trim()
 
-            if (message[0] != '/') {
-                return
+                if (message[0] != COMMAND_PREFIX) {
+                    return
+                }
+
+                val args = message.drop(1).split()
+
+                commands
+                    .find { it.matches(args[0]) }
+                    ?.execute(args.toTypedArray())
+                    ?.also { event.cancelled = true }
             }
-
-            val args = message.drop(1).split()
-
-            commands
-                .find { it.matches(args[0]) }
-                ?.execute(args.toTypedArray())
         }
-    }
 
-    private object TabCompletionListener {
-        @Volatile
-        var lastCommandAndSuggestions: Pair<Command?, Array<String>>? = null
+        object TabCompletionListener {
+            @Volatile
+            var lastCommandAndSuggestions: Pair<Command?, Array<String>>? = null
 
-        private val guiChat: GuiChat?
-            get() = Minecraft.getMinecraft().currentScreen as? GuiChat
+            private val guiChat: GuiChat?
+                get() = Minecraft.getMinecraft().currentScreen as? GuiChat
 
-        @SubscribeEvent
-        fun onPacketSend(event: PacketEvent.Send) {
-            val packet = event.packet
-            if (packet !is C14PacketTabComplete) {
-                return
-            }
+            @SubscribeEvent
+            fun onPacketSend(event: PacketEvent.Send) {
+                val packet = event.packet
+                if (packet !is C14PacketTabComplete) {
+                    return
+                }
 
-            val message = packet.message.trim()
-            val commandArgs = message.split()
+                val message = packet.message.trimStart()
+                val commandArgs = message.split()
 
-            if (commandArgs.size == 1 && message.startsWith('/')) {
-                val suggestions = commands
-                    .filter(Command::showInRoot)
-                    .flatMap { it.matching(message) }
-                    .toTypedArray()
+                if (commandArgs.size == 1 && message.startsWith(COMMAND_PREFIX)) {
+                    val suggestions = commands
+                        .filter(Command::showInRoot)
+                        .flatMap { it.matching(message.drop(1)) }
+                        .map { "$COMMAND_PREFIX$it" }
+                        .toTypedArray()
 
-                lastCommandAndSuggestions = null to suggestions
-            } else {
-                val targetBlock = packet.targetBlock
+                    lastCommandAndSuggestions = null to suggestions
+                } else {
+                    val targetBlock = packet.targetBlock
 
-                for (command in commands) {
-                    val suggestions = command.getSuggestions(commandArgs.drop(1).toTypedArray(), targetBlock) ?: continue
+                    for (command in commands) {
+                        val suggestions = command.getSuggestions(commandArgs.drop(1).toTypedArray(), targetBlock) ?: continue
 
-                    if (command.exclusiveSuggestions) {
-                        guiChat?.run {
-                            lastCommandAndSuggestions = null
+                        if (command.exclusiveSuggestions) {
+                            guiChat?.run {
+                                lastCommandAndSuggestions = null
 
-                            onAutocompleteResponse(suggestions)
+                                onAutocompleteResponse(suggestions)
 
-                            event.cancelled = true
+                                event.cancelled = true
+                            }
+                        } else {
+                            lastCommandAndSuggestions = command to suggestions
                         }
-                    } else {
-                        lastCommandAndSuggestions = command to suggestions
-                    }
 
-                    break
+                        break
+                    }
                 }
             }
-        }
 
-        @SubscribeEvent
-        fun onPacketReceive(event: PacketEvent.Receive) {
-            val packet = event.packet
-            if (packet !is S3APacketTabComplete) {
-                return
+            @SubscribeEvent
+            fun onPacketReceive(event: PacketEvent.Receive) {
+                val packet = event.packet
+                if (packet !is S3APacketTabComplete) {
+                    return
+                }
+
+                val (lastCommand, lastSuggestions) = lastCommandAndSuggestions ?: return
+                val serverSuggestions = packet.matches
+
+                lastCommandAndSuggestions = null
+
+                val orderedSuggestions = lastCommand?.orderSuggestions(lastSuggestions, serverSuggestions)
+                    ?: (lastSuggestions + serverSuggestions).distinct().sorted().toTypedArray()
+
+                packet.matches = orderedSuggestions
             }
-
-            val (lastCommand, lastSuggestions) = lastCommandAndSuggestions ?: return
-            val serverSuggestions = packet.matches
-
-            lastCommandAndSuggestions = null
-
-            val orderedSuggestions = lastCommand?.orderSuggestions(lastSuggestions, serverSuggestions)
-                ?: (lastSuggestions + serverSuggestions).distinct().sorted().toTypedArray()
-
-            packet.matches = orderedSuggestions
         }
     }
 }
