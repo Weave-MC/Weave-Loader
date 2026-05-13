@@ -1,10 +1,12 @@
 package net.weavemc.loader.impl
 
+import com.grappenmaker.mappings.ClasspathLoaders
 import com.grappenmaker.mappings.remap.LambdaAwareRemapper
 import com.grappenmaker.mappings.remap.remap
 import me.xtrm.klog.dsl.klog
 import net.weavemc.api.Hook
 import net.weavemc.internals.dump
+import net.weavemc.loader.impl.bootstrap.Bootstrap
 import net.weavemc.loader.impl.bootstrap.transformer.SafeTransformer
 import net.weavemc.loader.impl.util.*
 import org.objectweb.asm.ClassReader
@@ -147,7 +149,10 @@ private class InjectionClassWriter(
     flags: Int,
     reader: ClassReader? = null,
 ) : ClassWriter(reader, flags) {
-    val bytesProvider = MappingsHandler.classLoaderBytesProvider(MappingsHandler.environmentRuntimeNamespace)
+    val bytesProvider = ClasspathLoaders.compound(
+        MappingsHandler.classLoaderBytesProvider(MappingsHandler.environmentRuntimeNamespace),
+        ClasspathLoaders.fromLoader(Bootstrap.minecraftBootstrapClassLoader ?: error("Somehow minecraftBootstrapClassLoader is null"))
+    )
 
     private fun ClassNode.isInterface(): Boolean = (this.access and Opcodes.ACC_INTERFACE) != 0
     private fun ClassReader.isAssignableFrom(target: ClassReader): Boolean {

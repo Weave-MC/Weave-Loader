@@ -14,12 +14,16 @@ import java.lang.instrument.Instrumentation
 internal object Bootstrap {
     private val logger by klog
 
+    var minecraftBootstrapClassLoader: ClassLoader? = null
+        private set
+
     fun bootstrap(inst: Instrumentation, mods: List<File>) = inst.addTransformer(object: SafeTransformer {
         override fun transform(loader: ClassLoader?, className: String, originalClass: ByteArray): ByteArray? {
             if (className != "net/minecraft/client/main/Main") return null
             if (loader == ClassLoader.getSystemClassLoader())
                 return ApplicationWrapper.insertWrapper(className, originalClass)
 
+            minecraftBootstrapClassLoader = loader
             printBootstrap(loader)
 
             // remove bootstrap transformers
