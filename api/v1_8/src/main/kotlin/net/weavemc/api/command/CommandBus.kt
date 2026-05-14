@@ -18,12 +18,6 @@ import net.weavemc.api.event.SubscribeEvent
 object CommandBus {
     private val commands = mutableListOf<Command>()
 
-    private const val COMMAND_PREFIX = '/'
-
-    private val WHITESPACE_REGEX = Regex("\\s+")
-
-    private fun String.split(): List<String> = split(WHITESPACE_REGEX)
-
     init {
         arrayOf(
             Listener.ChatListener,
@@ -42,6 +36,12 @@ object CommandBus {
     }
 
     private object Listener {
+        private const val COMMAND_PREFIX = '/'
+
+        private val WHITESPACE_REGEX = Regex("\\s+")
+
+        private fun String.split(): List<String> = split(WHITESPACE_REGEX)
+
         object ChatListener {
             @SubscribeEvent
             fun onChatSentEvent(event: ChatSentEvent) {
@@ -75,12 +75,16 @@ object CommandBus {
                 }
 
                 val message = packet.message.trimStart()
+                if (!message.startsWith(COMMAND_PREFIX)) {
+                    return
+                }
+
                 val commandArgs = message.split()
 
-                if (commandArgs.size == 1 && message.startsWith(COMMAND_PREFIX)) {
+                if (commandArgs.size == 1) {
                     val suggestions = commands
                         .filter(Command::showInRoot)
-                        .flatMap { it.matching(message.drop(1)) }
+                        .flatMap { it.matching(commandArgs[0].drop(1)) }
                         .map { "$COMMAND_PREFIX$it" }
                         .toTypedArray()
 
@@ -89,6 +93,10 @@ object CommandBus {
                     val targetBlock = packet.targetBlock
 
                     for (command in commands) {
+                        if (!command.matches(commandArgs[0].drop(1))) {
+                            continue
+                        }
+
                         val suggestions = command.getSuggestions(commandArgs.drop(1).toTypedArray(), targetBlock) ?: continue
 
                         if (command.exclusiveSuggestions) {
