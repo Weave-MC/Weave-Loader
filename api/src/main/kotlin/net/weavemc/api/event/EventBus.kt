@@ -43,6 +43,13 @@ public object EventBus {
     }
 
     /**
+     * Subscribe a listener to the event bus.
+     *
+     * @param handler The Consumer to handle that event.
+     */
+    public inline fun <reified T : Event?> subscribe(noinline handler: (T) -> Unit): Unit = subscribe(T::class.java, handler)
+
+    /**
      * Post an event for all the listeners listening for it.
      *
      * @param event The event to call.
