@@ -1,7 +1,6 @@
 package net.weavemc.loader.impl
 
 import com.grappenmaker.mappings.*
-import com.grappenmaker.mappings.format.*
 import com.grappenmaker.mappings.aw.*
 import me.xtrm.klog.Logger
 import net.weavemc.api.Hook
@@ -187,7 +186,13 @@ public class WeaveLoader(
         }
 
         logger.trace("Resolving Weave API ($coords)...")
-        val result = system.resolveArtifact(session, artifactRequest)
+        val result = try {
+            system.resolveArtifact(session, artifactRequest)
+        } catch (e: Exception) {
+            logger.error("Failed to resolve Weave API ($coords)", e)
+
+            return
+        }
 
         val apiFile = result.artifact.file
 
