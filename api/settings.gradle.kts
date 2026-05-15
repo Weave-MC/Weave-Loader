@@ -16,4 +16,5 @@ plugins {
 
 rootProject.name = "api"
 
+include("v1_7")
 include("v1_8")
