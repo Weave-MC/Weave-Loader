@@ -66,7 +66,6 @@ class WeaveGradle : Plugin<Project> {
         val writeModConfig = project.tasks.register<WriteModConfig>("writeModConfig") {
             configuration.set(ext.configuration)
             output.set(project.localCache().map { it.file("weave.mod.json") })
-            println("Current configuration for ${project.name} is ${configuration.get()}")
         }
 
         project.tasks.named<Jar>("jar") {

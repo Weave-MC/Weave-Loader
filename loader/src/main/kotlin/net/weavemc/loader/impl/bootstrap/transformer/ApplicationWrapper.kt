@@ -112,7 +112,7 @@ public object ApplicationWrapper {
             ) return parent.loadClass(name)
 
             val internalName = name.replace('.', '/')
-            val bytes = getResourceAsStream("$internalName.class")?.readBytes() ?: throw ClassNotFoundException()
+            val bytes = getResourceAsStream("$internalName.class")?.readBytes() ?: throw ClassNotFoundException("Cannot find $internalName")
 
             // bye-bye protectiondomain!
             // also we need a urlclassloader
