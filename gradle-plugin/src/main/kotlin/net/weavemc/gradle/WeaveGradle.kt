@@ -1,6 +1,7 @@
 package net.weavemc.gradle
 
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json.Default.configuration
 import net.weavemc.gradle.configuration.WeaveMinecraftExtension
 import net.weavemc.gradle.configuration.pullDeps
 import net.weavemc.gradle.util.Constants
@@ -43,24 +44,29 @@ class WeaveGradle : Plugin<Project> {
         // Applying our default plugins
         project.pluginManager.apply(JavaPlugin::class.java)
 
-        ext = project.extensions.create(Constants.WEAVE_EXTENSION, WeaveMinecraftExtension::class)
+        val ext = project.extensions.create(Constants.WEAVE_EXTENSION, WeaveMinecraftExtension::class)
 
         project.afterEvaluate {
-            if (!ext.configuration.isPresent) throw GradleException(
-                "Configuration is missing, make sure to add a configuration through the weave {} block!"
-            )
+            val configuration = ext.configuration.orNull
+            val versionProvider = ext.version.orNull
 
-            if (!ext.version.isPresent) throw GradleException(
-                "Set a Minecraft version through the weave {} block!"
-            )
+            if (configuration == null) {
+                project.logger.warn("WARNING: Configuration is missing! Make sure to add a configuration through the weave { } block.")
+                return@afterEvaluate
+            }
 
-            val version = ext.version.getOrElse(MinecraftVersion.V1_8_9)
-            it.pullDeps(version, ext.configuration.get().namespace)
+            if (versionProvider == null) {
+                project.logger.warn("WARNING: Minecraft version is missing in the weave { } block. Defaulting to 1.8.9.")
+            }
+
+            val version = versionProvider ?: MinecraftVersion.V1_8_9
+            it.pullDeps(ext, version, configuration.namespace)
         }
 
         val writeModConfig = project.tasks.register<WriteModConfig>("writeModConfig") {
             configuration.set(ext.configuration)
             output.set(project.localCache().map { it.file("weave.mod.json") })
+            println("Current configuration for ${project.name} is ${configuration.get()}")
         }
 
         project.tasks.named<Jar>("jar") {
@@ -91,10 +97,6 @@ class WeaveGradle : Plugin<Project> {
             outputFile.parentFile?.mkdirs()
             outputFile.writeText(json)
         }
-    }
-
-    companion object {
-        lateinit var ext: WeaveMinecraftExtension
     }
 }
 
