@@ -26,20 +26,23 @@ while supporting injection into clients that are somewhat closed-off to develope
 
 </td><td>
     
-| Version |     Supported      |
-|---------|:------------------:|
-| 1.7     | :white_check_mark: |
-| 1.8     | :white_check_mark: |
-| 1.12    | :white_check_mark: |
-| 1.16    | :white_check_mark: |
-| 1.17    | :white_check_mark: |
-| 1.18    | :white_check_mark: |
-| 1.19    | :white_check_mark: |
-| 1.20    | :white_check_mark: |
+| Version |            Supported             |
+|---------|:--------------------------------:|
+| 1.7     | :white_check_mark:<sup>(1)</sub> |
+| 1.8     |        :white_check_mark:        |
+| 1.12    |        :white_check_mark:        |
+| 1.16    |        :white_check_mark:        |
+| 1.17    |        :white_check_mark:        |
+| 1.18    |        :white_check_mark:        |
+| 1.19    |        :white_check_mark:        |
+| 1.20    |        :white_check_mark:        |
 
 </td></tr>
 </table>
 
+<sup>(1)</sup>Currently, Weave does not work on Forge 1.7.
+
+**If you find any issues with supported clients, please report them to us.**
 
 ## Installation
 
@@ -55,7 +58,7 @@ git clone --recursive https://github.com/Weave-MC/Weave-Loader
 cd Weave-Loader
 ```
 
-You then need to give permission to the Gradle wrapper and run the `agent` task. This can be done a bit differently
+You then need to give permission to the Gradle wrapper and run the `build` task. This can be done a bit differently
 depending on your operating system:
 
 <details open>
@@ -74,6 +77,8 @@ chmod +x ./gradlew
 .\gradlew.bat build
 ```
 </details>
+
+Lastly, the finalised Loader Agent JAR can be found at `loader/build/libs/weave-loader-<version>-all.jar`.
 
 ## Usage
 
