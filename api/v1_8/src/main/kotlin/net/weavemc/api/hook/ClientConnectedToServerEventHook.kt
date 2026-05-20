@@ -1,9 +1,8 @@
 package net.weavemc.api.hook
 
-import net.minecraft.client.network.NetHandlerLoginClient
 import net.weavemc.api.Hook
-import net.weavemc.api.ClientConnectedToServerEvent
 import net.weavemc.api.bytecode.postEvent
+import net.weavemc.api.event.ClientConnectedToServerEvent
 import net.weavemc.internals.asm
 import net.weavemc.internals.internalNameOf
 import net.weavemc.internals.named

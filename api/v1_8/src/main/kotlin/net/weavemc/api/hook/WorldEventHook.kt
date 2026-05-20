@@ -1,8 +1,8 @@
 package net.weavemc.api.hook
 
 import net.weavemc.api.Hook
-import net.weavemc.api.WorldEvent
 import net.weavemc.api.bytecode.postEvent
+import net.weavemc.api.event.WorldEvent
 import net.weavemc.internals.asm
 import net.weavemc.internals.internalNameOf
 import org.objectweb.asm.tree.ClassNode

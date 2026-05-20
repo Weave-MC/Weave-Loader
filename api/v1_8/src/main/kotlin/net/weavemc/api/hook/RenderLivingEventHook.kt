@@ -1,9 +1,9 @@
 package net.weavemc.api.hook
 
 import net.weavemc.api.Hook
-import net.weavemc.api.RenderLivingEvent
 import net.weavemc.api.bytecode.postEvent
 import net.weavemc.api.event.CancellableEvent
+import net.weavemc.api.event.RenderLivingEvent
 import net.weavemc.internals.asm
 import net.weavemc.internals.internalNameOf
 import net.weavemc.internals.named

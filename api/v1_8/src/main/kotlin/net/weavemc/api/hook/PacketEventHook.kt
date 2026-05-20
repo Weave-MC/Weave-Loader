@@ -1,9 +1,9 @@
 package net.weavemc.api.hook
 
 import net.weavemc.api.Hook
-import net.weavemc.api.PacketEvent
 import net.weavemc.api.bytecode.postEvent
 import net.weavemc.api.event.CancellableEvent
+import net.weavemc.api.event.PacketEvent
 import net.weavemc.internals.asm
 import net.weavemc.internals.internalNameOf
 import net.weavemc.internals.named
@@ -15,7 +15,8 @@ internal class PacketEventHook : Hook("net/minecraft/network/NetworkManager") {
         node.methods.filter { it.name == "sendPacket" }.forEach {
             it.instructions.insert(asm {
                 new(internalNameOf<PacketEvent.Send>())
-                dup; dup
+                dup
+                dup
                 aload(1)
                 invokespecial(internalNameOf<PacketEvent.Send>(), "<init>", "(Lnet/minecraft/network/Packet;)V")
                 postEvent()
