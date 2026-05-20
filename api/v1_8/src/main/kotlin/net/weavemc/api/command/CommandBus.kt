@@ -4,9 +4,9 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiChat
 import net.minecraft.network.play.client.C14PacketTabComplete
 import net.minecraft.network.play.server.S3APacketTabComplete
-import net.weavemc.api.ChatSentEvent
-import net.weavemc.api.PacketEvent
+import net.weavemc.api.event.ChatEvent
 import net.weavemc.api.event.EventBus
+import net.weavemc.api.event.PacketEvent
 import net.weavemc.api.event.SubscribeEvent
 
 /**
@@ -44,7 +44,7 @@ object CommandBus {
 
         object ChatListener {
             @SubscribeEvent
-            fun onChatSentEvent(event: ChatSentEvent) {
+            fun onChatSentEvent(event: ChatEvent.Sent) {
                 val message = event.message.trim()
 
                 if (message[0] != COMMAND_PREFIX) {
