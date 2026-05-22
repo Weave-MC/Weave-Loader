@@ -63,7 +63,7 @@ public object MappingsHandler {
     }
 
     public fun classLoaderBytesProvider(expectedNamespace: String): (String) -> ByteArray? {
-        val names = if (expectedNamespace != environmentClasspathNamespace) mergedMappings.mappings.asASMMapping(
+        val namesFrom = if (expectedNamespace != environmentClasspathNamespace) mergedMappings.mappings.asASMMapping(
             from = expectedNamespace,
             to = environmentClasspathNamespace,
             includeMethods = false,
@@ -89,12 +89,7 @@ public object MappingsHandler {
         MappingsRemapper(mergedMappings.mappings, from, to, loader = classLoaderBytesProvider(from))
     }
 
-    private val mappable by lazy {
-        val id = mergedMappings.mappings.namespace("official")
-        mergedMappings.mappings.classes.mapTo(hashSetOf()) { it.names[id] }
-    }
-
-    public fun ByteArray.remap(remapper: Remapper, bypassMappableCheck: Boolean = false): ByteArray {
+    public fun ByteArray.remap(remapper: Remapper): ByteArray {
         val reader = ClassReader(this)
         val writer = ClassWriter(0)
         reader.accept(MinecraftRemapper(writer, remapper), ClassReader.SKIP_CODE)
