@@ -5,8 +5,10 @@ import com.grappenmaker.mappings.ClasspathLoaders
 import com.grappenmaker.mappings.asASMMapping
 import com.grappenmaker.mappings.format.Mappings
 import com.grappenmaker.mappings.remap.ExperimentalJarRemapper
+import com.grappenmaker.mappings.remap.JarClassVisitor
 import com.grappenmaker.mappings.remap.LambdaAwareMethodRemapper
 import com.grappenmaker.mappings.remap.MappingsRemapper
+import com.grappenmaker.mappings.remap.RemapperExtension
 import com.grappenmaker.mappings.remap.performRemap
 import com.grappenmaker.mappings.remappingNames
 import kotlinx.coroutines.runBlocking
@@ -163,6 +165,7 @@ public object MappingsHandler {
                     ),
                     classLoaderBytesProvider(from)
                 )
+                extension(mixinUnmapperExtension)
 
                 task(input.toPath(), output.toPath(), from, to)
                 if (relocationRemapper != null) visitClasses { _, visitor -> ClassRemapper(visitor, relocationRemapper) }
@@ -206,5 +209,58 @@ private fun createRelocationRemapper(): Remapper? {
 
     return object : Remapper(Opcodes.ASM9) {
         override fun map(name: String) = findMapping(name)?.let { (k, v) -> name.replaceFirst(k, v) } ?: name
+    }
+}
+
+@OptIn(ExperimentalJarRemapper::class)
+private val mixinUnmapperExtension = RemapperExtension { classpathLoader, _ ->
+    JarClassVisitor { name, parent ->
+        object : ClassVisitor(Opcodes.ASM9, parent) {
+            val spongepoweredPackage = "org/spongepowered"
+            val mixinPackage = "$spongepoweredPackage/asm/mixin"
+
+            var isMixin = false
+
+            var methodIndex = 0
+
+            val classNode by lazy { classpathLoader(name)?.asClassReader()?.asClassNode() ?: error("Cannot find class $name") }
+
+            override fun visitAnnotation(
+                descriptor: String,
+                visible: Boolean
+            ): AnnotationVisitor? {
+                val mixinDesc = "L$mixinPackage/Mixin;"
+                if (descriptor.contains(mixinDesc)) {
+                    isMixin = true
+                }
+
+                return super.visitAnnotation(descriptor, visible)
+            }
+
+            override fun visitMethod(
+                access: Int,
+                name: String,
+                descriptor: String,
+                signature: String?,
+                exceptions: Array<out String?>?
+            ): MethodVisitor? {
+                val methodIndex = methodIndex++
+
+                fun createSuperMethodVisitor(methodName: String = name) =
+                    super.visitMethod(access, methodName, descriptor, signature, exceptions)
+
+                if (!isMixin) {
+                    return createSuperMethodVisitor()
+                }
+
+                val methodNode = classNode.methods[methodIndex]
+                val annotations = methodNode.visibleAnnotations ?: emptyList()
+                if (!annotations.any { it.desc == "L$mixinPackage/Shadow;" }) {
+                    return createSuperMethodVisitor()
+                }
+
+                return createSuperMethodVisitor(methodNode.name)
+            }
+        }
     }
 }
