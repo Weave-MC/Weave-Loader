@@ -26,15 +26,15 @@ import kotlin.io.path.*
  * @param directory The directory to grab.
  * @return The specified directory: `"~/.weave/<directory>"`
  */
-internal fun getOrCreateDirectory(directory: String): Path {
+public fun getOrCreateDirectory(directory: String): Path {
     val dir = Paths.get(System.getProperty("user.home"), ".weave", directory)
     if (dir.exists() && !dir.isDirectory()) Files.delete(dir)
     if (!dir.exists()) dir.createDirectories()
     return dir
 }
 
-internal fun ByteArray.asClassReader(): ClassReader = ClassReader(this)
-internal fun ClassReader.asClassNode(): ClassNode = ClassNode().also { this.accept(it, 0) }
+public fun ByteArray.asClassReader(): ClassReader = ClassReader(this)
+public fun ClassReader.asClassNode(): ClassNode = ClassNode().also { this.accept(it, 0) }
 
 internal val JSON = Json { ignoreUnknownKeys = true }
 

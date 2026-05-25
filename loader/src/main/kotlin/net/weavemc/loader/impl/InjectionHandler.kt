@@ -1,5 +1,6 @@
 package net.weavemc.loader.impl
 
+import com.grappenmaker.mappings.ClasspathLoader
 import com.grappenmaker.mappings.ClasspathLoaders
 import com.grappenmaker.mappings.remap.LambdaAwareRemapper
 import com.grappenmaker.mappings.remap.remap
@@ -145,11 +146,11 @@ public class AssemblerConfigImpl : Hook.AssemblerConfig {
         get() = if (computeFrames) ClassWriter.COMPUTE_FRAMES else ClassWriter.COMPUTE_MAXS
 }
 
-private class InjectionClassWriter(
+public class InjectionClassWriter(
     flags: Int,
     reader: ClassReader? = null,
 ) : ClassWriter(reader, flags) {
-    val bytesProvider = ClasspathLoaders.compound(
+    public val bytesProvider: ClasspathLoader = ClasspathLoaders.compound(
         MappingsHandler.classLoaderBytesProvider(MappingsHandler.environmentRuntimeNamespace),
         ClasspathLoaders.fromLoader(Bootstrap.minecraftBootstrapClassLoader ?: error("Somehow minecraftBootstrapClassLoader is null"))
     )

@@ -224,12 +224,12 @@ public class WeaveLoader(
                     logger.debug("Calling $entrypoint#preInit")
                     instantiate<ModInitializer>(entrypoint)
                 }.onFailure {
-                    logger.error("Failed to instantiate $entrypoint#preInit", it)
+                    logger.error("Failed to instantiate $entrypoint#preInit: ${it.stackTraceToString()}")
                 }.onSuccess {
                     runCatching {
                         it.preInit(instrumentation)
                     }.onFailure {
-                        logger.error("Exception thrown when invoking $entrypoint#preInit", it)
+                        logger.error("Exception thrown when invoking $entrypoint#preInit: ${it.stackTraceToString()}")
                     }
                 }
             }
@@ -351,6 +351,7 @@ public class WeaveLoader(
             instrumentation.appendToSystemClassLoaderSearch(jar)
 
             config.hooks.forEach { hook ->
+                // TODO: Check if it's a hook
                 logger.trace("Registering hook $hook")
                 InjectionHandler.registerModifier(ModHook(config.namespace, instantiate(hook)))
             }
