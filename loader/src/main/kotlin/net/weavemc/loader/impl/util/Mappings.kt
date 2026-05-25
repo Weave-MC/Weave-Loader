@@ -30,6 +30,9 @@ public object MappingsHandler {
     public val relocationRemapper: Remapper? by lazy { createRelocationRemapper() }
     public val vanillaJar: File by lazy { FileManager.getVanillaMinecraftJar() }
     public val vanillaClassLoader: ClasspathLoader by lazy { ClasspathLoaders.fromJar(JarFile(vanillaJar)) }
+    public val minecraftRuntimeJar: File by lazy {
+        vanillaJar.createRemappedTemp("minecraft", "official", classpath = emptyList())
+    }
 
     public val mergedMappings: WeaveMappings by lazy {
         logger.info("Loading merged mappings for ${GameInfo.version.versionName}")
@@ -54,14 +57,15 @@ public object MappingsHandler {
     public val environmentClasspathNamespace: String by lazy {
         System.getProperty("weave.environment.namespace") ?: when (GameInfo.client) {
             MinecraftClient.LUNAR -> if (GameInfo.version < MinecraftVersion.V1_16_5) MCP.named else MOJANG.named
-            MinecraftClient.FORGE, MinecraftClient.VANILLA, MinecraftClient.LABYMOD, MinecraftClient.BADLION -> "official"
+            MinecraftClient.FORGE -> MCP.srg
+            MinecraftClient.VANILLA, MinecraftClient.LABYMOD, MinecraftClient.BADLION -> "official"
         }
     }
 
     public fun classLoaderBytesProvider(expectedNamespace: String): (String) -> ByteArray? {
-        val namesFrom = if (expectedNamespace != "official") mergedMappings.mappings.asASMMapping(
+        val namesFrom = if (expectedNamespace != environmentClasspathNamespace) mergedMappings.mappings.asASMMapping(
             from = expectedNamespace,
-            to = "official",
+            to = environmentClasspathNamespace,
             includeMethods = false,
             includeFields = false
         ) else emptyMap()
