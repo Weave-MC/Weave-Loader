@@ -4,12 +4,7 @@ import com.grappenmaker.mappings.ClasspathLoader
 import com.grappenmaker.mappings.ClasspathLoaders
 import com.grappenmaker.mappings.asASMMapping
 import com.grappenmaker.mappings.format.Mappings
-import com.grappenmaker.mappings.remap.ExperimentalJarRemapper
-import com.grappenmaker.mappings.remap.JarClassVisitor
-import com.grappenmaker.mappings.remap.LambdaAwareMethodRemapper
-import com.grappenmaker.mappings.remap.MappingsRemapper
-import com.grappenmaker.mappings.remap.RemapperExtension
-import com.grappenmaker.mappings.remap.performRemap
+import com.grappenmaker.mappings.remap.*
 import com.grappenmaker.mappings.remappingNames
 import kotlinx.coroutines.runBlocking
 import me.xtrm.klog.dsl.klog
@@ -31,7 +26,7 @@ public object MappingsHandler {
     public val vanillaJar: File by lazy { FileManager.getVanillaMinecraftJar() }
     public val vanillaClassLoader: ClasspathLoader by lazy { ClasspathLoaders.fromJar(JarFile(vanillaJar)) }
     public val minecraftRuntimeJar: File by lazy {
-        vanillaJar.createRemappedTemp("minecraft", "official", classpath = emptyList())
+        vanillaJar.createRemappedCache(fromNamespace = "official", classpath = emptyList(), deleteOnExit = false)
     }
 
     public val mergedMappings: WeaveMappings by lazy {

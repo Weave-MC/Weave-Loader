@@ -4,34 +4,23 @@ import kotlinx.serialization.json.Json
 import me.xtrm.klog.dsl.klog
 import net.weavemc.internals.GameInfo
 import net.weavemc.internals.ModConfig
+import net.weavemc.internals.getOrCreateWeaveDir
+import net.weavemc.internals.sha256sum
 import net.weavemc.loader.impl.WeaveLoader
+import net.weavemc.loader.impl.bootstrap.cache.CacheManager
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodNode
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.Paths
 import java.security.AccessController
 import java.security.PrivilegedAction
-import java.util.Properties
+import java.util.*
 import java.util.jar.JarFile
 import javax.swing.JOptionPane
 import kotlin.io.path.*
-
-/**
- * Grabs the directory for the specified directory, creating it if it doesn't exist.
- * If the file exists as a file and not a directory, it will be deleted.
- *
- * @param directory The directory to grab.
- * @return The specified directory: `"~/.weave/<directory>"`
- */
-public fun getOrCreateDirectory(directory: String): Path {
-    val dir = Paths.get(System.getProperty("user.home"), ".weave", directory)
-    if (dir.exists() && !dir.isDirectory()) Files.delete(dir)
-    if (!dir.exists()) dir.createDirectories()
-    return dir
-}
+import kotlin.system.measureTimeMillis
 
 public fun ByteArray.asClassReader(): ClassReader = ClassReader(this)
 public fun ClassReader.asClassNode(): ClassNode = ClassNode().also { this.accept(it, 0) }
@@ -130,25 +119,47 @@ internal fun JarFile.fetchModConfig(json: Json): ModConfig {
     return json.decodeFromString<ModConfig>(getInputStream(configEntry).readBytes().decodeToString())
 }
 
-public fun File.createRemappedTemp(
-    name: String,
+public val cacheManager: CacheManager by lazy { CacheManager(getOrCreateWeaveDir(".cache", "jars")) }
+
+public fun File.createRemappedCache(
     fromNamespace: String,
-    suffix: String = "-weavemod.jar",
-    classpath: List<File> = listOf(MappingsHandler.minecraftRuntimeJar)
+    classpath: List<File> = listOf(MappingsHandler.minecraftRuntimeJar),
+    deleteOnExit: Boolean = true,
 ): File {
-    val temp = File.createTempFile(name, suffix)
-    MappingsHandler.remapModJar(
-        mappings = MappingsHandler.mergedMappings.mappings,
-        input = this,
-        output = temp,
-        classpath = classpath,
-        from = fromNamespace
-    )
+    fun Path.createLock() {
+        val lock = cacheManager.createLock(this, tryDeleteOnExit = deleteOnExit)
+        runCatching { lock.writeText("original: $absolutePath") }
+    }
 
-    klog.debug("Remapped mod jar from $absolutePath to ${temp.absolutePath}")
+    val earlyCache = cacheManager.find(sha256sum)?.apply(Path::createLock)
+    if (earlyCache != null) {
+        klog.debug("Found cached file of $absolutePath at ${earlyCache.absolutePathString()}")
 
-    temp.deleteOnExit()
-    return temp
+        return earlyCache.toFile()
+    }
+
+    val copyTemp = Files.createTempFile("weave-loader-remap", ".jar")
+        .apply { toFile().deleteOnExit() }
+
+    val time = measureTimeMillis {
+        MappingsHandler.remapModJar(
+            mappings = MappingsHandler.mergedMappings.mappings,
+            input = this,
+            output = copyTemp.toFile(),
+            classpath = classpath,
+            from = fromNamespace
+        )
+    }
+
+    // ensure the file has been remapped successfully before copying to cache
+    val cache = cacheManager.create(toPath()).apply(Path::createLock)
+
+    copyTemp.copyTo(cache, overwrite = true)
+    copyTemp.deleteExisting()
+
+    klog.debug("Took ${time}ms to remap mod jar from $absolutePath to ${cache.absolutePathString()}")
+
+    return cache.toFile()
 }
 
 internal fun setGameInfo() {

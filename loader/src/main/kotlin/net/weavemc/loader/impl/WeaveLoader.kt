@@ -1,12 +1,14 @@
 package net.weavemc.loader.impl
 
-import com.grappenmaker.mappings.*
+import com.grappenmaker.mappings.ClasspathLoaders
 import com.grappenmaker.mappings.aw.*
-import me.xtrm.klog.Logger
+import com.grappenmaker.mappings.remappingNames
+import me.xtrm.klog.dsl.klog
 import net.weavemc.api.Hook
 import net.weavemc.api.ModInitializer
 import net.weavemc.internals.GameInfo
 import net.weavemc.internals.ModConfig
+import net.weavemc.internals.getOrCreateWeaveDir
 import net.weavemc.loader.impl.bootstrap.PublicButInternal
 import net.weavemc.loader.impl.bootstrap.transformer.URLClassLoaderAccessor
 import net.weavemc.loader.impl.mixin.SandboxedMixinLoader
@@ -49,9 +51,7 @@ import org.eclipse.aether.transport.http.HttpTransporterFactory
 import org.objectweb.asm.tree.ClassNode
 import java.io.File
 import java.lang.instrument.Instrumentation
-import java.nio.file.Paths
 import java.util.jar.JarFile
-import kotlin.jvm.java
 
 /**
  * The main class of the Weave Loader.
@@ -61,7 +61,7 @@ public class WeaveLoader(
     private val instrumentation: Instrumentation,
     private val mappedModJars: List<File>
 ) {
-    private val logger = Logger(WeaveLoader::class.java.name)
+    private val logger by klog
 
     /**
      * Stored list of [WeaveMod]s.
@@ -120,15 +120,22 @@ public class WeaveLoader(
         INSTANCE = this
         launchStart = System.currentTimeMillis()
         instrumentation.addTransformer(InjectionHandler)
+        addCleanupHook()
         addMinecraftApi()
 
         finalize()
     }
 
+    private fun addCleanupHook() {
+        Runtime.getRuntime().addShutdownHook(Thread {
+            cacheManager.cleanup()
+        })
+    }
+
     private fun addMinecraftApi() {
         val localRepoPath by systemProperty(
             key = "weave.repo.local.path",
-            defaultValue = Paths.get(System.getProperty("user.home"), ".weave", "maven-repository").toString()
+            defaultValue = getOrCreateWeaveDir("maven-repository").toString()
         )
         val remoteRepoUrl by systemProperty(
             key = "weave.repo.remote.url",
@@ -171,6 +178,8 @@ public class WeaveLoader(
         val localRepo = LocalRepository(localRepoPath)
 
         session.localRepositoryManager = system.newLocalRepositoryManager(session, localRepo)
+        // TODO: Remove
+        session.isOffline = true
 
         // in case it does not exist in the local repo
         val repo = RemoteRepository.Builder("weave-api-repo", "default", remoteRepoUrl)
@@ -197,11 +206,7 @@ public class WeaveLoader(
         val apiFile = result.artifact.file
 
         apiFile
-            .createRemappedTemp(
-                name = "weave-api",
-                fromNamespace = JarFile(apiFile).configOrFatal().namespace,
-                suffix = "weaveapi"
-            )
+            .createRemappedCache(fromNamespace = JarFile(apiFile).configOrFatal().namespace)
             .registerAsMod()
     }
 
@@ -320,7 +325,7 @@ public class WeaveLoader(
     private fun setupAccessWideners() {
         val tree = mods.asSequence().flatMap { it.config.accessWideners }.mapNotNull { aw ->
             val res = javaClass.classLoader.getResourceAsStream(aw) ?: return@mapNotNull let {
-                println("[Weave] Could not load access widener configuration $aw")
+                logger.warn("Could not load access widener configuration $aw")
                 null
             }
 
@@ -342,6 +347,8 @@ public class WeaveLoader(
     public fun File.registerAsMod() {
         logger.trace("Registering mod $name")
         classLoader.addWeaveURL(this.toURI().toURL())
+
+        cacheManager.activeCacheFiles.add(toPath())
 
         JarFile(this).use { jar ->
             val config = jar.configOrFatal()

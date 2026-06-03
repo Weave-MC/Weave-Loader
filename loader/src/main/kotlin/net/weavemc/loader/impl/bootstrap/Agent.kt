@@ -78,32 +78,30 @@ private fun callTweakers(inst: Instrumentation, mods: List<File>) {
     }
 }
 
-private fun FileManager.ModJar.parseAndMap(): File {
-    val fileName = file.name.substringBeforeLast('.')
+private fun FileManager.ModJar.parseAndMap(): File =  JarFile(file).use {
+    val config = it.configOrFatal()
+    val compiledFor = config.compiledFor
 
-    return JarFile(file).use {
-        val config = it.configOrFatal()
-        val compiledFor = config.compiledFor
+    if (compiledFor != null && GameInfo.version != MinecraftVersion.fromVersionName(compiledFor)) {
+        val extra = if (!isSpecific) {
+            " Hint: this mod was placed in the general mods folder. Consider putting mods in a version-specific mods folder"
+        } else ""
 
-        if (compiledFor != null && GameInfo.version != MinecraftVersion.fromVersionName(compiledFor)) {
-            val extra = if (!isSpecific) {
-                " Hint: this mod was placed in the general mods folder. Consider putting mods in a version-specific mods folder"
-            } else ""
-
-            fatalError(
-                "Mod ${config.modId} was compiled for version $compiledFor, current version is ${GameInfo.version.versionName}.$extra"
-            )
-        }
-
-        if (!MappingsHandler.isNamespaceAvailable(config.namespace)) {
-            fatalError("Mod ${config.modId} was mapped in namespace ${config.namespace}, which is not available!")
-        }
-
-        file.createRemappedTemp(fileName, config.namespace)
+        fatalError(
+            "Mod ${config.modId} was compiled for version $compiledFor, current version is ${GameInfo.version.versionName}.$extra"
+        )
     }
+
+    if (!MappingsHandler.isNamespaceAvailable(config.namespace)) {
+        fatalError("Mod ${config.modId} was mapped in namespace ${config.namespace}, which is not available!")
+    }
+
+    file.createRemappedCache(fromNamespace = config.namespace)
 }
 
-private fun retrieveMods() = FileManager.getMods().map { it.parseAndMap() }
+private fun retrieveMods() = FileManager
+    .getMods()
+    .map { it.parseAndMap() }
 
 public fun main() {
     fatalError("This is not how you use Weave! Please refer to the readme for instructions.")

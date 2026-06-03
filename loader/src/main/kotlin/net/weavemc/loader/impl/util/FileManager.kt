@@ -2,14 +2,15 @@ package net.weavemc.loader.impl.util
 
 import me.xtrm.klog.dsl.klog
 import net.weavemc.internals.GameInfo
+import net.weavemc.internals.getOrCreateWeaveDir
 import java.io.File
 import java.nio.file.Path
 import kotlin.io.path.*
 
 internal object FileManager {
     private val logger by klog
-    val MODS_DIRECTORY = getOrCreateDirectory("mods")
-    val DUMP_DIRECTORY = getOrCreateDirectory(".bytecode.out")
+    val MODS_DIRECTORY = getOrCreateWeaveDir("mods")
+    val DUMP_DIRECTORY = getOrCreateWeaveDir(".bytecode.out")
 
     fun getVanillaMinecraftJar(): File {
         logger.trace("Searching for vanilla jar")
