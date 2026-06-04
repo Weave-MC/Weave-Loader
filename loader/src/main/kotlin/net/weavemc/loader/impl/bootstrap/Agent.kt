@@ -1,5 +1,10 @@
 package net.weavemc.loader.impl.bootstrap
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import me.xtrm.klog.Level
 import me.xtrm.klog.dsl.klog
 import me.xtrm.klog.dsl.klogConfig
@@ -36,7 +41,7 @@ public fun premain(opt: String?, inst: Instrumentation) {
 
     setGameInfo()
 
-    val mods = retrieveMods()
+    val mods = runBlocking { retrieveMods() }
     callTweakers(inst, mods)
 
     inst.addTransformer(URLClassLoaderTransformer)
@@ -99,9 +104,12 @@ private fun FileManager.ModJar.parseAndMap(): File =  JarFile(file).use {
     file.createRemappedCache(fromNamespace = config.namespace)
 }
 
-private fun retrieveMods() = FileManager
-    .getMods()
-    .map { it.parseAndMap() }
+private suspend fun retrieveMods() = withContext(Dispatchers.IO) {
+    FileManager
+        .getMods()
+        .map { mod -> async { mod.parseAndMap() } }
+        .awaitAll()
+}
 
 public fun main() {
     fatalError("This is not how you use Weave! Please refer to the readme for instructions.")

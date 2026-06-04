@@ -4,8 +4,8 @@ import kotlinx.serialization.json.Json
 import me.xtrm.klog.dsl.klog
 import net.weavemc.internals.GameInfo
 import net.weavemc.internals.ModConfig
+import net.weavemc.internals.crc32sum
 import net.weavemc.internals.getOrCreateWeaveDir
-import net.weavemc.internals.sha256sum
 import net.weavemc.loader.impl.WeaveLoader
 import net.weavemc.loader.impl.bootstrap.cache.CacheManager
 import org.objectweb.asm.ClassReader
@@ -119,7 +119,15 @@ internal fun JarFile.fetchModConfig(json: Json): ModConfig {
     return json.decodeFromString<ModConfig>(getInputStream(configEntry).readBytes().decodeToString())
 }
 
-public val cacheManager: CacheManager by lazy { CacheManager(getOrCreateWeaveDir(".cache", "jars")) }
+public val cacheManager: CacheManager by lazy {
+    CacheManager(
+        getOrCreateWeaveDir(
+            ".cache",
+            "jars",
+            "${MappingsHandler.environmentRuntimeNamespace}_${GameInfo.version.versionName}"
+        )
+    )
+}
 
 public fun File.createRemappedCache(
     fromNamespace: String,
@@ -131,7 +139,7 @@ public fun File.createRemappedCache(
         runCatching { lock.writeText("original: $absolutePath") }
     }
 
-    val earlyCache = cacheManager.find(sha256sum)?.apply(Path::createLock)
+    val earlyCache = cacheManager.find(crc32sum)?.apply(Path::createLock)
     if (earlyCache != null) {
         klog.debug("Found cached file of $absolutePath at ${earlyCache.absolutePathString()}")
 
@@ -154,8 +162,8 @@ public fun File.createRemappedCache(
     // ensure the file has been remapped successfully before copying to cache
     val cache = cacheManager.create(toPath()).apply(Path::createLock)
 
-    copyTemp.copyTo(cache, overwrite = true)
-    copyTemp.deleteExisting()
+    copyTemp.moveTo(cache, overwrite = true)
+    copyTemp.deleteIfExists()
 
     klog.debug("Took ${time}ms to remap mod jar from $absolutePath to ${cache.absolutePathString()}")
 

@@ -4,7 +4,7 @@ import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.security.MessageDigest
+import java.util.zip.CRC32
 import kotlin.io.path.createDirectories
 import kotlin.io.path.exists
 import kotlin.io.path.isDirectory
@@ -23,13 +23,24 @@ public fun getOrCreateWeaveDir(vararg directories: String): Path {
     return dir
 }
 
-public val Path.sha256sum: String
-    get() = MessageDigest.getInstance("SHA-256")
-        .digest(Files.readAllBytes(this))
-        .joinToString("") { "%02x".format(it) }
+public val Path.crc32sum: String
+    get() {
+        val crc = CRC32()
 
-public val File.sha256sum: String
-    get() = toPath().sha256sum
+        Files.newInputStream(this).buffered().use { stream ->
+            val buffer = ByteArray(8192)
+            var bytesRead = stream.read(buffer)
+            while (bytesRead != -1) {
+                crc.update(buffer, 0, bytesRead)
+                bytesRead = stream.read(buffer)
+            }
+        }
+
+        return String.format("%08x", crc.value)
+    }
+
+public val File.crc32sum: String
+    get() = toPath().crc32sum
 
 internal fun String.splitAround(c: Char): Pair<String,String> =
     substringBefore(c) to substringAfter(c, "")

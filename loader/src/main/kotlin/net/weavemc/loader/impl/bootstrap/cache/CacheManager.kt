@@ -1,6 +1,6 @@
 package net.weavemc.loader.impl.bootstrap.cache
 
-import net.weavemc.internals.sha256sum
+import net.weavemc.internals.crc32sum
 import java.nio.channels.FileChannel
 import java.nio.file.Files
 import java.nio.file.Path
@@ -14,15 +14,15 @@ public class CacheManager(public val cacheDirectory: Path) {
 
     public val activeCacheFiles: MutableSet<Path> = mutableSetOf()
 
-    public fun find(sha256sum: String): Path? =
-        (cacheDirectory / sha256sum.cacheFile).takeIf { it.exists() }
+    public fun find(crc32sum: String): Path? =
+        (cacheDirectory / crc32sum.cacheFile).takeIf { it.exists() }
 
     public fun create(original: Path): Path {
         if (!original.exists()) {
             throw IllegalArgumentException("Cannot create from a non-existent file: ${original.absolutePathString()}")
         }
 
-        return cacheDirectory / original.sha256sum.cacheFile
+        return cacheDirectory / original.crc32sum.cacheFile
     }
 
     /**
@@ -72,7 +72,7 @@ public class CacheManager(public val cacheDirectory: Path) {
 
         val filesWithoutLocks = cacheDirectory
             .listDirectoryEntries()
-            .filter { it.name.matches(sha256CacheRegex) }
+            .filter { it.name.matches(crc32CacheRegex) }
             .filter { it.isRegularFile() }
             .filter { it.lockFile.notExists() }
             .filter { it.name !in activeFilesFilter }
@@ -85,6 +85,6 @@ public class CacheManager(public val cacheDirectory: Path) {
     public val Path.lockFile: Path get() = resolveSibling("$fileName.lock")
 
     private companion object {
-        val sha256CacheRegex = Regex("^[a-fA-F0-9]{64}\\.cache$")
+        val crc32CacheRegex = Regex("^[a-fA-F0-9]{8}\\.cache$")
     }
 }
