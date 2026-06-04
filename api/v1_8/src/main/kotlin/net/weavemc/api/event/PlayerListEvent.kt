@@ -9,14 +9,14 @@ import net.minecraft.network.play.server.S38PacketPlayerListItem
  *
  * @property playerData The Player Data of the player being added/removed.
  */
-sealed class PlayerListEvent(val playerData: S38PacketPlayerListItem.AddPlayerData) : Event() {
+public sealed class PlayerListEvent(public val playerData: S38PacketPlayerListItem.AddPlayerData) : Event() {
     /**
      * This is called when a player is added to the player list.
      */
-    class Add(playerData: S38PacketPlayerListItem.AddPlayerData) : PlayerListEvent(playerData)
+    public class Add(playerData: S38PacketPlayerListItem.AddPlayerData) : PlayerListEvent(playerData)
 
     /**
      * This is called when a player is removed from the player list.
      */
-    class Remove(playerData: S38PacketPlayerListItem.AddPlayerData) : PlayerListEvent(playerData)
+    public class Remove(playerData: S38PacketPlayerListItem.AddPlayerData) : PlayerListEvent(playerData)
 }

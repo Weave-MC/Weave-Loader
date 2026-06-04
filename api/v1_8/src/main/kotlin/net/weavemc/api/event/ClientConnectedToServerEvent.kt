@@ -7,7 +7,7 @@ import net.minecraft.network.NetworkManager
  *
  * @property manager The Network Manager
  */
-class ClientConnectedToServerEvent(val manager: NetworkManager) : Event() {
-    val isLocal: Boolean
+public class ClientConnectedToServerEvent(public val manager: NetworkManager) : Event() {
+    public val isLocal: Boolean
         get() = manager.isLocalChannel
 }

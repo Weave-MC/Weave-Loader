@@ -20,6 +20,7 @@ weave {
             "GuiOpenEventHook",
             "KeyboardEventHook",
             "MouseEventHook",
+            "PacketEventHook",
             "PlayerListEventHook",
             "RenderGameOverlayHook",
             "RenderHandEventHook",
@@ -29,7 +30,6 @@ weave {
             "StartGameEventHook",
             "TickEventHook",
             "WorldEventHook",
-            "PacketEventHook",
         ).map { "net.weavemc.api.hook.$it" }
         accessWideners = listOf("net.weave.api.v1_8.accesswidener.txt")
         mcpMappings()

@@ -8,7 +8,7 @@ import net.minecraft.world.World
  *
  * Event call in the event of loading, or unloading a world.
  */
-sealed class WorldEvent(val world: World) : Event() {
+public sealed class WorldEvent(public val world: World) : Event() {
     /**
      * Called in correspondence with [Minecraft.loadWorld]
      * if [net.minecraft.client.multiplayer.WorldClient] is not null.
@@ -16,7 +16,7 @@ sealed class WorldEvent(val world: World) : Event() {
      * that a client loads a new world. Whether that be a server connection,
      * or a singleplayer world.
      */
-    class Load(world: World) : WorldEvent(world)
+    public class Load(world: World) : WorldEvent(world)
 
     /**
      * Called in correspondence with [Minecraft.loadWorld]
@@ -25,5 +25,5 @@ sealed class WorldEvent(val world: World) : Event() {
      * that a client unloads a world. Whether that be a server disconnection,
      * or a singleplayer world.
      */
-    class Unload(world: World) : WorldEvent(world)
+    public class Unload(world: World) : WorldEvent(world)
 }

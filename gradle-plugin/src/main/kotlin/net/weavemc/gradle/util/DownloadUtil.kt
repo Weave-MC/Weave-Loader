@@ -11,7 +11,7 @@ import java.security.NoSuchAlgorithmException
 import kotlin.io.path.exists
 import kotlin.io.path.inputStream
 
-object DownloadUtil {
+public object DownloadUtil {
     /**
      * Returns the SHA1 checksum of the file as a [String]
      *
@@ -55,7 +55,7 @@ object DownloadUtil {
         }.onFailure { it.printStackTrace() }
     }
 
-    fun download(url: String, path: String) = download(URL(url), Paths.get(path))
+    public fun download(url: String, path: String): Unit = download(URL(url), Paths.get(path))
 
     /**
      * Fetches data from any URL
@@ -65,7 +65,7 @@ object DownloadUtil {
     private fun fetch(url: URL) = runCatching { url.openStream().readBytes().decodeToString() }
         .onFailure { it.printStackTrace() }.getOrNull()
 
-    fun fetch(url: String) = fetch(URL(url))
+    public fun fetch(url: String): String? = fetch(URL(url))
 
     /**
      * Downloads and checksums a file.
@@ -74,7 +74,7 @@ object DownloadUtil {
      * @param checksum The checksum to compare to.
      * @param path The path to download to.
      */
-    fun checksumAndDownload(url: URL, checksum: String, path: Path) {
+    public fun checksumAndDownload(url: URL, checksum: String, path: Path): Unit {
         if (checksum(path) != checksum) download(url, path)
     }
 }

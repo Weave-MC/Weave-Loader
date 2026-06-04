@@ -1,7 +1,7 @@
 package net.weavemc.gradle.configuration
 
 import com.grappenmaker.mappings.aw.*
-import com.grappenmaker.mappings.remap.*
+import com.grappenmaker.mappings.remap.remapJar
 import kotlinx.serialization.Serializable
 import net.weavemc.gradle.loadMergedMappings
 import net.weavemc.gradle.sourceSets
@@ -20,7 +20,7 @@ private inline fun <reified T> String?.decodeJSON() =
 /**
  * Pulls dependencies from [addMinecraftAssets] and [addMappedMinecraft]
  */
-fun Project.pullDeps(ext: WeaveMinecraftExtension, version: MinecraftVersion, namespace: String) {
+public fun Project.pullDeps(ext: WeaveMinecraftExtension, version: MinecraftVersion, namespace: String): Unit {
     addMinecraftAssets(version)
     addMappedMinecraft(ext, version, namespace)
 }

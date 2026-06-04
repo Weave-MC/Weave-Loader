@@ -9,14 +9,14 @@ import net.minecraft.entity.Entity
  *
  * @property entity The entity being added/removed.
  */
-sealed class EntityListEvent(val entity: Entity) : Event() {
+public sealed class EntityListEvent(public val entity: Entity) : Event() {
     /**
      * This is called when an entity is added to the world.
      */
-    class Add(entity: Entity) : EntityListEvent(entity)
+    public class Add(entity: Entity) : EntityListEvent(entity)
 
     /**
      * This is called when an entity is removed from the world.
      */
-    class Remove(entity: Entity) : EntityListEvent(entity)
+    public class Remove(entity: Entity) : EntityListEvent(entity)
 }

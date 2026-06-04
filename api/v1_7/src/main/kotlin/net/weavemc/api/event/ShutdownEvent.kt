@@ -8,4 +8,4 @@ import net.minecraft.client.Minecraft
  * Therefore, [ShutdownEvent] is called by the [EventBus] only in the event that
  * the client is being shut down.
  */
-object ShutdownEvent : Event()
+public object ShutdownEvent : Event()

@@ -10,16 +10,16 @@ import net.minecraft.network.Packet
  *
  * @property packet The packet being processed.
  */
-sealed class PacketEvent(var packet: Packet<*>) : CancellableEvent() {
+public sealed class PacketEvent(public var packet: Packet<*>) : CancellableEvent() {
     /**
-     * Called in correspondence with [net.minecraft.network.NetworkManager.scheduleOutboundPacket],
+     * Called in correspondence with [net.minecraft.network.NetworkManager.sendPacket],
      * which is called in the event that the client sends a packet to the server.
      *
      * When cancelled, packets are not sent to the server.
      *
      * @param packet The packet being sent.
      */
-    class Send(packet: Packet<*>) : PacketEvent(packet)
+    public class Send(packet: Packet<*>) : PacketEvent(packet)
 
     /**
      * Called in correspondence with [net.minecraft.network.NetworkManager.channelRead0],
@@ -29,5 +29,5 @@ sealed class PacketEvent(var packet: Packet<*>) : CancellableEvent() {
      *
      * @param packet The packet being received.
      */
-    class Receive(packet: Packet<*>) : PacketEvent(packet)
+    public class Receive(packet: Packet<*>) : PacketEvent(packet)
 }

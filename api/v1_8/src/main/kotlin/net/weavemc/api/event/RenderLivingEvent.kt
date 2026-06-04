@@ -13,20 +13,20 @@ import net.minecraft.entity.EntityLivingBase
  * @property y The `y` coordinate where the entity is being rendered this frame.
  * @property z The `z` coordinate where the entity is being rendered this frame.
  */
-sealed class RenderLivingEvent(
-    val renderer: RendererLivingEntity<EntityLivingBase>,
-    val entity: EntityLivingBase,
-    val x: Double,
-    val y: Double,
-    val z: Double,
-    val partialTicks: Float
+public sealed class RenderLivingEvent(
+    public val renderer: RendererLivingEntity<EntityLivingBase>,
+    public val entity: EntityLivingBase,
+    public val x: Double,
+    public val y: Double,
+    public val z: Double,
+    public val partialTicks: Float
 ) : CancellableEvent() {
     /**
      * This is called before an entity is rendered.
      *
      * If cancelled, the entity is not rendered.
      */
-    class Pre(
+    public class Pre(
         renderer: RendererLivingEntity<EntityLivingBase>,
         entity: EntityLivingBase,
         x: Double,
@@ -38,7 +38,7 @@ sealed class RenderLivingEvent(
     /**
      * This is called after an entity is rendered.
      */
-    class Post(
+    public class Post(
         renderer: RendererLivingEntity<EntityLivingBase>,
         entity: EntityLivingBase,
         x: Double,

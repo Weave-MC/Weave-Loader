@@ -17,15 +17,15 @@ import kotlinx.serialization.Serializable
  * @property compiledFor The version id this mod was compiled for
  */
 @Serializable
-data class ModConfig(
-    val name: String,
-    val modId: String,
-    val entryPoints: List<String> = emptyList(),
-    val mixinConfigs: List<String> = emptyList(),
-    val hooks: List<String> = emptyList(),
-    val tweakers: List<String> = emptyList(),
-    val accessWideners: List<String> = emptyList(),
-    val namespace: String,
-    val dependencies: List<String> = emptyList(),
-    val compiledFor: String? = null,
+public data class ModConfig(
+    public val name: String,
+    public val modId: String,
+    public val entryPoints: List<String> = emptyList(),
+    public val mixinConfigs: List<String> = emptyList(),
+    public val hooks: List<String> = emptyList(),
+    public val tweakers: List<String> = emptyList(),
+    public val accessWideners: List<String> = emptyList(),
+    public val namespace: String,
+    public val dependencies: List<String> = emptyList(),
+    public val compiledFor: String? = null,
 )

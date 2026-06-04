@@ -3,7 +3,7 @@ package net.weavemc.loader.impl.bootstrap
 import me.xtrm.klog.Appender
 import me.xtrm.klog.LogContext
 import me.xtrm.klog.dsl.klog
-import net.weavemc.loader.impl.util.getOrCreateDirectory
+import net.weavemc.internals.getOrCreateWeaveDir
 import java.io.FileOutputStream
 import java.io.PrintStream
 import java.nio.file.Files
@@ -21,7 +21,7 @@ import kotlin.io.path.deleteIfExists
 internal object WeaveLogAppender : Appender {
     private val newline = System.lineSeparator()
     private val formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy_HH-mm-ss")
-    private val logDir = getOrCreateDirectory("logs")
+    private val logDir = getOrCreateWeaveDir("logs")
     private val logFile = logDir.resolve("weave-loader-${LocalDateTime.now().format(formatter)}.log")
 
     private val stdoutStream = WrappingStream(System.out)

@@ -13,21 +13,21 @@ import net.minecraft.util.BlockPos
  * @param showInRoot If <code>true</code>, this command's name and aliases will be included in the suggestion list when the player requests completions for an empty command (e.g. typing only '/').
  * @param caseSensitive Determines whether the command name and aliases should match the input exactly or ignore casing.
  */
-abstract class Command @JvmOverloads constructor(
-    val name: String,
+public abstract class Command @JvmOverloads constructor(
+    public val name: String,
     vararg aliases: String = emptyArray(),
-    var exclusiveSuggestions: Boolean = false,
-    var showInRoot: Boolean = true,
-    var caseSensitive: Boolean = false
+    public var exclusiveSuggestions: Boolean = false,
+    public var showInRoot: Boolean = true,
+    public var caseSensitive: Boolean = false
 ) : Comparable<Command> {
-    private val names: List<String> = listOf(name, *aliases)
+    public val names: List<String> = listOf(name, *aliases)
 
     /**
      * Performs the command's action with the specified arguments.
      *
      * @param args Array of strings separated by whitespace following the initial command name i.e. <code>/command arg arg arg</code>.
      */
-    abstract fun execute(args: Array<String>)
+    public abstract fun execute(args: Array<String>)
 
     /**
      * Provides a list of suggestions for tab-completion based on the current arguments and the block the player is currently looking at.
@@ -36,7 +36,7 @@ abstract class Command @JvmOverloads constructor(
      * @param targetPos The block position the sender is currently looking at. May be <code>null</code> if the sender is not looking at a block.
      * @return An array of potential completion strings, or <code>null</code> if no suggestions are available.
      */
-    open fun getSuggestions(args: Array<String>, targetPos: BlockPos?): Array<String>? = null
+    public open fun getSuggestions(args: Array<String>, targetPos: BlockPos?): Array<String>? = null
 
     /**
      * Merges and reorders suggestions when [exclusiveSuggestions] is false.
@@ -51,7 +51,7 @@ abstract class Command @JvmOverloads constructor(
      * @param serverSuggestions The suggestions received from the server.
      * @return A consolidated and ordered array of strings to be displayed in the chat GUI.
      */
-    open fun orderSuggestions(ownSuggestions: Array<String>, serverSuggestions: Array<String>): Array<String> =
+    public open fun orderSuggestions(ownSuggestions: Array<String>, serverSuggestions: Array<String>): Array<String> =
         (serverSuggestions + ownSuggestions).distinctLast()
 
     /**
@@ -60,7 +60,7 @@ abstract class Command @JvmOverloads constructor(
      * @param message The input string to check against the command's names.
      * @return <code>true</code> if the message matches the name or an alias; <code>false</code> otherwise.
      */
-    open fun matches(message: String): Boolean =
+    public open fun matches(message: String): Boolean =
         names.any { message.equals(it, !caseSensitive) }
 
     /**
@@ -69,7 +69,7 @@ abstract class Command @JvmOverloads constructor(
      * @param message The input string to check; this may be a partial command name or empty.
      * @return A list of matching names and aliases that begin with the message.
      */
-    open fun matching(message: String): List<String> =
+    public open fun matching(message: String): List<String> =
         names.filter { it.startsWith(message, !caseSensitive) }
 
     override fun compareTo(other: Command): Int =

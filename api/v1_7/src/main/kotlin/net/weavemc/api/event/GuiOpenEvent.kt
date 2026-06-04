@@ -9,4 +9,4 @@ import net.minecraft.client.gui.GuiScreen
  *
  * @property screen The screen being opened.
  */
-class GuiOpenEvent(val screen: GuiScreen?) : CancellableEvent()
+public class GuiOpenEvent(public val screen: GuiScreen?) : CancellableEvent()

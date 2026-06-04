@@ -6,45 +6,45 @@ import net.weavemc.internals.ModConfig
 import org.gradle.api.provider.Property
 import kotlin.properties.Delegates
 
-interface WeaveMinecraftExtension {
-    val version: Property<MinecraftVersion>
-    val configuration: Property<ModConfig>
+public interface WeaveMinecraftExtension {
+    public val version: Property<MinecraftVersion>
+    public val configuration: Property<ModConfig>
 
-    fun version(versionString: String) = version.set(
+    public fun version(versionString: String): Unit = version.set(
         MinecraftVersion.fromVersionName(versionString) ?: error("Unknown version $versionString")
     )
 
-    fun configure(block: ConfigurationBuilder.() -> Unit) = configuration.set(buildConfiguration(block))
+    public fun configure(block: ConfigurationBuilder.() -> Unit): Unit = configuration.set(buildConfiguration(block))
 }
 
-inline fun buildConfiguration(block: ConfigurationBuilder.() -> Unit) = ConfigurationBuilder().also(block).backing
+public inline fun buildConfiguration(block: ConfigurationBuilder.() -> Unit): ModConfig = ConfigurationBuilder().also(block).backing
 
-class ConfigurationBuilder {
+public class ConfigurationBuilder {
     @PublishedApi
-    internal var backing = ModConfig("Unnamed mod", "unnamed-mod", namespace = "official")
+    internal var backing: ModConfig = ModConfig("Unnamed mod", "unnamed-mod", namespace = "official")
 
     private fun <T> mutatingProperty(initial: T, mut: ModConfig.(T) -> ModConfig) =
         Delegates.observable(initial) { _, _, n -> backing = backing.mut(n) }
 
-    var name by mutatingProperty(backing.name) { copy(name = it) }
-    var modId by mutatingProperty(backing.modId) { copy(modId = it) }
-    var namespace by mutatingProperty(backing.namespace) { copy(namespace = it) }
-    var dependencies by mutatingProperty(backing.dependencies) { copy(dependencies = it) }
-    var entryPoints by mutatingProperty(backing.entryPoints) { copy(entryPoints = it) }
-    var tweakers by mutatingProperty(backing.tweakers) { copy(tweakers = it) }
-    var accessWideners by mutatingProperty(backing.accessWideners) { copy(accessWideners = it) }
-    var hooks by mutatingProperty(backing.hooks) { copy(hooks = it) }
-    var mixinConfigs by mutatingProperty(backing.mixinConfigs) { copy(mixinConfigs = it) }
+    public var name: String by mutatingProperty(backing.name) { copy(name = it) }
+    public var modId: String by mutatingProperty(backing.modId) { copy(modId = it) }
+    public var namespace: String by mutatingProperty(backing.namespace) { copy(namespace = it) }
+    public var dependencies: List<String> by mutatingProperty(backing.dependencies) { copy(dependencies = it) }
+    public var entryPoints: List<String> by mutatingProperty(backing.entryPoints) { copy(entryPoints = it) }
+    public var tweakers: List<String> by mutatingProperty(backing.tweakers) { copy(tweakers = it) }
+    public var accessWideners: List<String> by mutatingProperty(backing.accessWideners) { copy(accessWideners = it) }
+    public var hooks: List<String> by mutatingProperty(backing.hooks) { copy(hooks = it) }
+    public var mixinConfigs: List<String> by mutatingProperty(backing.mixinConfigs) { copy(mixinConfigs = it) }
 
-    fun yarnMappings() {
+    public fun yarnMappings(): Unit {
         namespace = MappingsType.YARN.named
     }
 
-    fun mojangMappings() {
+    public fun mojangMappings(): Unit {
         namespace = MappingsType.MOJANG.named
     }
 
-    fun mcpMappings() {
+    public fun mcpMappings(): Unit {
         namespace = MappingsType.MCP.named
     }
 }

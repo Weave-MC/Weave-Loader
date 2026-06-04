@@ -15,7 +15,7 @@ import net.weavemc.api.event.SubscribeEvent
  * This implementation differs from Weave 0.x in that only the first matched command is executed.
  * If multiple commands share a name or aliases, the command registered earliest takes precedence.
  */
-object CommandBus {
+public object CommandBus {
     private val commands = mutableListOf<Command>()
 
     init {
@@ -31,7 +31,7 @@ object CommandBus {
      * @param commands The command instances to register.
      */
     @JvmStatic
-    fun register(vararg commands: Command) {
+    public fun register(vararg commands: Command) {
         this.commands.addAll(commands)
     }
 
