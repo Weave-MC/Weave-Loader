@@ -127,9 +127,16 @@ public class WeaveLoader(
     }
 
     private fun addCleanupHook() {
-        Runtime.getRuntime().addShutdownHook(Thread {
-            cacheManager.cleanup()
-        })
+        val enabled by systemProperty(
+            key = "weave.cache.cleanup.enabled",
+            defaultValue = true
+        )
+
+        if (enabled) {
+            Runtime.getRuntime().addShutdownHook(Thread {
+                cacheManager.cleanup()
+            })
+        }
     }
 
     private fun addMinecraftApi() {
@@ -178,8 +185,12 @@ public class WeaveLoader(
         val localRepo = LocalRepository(localRepoPath)
 
         session.localRepositoryManager = system.newLocalRepositoryManager(session, localRepo)
-        // TODO: Remove
-        session.isOffline = true
+
+        val isOffline by systemProperty(
+            key = "weave.repo.offline.enabled",
+            defaultValue = false
+        )
+        session.isOffline = isOffline
 
         // in case it does not exist in the local repo
         val repo = RemoteRepository.Builder("weave-api-repo", "default", remoteRepoUrl)
