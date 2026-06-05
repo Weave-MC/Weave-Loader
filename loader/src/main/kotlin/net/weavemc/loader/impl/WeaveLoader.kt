@@ -120,23 +120,9 @@ public class WeaveLoader(
         INSTANCE = this
         launchStart = System.currentTimeMillis()
         instrumentation.addTransformer(InjectionHandler)
-        addCleanupHook()
         addMinecraftApi()
 
         finalize()
-    }
-
-    private fun addCleanupHook() {
-        val enabled by systemProperty(
-            key = "weave.cache.cleanup.enabled",
-            defaultValue = true
-        )
-
-        if (enabled) {
-            Runtime.getRuntime().addShutdownHook(Thread {
-                cacheManager.cleanup()
-            })
-        }
     }
 
     private fun addMinecraftApi() {
@@ -278,6 +264,19 @@ public class WeaveLoader(
                     }
                 }
             }
+        }
+
+        tryCleanUpCache()
+    }
+
+    private fun tryCleanUpCache() {
+        val enabled by systemProperty(
+            key = "weave.cache.cleanup.enabled",
+            defaultValue = true
+        )
+
+        if (enabled) {
+            cacheManager.cleanup()
         }
     }
 
