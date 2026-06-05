@@ -128,7 +128,7 @@ public class WeaveLoader(
     private fun addMinecraftApi() {
         val localRepoPath by systemProperty(
             key = "weave.repo.local.path",
-            defaultValue = getOrCreateWeaveDir("maven-repository").toString()
+            defaultValue = getOrCreateWeaveDir(".maven-repository").toString()
         )
         val remoteRepoUrl by systemProperty(
             key = "weave.repo.remote.url",
