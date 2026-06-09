@@ -67,27 +67,28 @@ public class CacheManager(public val cacheDirectory: Path) {
 
     private fun cleanupTimeAndLockFiles() {
         val currentTime = System.currentTimeMillis()
-        val duration = (duration + 10.seconds).inWholeMilliseconds
+        val duration = (duration - 10.seconds).inWholeMilliseconds
 
-        val outdatedTimes = cacheDirectory.listDirectoryEntries().mapNotNull { file ->
-            val targetTime = readTime(file) ?: return@mapNotNull null
+        val upToDateTimes = cacheDirectory.listDirectoryEntries().mapNotNull { file ->
+            val time = file.readRegex(timeFileRegex) ?: return@mapNotNull null
 
-            if (currentTime - targetTime < duration) return@mapNotNull null
-
-            try {
-                file.readRegex(timeFileRegex)
-            } finally {
-                file.deleteExisting()
+            fun Path.deleteAndNull(): Any? {
+                deleteExisting()
+                return null
             }
-        }
 
-        if (outdatedTimes.isEmpty()) return
+            val targetTime = readTime(file) ?: return@mapNotNull file.deleteAndNull()
+
+            if (currentTime - targetTime > duration) return@mapNotNull file.deleteAndNull()
+
+            time
+        } + PERMANENT_TIME_ID
 
         val outdatedLocks = cacheDirectory
             .listDirectoryEntries()
             .filter {
                 val lockId = it.readRegex(crc32LockRegex, 2) ?: return@filter false
-                lockId in outdatedTimes
+                lockId !in upToDateTimes
             }
 
         outdatedLocks.forEach(Path::deleteExisting)
@@ -111,7 +112,7 @@ public class CacheManager(public val cacheDirectory: Path) {
 
     public val String.cacheFile: Path get() = Path("$this.cache")
 
-    public val Path.lockFileUniversal: Path get() = resolveSibling("$fileName.lock.0")
+    public val Path.lockFileUniversal: Path get() = resolveSibling("$fileName.lock.$PERMANENT_TIME_ID")
 
     public val Path.lockFile: Path get() = resolveSibling("$fileName.lock.$id")
 
@@ -126,6 +127,8 @@ public class CacheManager(public val cacheDirectory: Path) {
     private fun Path.readRegex(regex: Regex, groupIndex: Int = 1) = regex.find(name)?.groupValues?.get(groupIndex)
 
     public companion object {
+        private const val PERMANENT_TIME_ID = "0"
+
         private val crc32CacheRegex = Regex("([a-fA-F0-9]{8})\\.cache")
         private val crc32LockRegex = Regex("([a-fA-F0-9]{8})\\.cache\\.lock\\.([0-9]+)")
         private val timeFileRegex = Regex("time\\.([0-9]+)")
