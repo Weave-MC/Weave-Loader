@@ -23,7 +23,7 @@ public abstract class Command @JvmOverloads constructor(
     /**
      * Performs the command's action with the specified arguments.
      *
-     * @param args Array of strings separated by whitespace following the initial command name i.e. <code>/command arg arg arg</code>.
+     * @param args an array of strings separated by whitespace, including the initial command name (e.g. <code>/command arg1 arg2 arg3</code> results in <code>["command", "arg1", "arg2", "arg3"]</code>).
      */
     public abstract fun execute(args: Array<String>)
 
