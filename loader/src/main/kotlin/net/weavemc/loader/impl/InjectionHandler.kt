@@ -20,22 +20,29 @@ import kotlin.random.Random
 import kotlin.random.nextUInt
 
 public object InjectionHandler : SafeTransformer {
+    private val logger by klog
+
     /**
      * JVM argument to dump bytecode to disk. Can be enabled by adding
-     * `-DdumpBytecode=true` to your JVM arguments when launching with Weave.
+     * `-Dweave.dump.bytecode.enabled=true` to your JVM arguments when launching with Weave.
      *
      * Defaults to `false`.
      */
-    public val dumpBytecode: Boolean = System.getProperty("dumpBytecode")?.toBoolean() ?: false
+    public val dumpBytecode: Boolean by systemProperty("weave.dump.bytecode.enabled", false)
 
     private val modifiers = mutableListOf<Modifier>()
 
     public fun registerModifier(modifier: Modifier) {
+        logger.debug("Registering modifier for namespace '${modifier.namespace}' targeting ${modifier.targets.size} classes")
         modifiers += modifier
     }
 
     private fun ClassNode.remap(from: String, to: String) {
-        if (from != to) remap(MappingsHandler.mapper(from, to))
+        if (from != to) {
+            val oldName = name
+            remap(MappingsHandler.mapper(from, to))
+            logger.trace("Remapped class $oldName -> $name (from $from to $to)")
+        }
     }
 
     override fun transform(
@@ -45,6 +52,8 @@ public object InjectionHandler : SafeTransformer {
     ): ByteArray? {
         val groupedModifiers = modifiers.filter { className in it.targets }.groupBy { it.namespace }
         if (groupedModifiers.isEmpty()) return null
+
+        logger.debug("Transforming $className with ${groupedModifiers.values.sumOf { it.size }} modifiers across ${groupedModifiers.size} namespaces")
 
         with(MappingsHandler) {
             val classReader = originalClass.asClassReader()
@@ -59,6 +68,10 @@ public object InjectionHandler : SafeTransformer {
                 val tempName = "potentialConflict${Random.nextUInt()}"
                 conflictsMapping["${node.name}.${m.name}${m.desc}"] = tempName
                 inverseConflictsMapping["${node.name}.${tempName}${m.desc}"] = m.name
+            }
+
+            if (conflictsMapping.isNotEmpty()) {
+                logger.trace("Preserving ${conflictsMapping.size} potential MixinMerged conflicts in $className")
             }
 
             // Hack: SimpleRemapper.map() can return null, and that breaks remap()
@@ -92,7 +105,10 @@ public object InjectionHandler : SafeTransformer {
                 val curr = nsOrder[i + 1]
 
                 node.remap(last, curr)
-                groupedModifiers[curr]?.forEach { it.apply(node, hookConfig) }
+                groupedModifiers[curr]?.forEach { modifier ->
+                    logger.trace("Applying modifier (${modifier.javaClass.simpleName}) on $className in namespace $curr")
+                    modifier.apply(node, hookConfig)
+                }
             }
 
             val classWriter = InjectionClassWriter(hookConfig.classWriterFlags, classReader)
@@ -101,16 +117,20 @@ public object InjectionHandler : SafeTransformer {
                 SimpleRemapper(Opcodes.ASM9, inverseConflictsMapping)
             ))
 
+            val transformedBytes = classWriter.toByteArray()
+
             if (dumpBytecode) {
                 val bytecodeOut = FileManager.DUMP_DIRECTORY.resolve("$className.class")
                     .also { it.parent.createDirectories() }.toFile()
 
                 runCatching {
-                    classWriter.toByteArray().dump(bytecodeOut.absolutePath)
-                }.onFailure { klog.error("Failed to dump bytecode for $bytecodeOut", it) }
+                    logger.trace("Dumping transformed bytecode for $className to $bytecodeOut")
+                    transformedBytes.dump(bytecodeOut.absolutePath)
+                }.onFailure { logger.error("Failed to dump bytecode for $bytecodeOut", it) }
             }
 
-            return classWriter.toByteArray()
+            logger.debug("Successfully transformed $className")
+            return transformedBytes
         }
     }
 }
@@ -172,19 +192,34 @@ public class InjectionClassWriter(
     }
 
     override fun getCommonSuperClass(type1: String, type2: String): String {
-        var class1 = bytesProvider(type1)?.asClassReader() ?: error("Failed to find type1 $type1")
-        val class2 = bytesProvider(type2)?.asClassReader() ?: error("Failed to find type2 $type2")
+        var class1 = bytesProvider(type1)?.asClassReader() ?: run {
+            logger.error("Failed to find class bytes for type1: $type1")
+            error("Failed to find type1 $type1")
+        }
+        val class2 = bytesProvider(type2)?.asClassReader() ?: run {
+            logger.error("Failed to find class bytes for type2: $type2")
+            error("Failed to find type2 $type2")
+        }
 
         return when {
             class1.isAssignableFrom(class2) -> type1
             class2.isAssignableFrom(class1) -> type2
             class1.asClassNode().isInterface() || class2.asClassNode().isInterface() -> "java/lang/Object"
             else -> {
-                while (!class1.isAssignableFrom(class2))
-                    class1 = bytesProvider(class1.superName)!!.asClassReader()
+                while (!class1.isAssignableFrom(class2)) {
+                    val superName = class1.superName
+                    class1 = bytesProvider(superName)?.asClassReader() ?: run {
+                        logger.error("Failed to load hierarchy superclass $superName while computing common superclass for $type1 and $type2")
+                        error("Failed to find superclass $superName")
+                    }
+                }
 
                 class1.className
             }
         }
+    }
+
+    private companion object {
+        private val logger by klog
     }
 }

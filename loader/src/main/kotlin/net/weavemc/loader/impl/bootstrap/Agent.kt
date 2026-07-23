@@ -88,7 +88,7 @@ private fun FileManager.ModJar.parseAndMap(): File =  JarFile(file).use {
     val compiledFor = config.compiledFor
 
     if (compiledFor != null && GameInfo.version != MinecraftVersion.fromVersionName(compiledFor)) {
-        val extra = if (!isSpecific) {
+        val extra = if (!isVersionSpecific) {
             " Hint: this mod was placed in the general mods folder. Consider putting mods in a version-specific mods folder"
         } else ""
 
@@ -106,7 +106,7 @@ private fun FileManager.ModJar.parseAndMap(): File =  JarFile(file).use {
 
 private suspend fun retrieveMods() = withContext(Dispatchers.IO) {
     FileManager
-        .getMods()
+        .mods
         .map { mod -> async { mod.parseAndMap() } }
         .awaitAll()
 }

@@ -126,6 +126,16 @@ public class WeaveLoader(
     }
 
     private fun addMinecraftApi() {
+        val minecraftApiEnabled by systemProperty(
+            key = "weave.api.minecraft.enabled",
+            defaultValue = true
+        )
+        if (!minecraftApiEnabled) {
+            logger.warn("Minecraft API is disabled")
+            logger.warn("Consider enabling it, as disabling it may break mods")
+            return
+        }
+
         val localRepoPath by systemProperty(
             key = "weave.repo.local.path",
             defaultValue = getOrCreateWeaveDir(".maven-repository").toString()
@@ -134,6 +144,12 @@ public class WeaveLoader(
             key = "weave.repo.remote.url",
             defaultValue = "https://gitlab.com/api/v4/projects/80566527/packages/maven" // https://gitlab.com/weave-mc/weave
         )
+        val isOffline by systemProperty(
+            key = "weave.repo.offline.enabled",
+            defaultValue = false
+        )
+
+        logger.debug("Initialising Maven repository system (Local: $localRepoPath, Remote: $remoteRepoUrl, Offline: $isOffline)")
 
         val locator = MavenRepositorySystemUtils.newServiceLocator().apply {
             addService(RepositoryConnectorFactory::class.java, BasicRepositoryConnectorFactory::class.java)
@@ -156,29 +172,21 @@ public class WeaveLoader(
 
             setErrorHandler(object : DefaultServiceLocator.ErrorHandler() {
                 override fun serviceCreationFailed(type: Class<*>?, impl: Class<*>?, exception: Throwable?) {
-                    exception?.printStackTrace()
+                    logger.error("Failed to create Maven service component of type '${type?.name}' (impl: '${impl?.name}')", exception)
                 }
             })
         }
 
-        val system = locator.getService(RepositorySystem::class.java)
-            ?: throw IllegalStateException("Could not initialize RepositorySystem")
+        val system = checkNotNull(locator.getService(RepositorySystem::class.java)) {
+            "Could not initialise Maven RepositorySystem"
+        }
 
-        val session = MavenRepositorySystemUtils.newSession()
-        session.checksumPolicy = RepositoryPolicy.CHECKSUM_POLICY_FAIL
+        val session = MavenRepositorySystemUtils.newSession().apply {
+            checksumPolicy = RepositoryPolicy.CHECKSUM_POLICY_FAIL
+            localRepositoryManager = system.newLocalRepositoryManager(this, LocalRepository(localRepoPath))
+            this.isOffline = isOffline
+        }
 
-        // check local repo first
-        val localRepo = LocalRepository(localRepoPath)
-
-        session.localRepositoryManager = system.newLocalRepositoryManager(session, localRepo)
-
-        val isOffline by systemProperty(
-            key = "weave.repo.offline.enabled",
-            defaultValue = false
-        )
-        session.isOffline = isOffline
-
-        // in case it does not exist in the local repo
         val repo = RemoteRepository.Builder("weave-api-repo", "default", remoteRepoUrl)
             .setPolicy(RepositoryPolicy(true, RepositoryPolicy.UPDATE_POLICY_DAILY, RepositoryPolicy.CHECKSUM_POLICY_FAIL))
             .build()
@@ -186,25 +194,31 @@ public class WeaveLoader(
         val coords = "net.weavemc.api" +
                 ":api-v${GameInfo.version.mappingName.replace('.', '_')}" +
                 ":${weaveLoaderData["version"]}"
+
         val artifactRequest = ArtifactRequest().apply {
             artifact = DefaultArtifact(coords)
             repositories = listOf(repo)
         }
 
-        logger.trace("Resolving Weave API ($coords)...")
+        logger.debug("Resolving Weave API artefact ($coords)...")
         val result = try {
             system.resolveArtifact(session, artifactRequest)
         } catch (e: Exception) {
-            logger.error("Failed to resolve Weave API ($coords)", e)
-
+            logger.error("Failed to resolve Weave API artefact ($coords)", e)
             return
         }
 
         val apiFile = result.artifact.file
+        logger.debug("Successfully resolved Weave API artefact to: ${apiFile.absolutePath}")
 
-        apiFile
-            .createRemappedCache(fromNamespace = JarFile(apiFile).configOrFatal().namespace)
-            .registerAsMod()
+        try {
+            apiFile
+                .createRemappedCache(fromNamespace = JarFile(apiFile).configOrFatal().namespace)
+                .registerAsMod()
+            logger.info("Successfully registered Minecraft API ($coords)")
+        } catch (e: Exception) {
+            logger.error("Failed to process and register Minecraft API ($coords) from file: ${apiFile.absolutePath}", e)
+        }
     }
 
     private fun finalize() {
@@ -270,12 +284,12 @@ public class WeaveLoader(
     }
 
     private fun tryCleanUpCache() {
-        val enabled by systemProperty(
+        val cacheCleanupEnabled by systemProperty(
             key = "weave.cache.cleanup.enabled",
             defaultValue = true
         )
 
-        if (enabled) {
+        if (cacheCleanupEnabled) {
             cacheManager.cleanup()
         }
     }

@@ -136,18 +136,31 @@ public fun File.createRemappedCache(
 ): File {
     fun Path.createLock() {
         val lock = cacheManager.createLock(this, tryDeleteOnExit = deleteOnExit)
-        runCatching { lock.writeText("original: $absolutePath") }
+        runCatching {
+            lock.writeText("original: $absolutePath")
+        }.onFailure { e ->
+            klog.warn("Failed to write lock metadata to $lock for $absolutePath", e)
+        }
     }
 
     val earlyCache = cacheManager.find(crc32sum)?.apply(Path::createLock)
     if (earlyCache != null) {
-        klog.debug("Found cached file of $absolutePath at ${earlyCache.absolutePathString()}")
-
+        klog.debug("Found cached remapped JAR for '$name' ($absolutePath) at '${earlyCache.absolutePathString()}'")
         return earlyCache.toFile()
     }
 
-    val copyTemp = Files.createTempFile("weave-loader-remap", ".jar")
-        .apply { toFile().deleteOnExit() }
+    klog.info("Remapping JAR '$name' from namespace '$fromNamespace'...")
+
+    val copyTemp = try {
+        Files.createTempFile("weave-loader-remap", ".jar").apply {
+            toFile().deleteOnExit()
+        }
+    } catch (e: Exception) {
+        klog.error("Failed to create temporary file for remapping '$name'", e)
+        throw e
+    }
+
+    klog.debug("Created temporary file for remapping at: ${copyTemp.absolutePathString()}")
 
     val time = measureTimeMillis {
         MappingsHandler.remapModJar(
@@ -162,10 +175,15 @@ public fun File.createRemappedCache(
     // ensure the file has been remapped successfully before copying to cache
     val cache = cacheManager.create(toPath()).apply(Path::createLock)
 
-    copyTemp.moveTo(cache, overwrite = true)
-    copyTemp.deleteIfExists()
+    try {
+        copyTemp.moveTo(cache, overwrite = true)
+        copyTemp.deleteIfExists()
+    } catch (e: Exception) {
+        klog.error("Failed to move remapped temp file '${copyTemp.absolutePathString()}' to cache location '${cache.absolutePathString()}'", e)
+        throw e
+    }
 
-    klog.debug("Took ${time}ms to remap mod jar from $absolutePath to ${cache.absolutePathString()}")
+    klog.debug("Successfully remapped '$name' ($absolutePath) to '${cache.absolutePathString()}' in ${time}ms")
 
     return cache.toFile()
 }

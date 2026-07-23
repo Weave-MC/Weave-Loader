@@ -5,68 +5,98 @@ import net.weavemc.internals.GameInfo
 import net.weavemc.internals.getOrCreateWeaveDir
 import java.io.File
 import java.nio.file.Path
+import java.nio.file.Paths
 import kotlin.io.path.*
 
-internal object FileManager {
+public object FileManager {
     private val logger by klog
-    val MODS_DIRECTORY = getOrCreateWeaveDir("mods")
-    val DUMP_DIRECTORY = getOrCreateWeaveDir(".bytecode.out")
 
-    fun getVanillaMinecraftJar(): File {
-        logger.trace("Searching for vanilla jar")
+    public val MODS_DIRECTORY: Path by systemProperty(
+        key = "weave.mods.directory",
+        defaultValueProvider = { getOrCreateWeaveDir("mods") }
+    )
 
-        val os = System.getProperty("os.name").lowercase()
-        run {
+    public val DUMP_DIRECTORY: Path by systemProperty(
+        key = "weave.dump.bytecode.directory",
+        defaultValueProvider = { getOrCreateWeaveDir(".bytecode.out") }
+    )
+
+    public val VANILLA_MINECRAFT_JAR: File by systemProperty(
+        key = "weave.vanilla.jar.path",
+        defaultValueProvider = {
+            logger.trace("Searching for vanilla jar")
+
+            val os = System.getProperty("os.name").lowercase()
             val userHome = System.getProperty("user.home", System.getenv("HOME") ?: System.getenv("USERPROFILE"))
+
             val minecraftPath = when {
-                os.contains("win") -> Path("AppData", "Roaming", ".minecraft")
-                os.contains("mac") -> Path("Library", "Application Support", "minecraft")
-                os.contains("nix") || os.contains("nux") || os.contains("aix") -> Path(".minecraft")
-                else -> return@run
+                os.contains("win") -> Paths.get("AppData", "Roaming", ".minecraft")
+                os.contains("mac") -> Paths.get("Library", "Application Support", "minecraft")
+                os.contains("nix") || os.contains("nux") || os.contains("aix") -> Paths.get(".minecraft")
+                else -> null
             }
 
-            val fullPath = Path(userHome).resolve(minecraftPath)
-            val regularPath = fullPath.resolve("versions")
-                .resolve(GameInfo.version.versionName)
-                .resolve("${GameInfo.version.versionName}.jar")
-            if (regularPath.exists()) {
-                return regularPath.toFile()
+            if (minecraftPath != null) {
+                val fullPath = Paths.get(userHome).resolve(minecraftPath)
+                val regularPath = fullPath.resolve("versions")
+                    .resolve(GameInfo.version.versionName)
+                    .resolve("${GameInfo.version.versionName}.jar")
+
+                if (regularPath.exists()) {
+                    logger.debug("Found vanilla jar at standard location: $regularPath")
+                    return@systemProperty regularPath.toFile()
+                }
             }
+
+            logger.trace("Trying to find vanilla jar in classpath")
+            val gameVersion = GameInfo.version.versionName
+            val mclPath = Paths.get("versions", gameVersion, "$gameVersion.jar")
+            val mmcPath = Paths.get("libraries", "com", "mojang", "minecraft", gameVersion, "minecraft-$gameVersion-client.jar")
+            val classpath = System.getProperty("java.class.path")
+            val paths = classpath?.split(File.pathSeparator)?.map { Paths.get(it) }
+
+            val foundJar = paths?.find { it.endsWith(mclPath) || it.endsWith(mmcPath) }?.toFile()
+            if (foundJar != null) {
+                logger.debug("Found vanilla jar via classpath: ${foundJar.path}")
+                return@systemProperty foundJar
+            }
+
+            logger.error("Failed to locate vanilla jar for version $gameVersion")
+            fatalError("Could not find vanilla jar for version $gameVersion")
         }
+    )
 
-        logger.trace("Trying to find vanilla jar in classpath")
-        val gameVersion = GameInfo.version.versionName
-        val mclPath = Path("versions", gameVersion, "$gameVersion.jar")
-        val mmcPath = Path("libraries", "com", "mojang", "minecraft", gameVersion, "minecraft-$gameVersion-client.jar")
-        val classpath = System.getProperty("java.class.path")
-        val paths = classpath?.split(File.pathSeparator)?.map { Path(it) }
-        return paths?.find { it.endsWith(mclPath) || it.endsWith(mmcPath) }?.toFile()
-            ?: fatalError("Could not find vanilla jar for version $gameVersion")
-    }
+    public val mods: List<ModJar> by systemProperty(
+        key = "weave.mods.override",
+        defaultValueProvider = {
+            logger.trace("Searching for mods in $MODS_DIRECTORY")
+            val baseMods = MODS_DIRECTORY.walkMods(isVersionSpecific = false)
+            logger.debug("Found ${baseMods.size} base mod files in $MODS_DIRECTORY")
 
-    /**
-     * Gets all mods in the `~/.weave/mods` directory.
-     */
-    fun getMods(): List<ModJar> {
-        val mods = mutableListOf<ModJar>()
+            val specificVersionDirectory = MODS_DIRECTORY.resolve(GameInfo.version.versionName)
+            val versionMods = if (specificVersionDirectory.exists() && specificVersionDirectory.isDirectory()) {
+                logger.trace("Searching for version-specific mods in $specificVersionDirectory")
+                specificVersionDirectory.walkMods(isVersionSpecific = true).also {
+                    logger.debug("Found ${it.size} version-specific mod files in $specificVersionDirectory")
+                }
+            } else {
+                emptyList()
+            }
 
-        logger.trace("Searching for mods in $MODS_DIRECTORY")
-        mods += MODS_DIRECTORY.walkMods()
-
-        val specificVersionDirectory = MODS_DIRECTORY.resolve(GameInfo.version.versionName)
-        if (specificVersionDirectory.exists() && specificVersionDirectory.isDirectory()) {
-            logger.trace("Searching for mods in $specificVersionDirectory")
-            mods += specificVersionDirectory.walkMods(true)
+            val totalMods = baseMods + versionMods
+            logger.info("Discovered ${totalMods.size} total mod files")
+            totalMods
+        },
+        parser = { propertyString: String ->
+            propertyString.split(File.pathSeparator)
+                .map { File(it) }
+                .map { ModJar(it, isVersionSpecific = true) }
         }
+    )
 
-        logger.info("Discovered ${mods.size} mod files")
-
-        return mods
-    }
-
-    private fun Path.walkMods(isSpecific: Boolean = false) = listDirectoryEntries("*.jar")
+    private fun Path.walkMods(isVersionSpecific: Boolean) = listDirectoryEntries("*.jar")
         .filter { it.isRegularFile() }
-        .map { ModJar(it.toFile(), isSpecific) }
+        .map { ModJar(it.toFile(), isVersionSpecific) }
 
-    data class ModJar(val file: File, val isSpecific: Boolean)
+    public data class ModJar(val file: File, val isVersionSpecific: Boolean)
 }

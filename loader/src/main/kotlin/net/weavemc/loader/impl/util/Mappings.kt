@@ -23,7 +23,7 @@ import kotlin.system.measureTimeMillis
 public object MappingsHandler {
     private val logger by klog
     public val relocationRemapper: Remapper? by lazy { createRelocationRemapper() }
-    public val vanillaJar: File by lazy { FileManager.getVanillaMinecraftJar() }
+    public val vanillaJar: File by lazy { FileManager.VANILLA_MINECRAFT_JAR }
     public val vanillaClassLoader: ClasspathLoader by lazy { ClasspathLoaders.fromJar(JarFile(vanillaJar)) }
     public val minecraftRuntimeJar: File by lazy {
         vanillaJar.createRemappedCache(fromNamespace = "official", classpath = emptyList(), deleteOnExit = false)
@@ -41,20 +41,26 @@ public object MappingsHandler {
         mappings
     }
 
-    public val environmentRuntimeNamespace: String by lazy {
-        System.getProperty("weave.environment.namespace") ?: when (GameInfo.client) {
-            MinecraftClient.LUNAR -> if (GameInfo.version < MinecraftVersion.V1_16_5) MCP.named else MOJANG.named
-            MinecraftClient.FORGE -> MCP.srg
-            MinecraftClient.VANILLA, MinecraftClient.LABYMOD, MinecraftClient.BADLION -> "official"
+    public val environmentRuntimeNamespace: String by systemProperty(
+        key = "weave.namespace.environment.runtime",
+        defaultValueProvider = {
+            when (GameInfo.client) {
+                MinecraftClient.LUNAR -> if (GameInfo.version < MinecraftVersion.V1_16_5) MCP.named else MOJANG.named
+                MinecraftClient.FORGE -> MCP.srg
+                MinecraftClient.VANILLA, MinecraftClient.LABYMOD, MinecraftClient.BADLION -> "official"
+            }
         }
-    }
+    )
 
-    public val environmentClasspathNamespace: String by lazy {
-        System.getProperty("weave.environment.namespace") ?: when (GameInfo.client) {
-            MinecraftClient.FORGE -> MCP.srg
-            MinecraftClient.LUNAR, MinecraftClient.VANILLA, MinecraftClient.LABYMOD, MinecraftClient.BADLION -> "official"
+    public val environmentClasspathNamespace: String by systemProperty(
+        key = "weave.namespace.environment.classpath",
+        defaultValueProvider = {
+            when (GameInfo.client) {
+                MinecraftClient.FORGE -> MCP.srg
+                MinecraftClient.LUNAR, MinecraftClient.VANILLA, MinecraftClient.LABYMOD, MinecraftClient.BADLION -> "official"
+            }
         }
-    }
+    )
 
     public fun classLoaderBytesProvider(expectedNamespace: String): (String) -> ByteArray? {
         val namesFrom = if (expectedNamespace != environmentClasspathNamespace) mergedMappings.mappings.asASMMapping(
