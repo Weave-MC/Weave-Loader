@@ -192,14 +192,11 @@ public class InjectionClassWriter(
     }
 
     override fun getCommonSuperClass(type1: String, type2: String): String {
-        var class1 = bytesProvider(type1)?.asClassReader() ?: run {
-            logger.error("Failed to find class bytes for type1: $type1")
-            error("Failed to find type1 $type1")
-        }
-        val class2 = bytesProvider(type2)?.asClassReader() ?: run {
-            logger.error("Failed to find class bytes for type2: $type2")
-            error("Failed to find type2 $type2")
-        }
+        fun getClassReader(type: String): ClassReader =
+            bytesProvider(type)?.asClassReader() ?: error("Failed to find class bytes for type: $type")
+
+        var class1 = getClassReader(type1)
+        val class2 = getClassReader(type2)
 
         return when {
             class1.isAssignableFrom(class2) -> type1
@@ -208,18 +205,12 @@ public class InjectionClassWriter(
             else -> {
                 while (!class1.isAssignableFrom(class2)) {
                     val superName = class1.superName
-                    class1 = bytesProvider(superName)?.asClassReader() ?: run {
-                        logger.error("Failed to load hierarchy superclass $superName while computing common superclass for $type1 and $type2")
-                        error("Failed to find superclass $superName")
-                    }
+                    class1 = bytesProvider(superName)?.asClassReader()
+                        ?: error("Failed to load superclass $superName while computing common superclass for $type1 and $type2")
                 }
 
                 class1.className
             }
         }
-    }
-
-    private companion object {
-        private val logger by klog
     }
 }

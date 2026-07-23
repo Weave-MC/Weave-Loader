@@ -56,8 +56,7 @@ public object MappingsHandler {
         key = "weave.namespace.environment.classpath",
         defaultValueProvider = {
             when (GameInfo.client) {
-                MinecraftClient.FORGE -> MCP.srg
-                MinecraftClient.LUNAR, MinecraftClient.VANILLA, MinecraftClient.LABYMOD, MinecraftClient.BADLION -> "official"
+                MinecraftClient.LUNAR, MinecraftClient.VANILLA, MinecraftClient.FORGE, MinecraftClient.LABYMOD, MinecraftClient.BADLION -> "official"
             }
         }
     )
