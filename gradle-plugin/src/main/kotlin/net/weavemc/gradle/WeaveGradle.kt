@@ -93,7 +93,7 @@ public class WeaveGradle : Plugin<Project> {
 }
 
 public fun MinecraftVersion.loadMergedMappings(): Mappings =
-    MappingsRetrieval.loadMergedWeaveMappings(versionName, minecraftJarCache).mappings
+    MappingsRetrieval.loadMergedWeaveMappings(mappingName, minecraftJarCache).mappings
 
 public val Project.sourceSets: SourceSetContainer
     get() = extensions.getByName<SourceSetContainer>("sourceSets")

@@ -6,23 +6,36 @@ import kotlin.properties.ReadOnlyProperty
 public enum class MinecraftVersion(
     public val protocol: Int,
     public val versionName: String,
+    public val majorVersion: String,
     public val mappingName: String,
     public vararg val aliases: String,
 ) {
-    V1_7_10(5, "1.7.10", "1.7", "1.7"),
-    V1_8_9(47, "1.8.9", "1.8", "1.8"),
-    V1_12_2(340, "1.12.2", "1.12", "1.12"),
-    V1_16_5(754, "1.16.5", "1.16", "1.16"),
-    V1_20_6(766, "1.20.6", "1.20","1.20"),
-    V1_21_11(774, "1.21.11", "1.21", "1.21");
+    V1_7_10(5, "1.7.10", "1.7", "1.7.10", "1.7"),
+    V1_8_9(47, "1.8.9", "1.8", "1.8.9", "1.8"),
+    V1_12_2(340, "1.12.2", "1.12", "1.12.2", "1.12"),
+    V1_16_5(754, "1.16.5", "1.16", "1.16.5", "1.16"),
+    V1_20_6(766, "1.20.6", "1.20", "1.20.6","1.20"),
+    V1_21_11(774, "1.21.11", "1.21", "1.21.11", "1.21");
 
     public companion object {
         public fun fromProtocol(protocol: Int): MinecraftVersion? = entries.find { it.protocol == protocol }
-        public fun fromVersionName(versionName: String): MinecraftVersion? =
-            entries.find { versionName.contains(it.versionName) }
-                ?: entries.find { it.aliases.any { alias -> versionName.contains(alias) } }
+
+        public fun fromVersionName(versionName: String): MinecraftVersion? = entries.find { versionName.contains(it.versionName) }
 
         public fun fromAlias(alias: String): MinecraftVersion? = entries.find { it.aliases.contains(alias) }
+
+        public fun parse(string: String): MinecraftVersion? = fromVersionName(string)
+            ?: fromAlias(string)
+            ?: string.splitToMajor().let { (p1, p2) ->
+                entries.find { entry ->
+                    entry
+                        .aliases
+                        .map { it.splitToMajor() }
+                        .any { (e1, e2) -> p1 == e1 && p2 == e2 }
+                }
+            }
+
+        private fun String.splitToMajor(): Pair<String, String> = split('.').take(2).let { (p1, p2) -> p1 to p2 }
     }
 }
 
@@ -57,7 +70,7 @@ public object GameInfo {
     }
 
     public val version: MinecraftVersion by lazy {
-        versionString.let(MinecraftVersion::fromVersionName) ?: error("Could not find game version")
+        versionString.let(MinecraftVersion::parse) ?: error("Could not find game version")
     }
 
     public val clientString: String by lazy {

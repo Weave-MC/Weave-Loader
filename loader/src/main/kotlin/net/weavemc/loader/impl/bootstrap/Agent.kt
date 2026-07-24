@@ -87,7 +87,7 @@ private fun FileManager.ModJar.parseAndMap(): File =  JarFile(file).use {
     val config = it.configOrFatal()
     val compiledFor = config.compiledFor
 
-    if (compiledFor != null && GameInfo.version != MinecraftVersion.fromVersionName(compiledFor)) {
+    if (compiledFor != null && GameInfo.version != MinecraftVersion.parse(compiledFor)) {
         val extra = if (!isVersionSpecific) {
             " Hint: this mod was placed in the general mods folder. Consider putting mods in a version-specific mods folder"
         } else ""

@@ -11,7 +11,7 @@ public interface WeaveMinecraftExtension {
     public val configuration: Property<ModConfig>
 
     public fun version(versionString: String): Unit = version.set(
-        MinecraftVersion.fromVersionName(versionString) ?: error("Unknown version $versionString")
+        MinecraftVersion.parse(versionString) ?: error("Unknown version $versionString")
     )
 
     public fun configure(block: ConfigurationBuilder.() -> Unit): Unit = configuration.set(buildConfiguration(block))

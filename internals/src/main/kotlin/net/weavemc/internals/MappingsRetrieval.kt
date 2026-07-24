@@ -88,17 +88,26 @@ public object MappingsRetrieval {
     public fun mcpMappingsStream(version: String, gameJar: File): InputStream? {
         val versionDecimal = version.substringAfter("1.").toDouble()
 
-        // TODO: figure out 1.12.2
-        if (versionDecimal == 12.2) return null
+        // apparently the MCP mappings for 1.12.2 is called 1.12
+        val mcpInternalVersion = if (versionDecimal == 12.2) "1.12" else version
         val joinedMappingsPath = if (versionDecimal >= 13) "config/joined.tsrg" else "joined.srg"
         val mappingsChannel = if (versionDecimal >= 15.1) "config" else "snapshot"
         if (versionDecimal >= 16) return null
 
         return mappingsCache(MCP, version).getOrPut {
             val url = "$forgeMavenRoot/mcp_$mappingsChannel/maven-metadata.xml"
-            val mcVersion = parseMCPVersions(url)[version] ?: error("Could not find version $version in $url")
-            val srgMappingsContent = mcVersion.srgNamesStream(versionDecimal >= 13).readEntries()
-            val mcpMappingsContent = mcVersion.mcpNamesStream().readEntries()
+            val mcVersion = parseMCPVersions(url)[mcpInternalVersion]
+                ?.copy(version = version)
+                ?: error("Could not find version $version in $url")
+
+            // use MCPVersion#version -> version
+            val srgMappingsContent = mcVersion
+                .srgNamesStream(versionDecimal >= 13)
+                .readEntries()
+            // use MCPVersion#fullVersion -> mcpInternalVersion
+            val mcpMappingsContent = mcVersion
+                .mcpNamesStream()
+                .readEntries()
 
             val joinedMappings = srgMappingsContent[joinedMappingsPath]
                 ?: error("Failed to find $joinedMappingsPath in SRG mappings zip")

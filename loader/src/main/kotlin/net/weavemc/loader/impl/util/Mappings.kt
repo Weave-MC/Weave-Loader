@@ -35,7 +35,7 @@ public object MappingsHandler {
 
         val mappings: WeaveMappings
         measureTimeMillis {
-            mappings = MappingsRetrieval.loadMergedWeaveMappings(GameInfo.version.versionName, vanillaJar)
+            mappings = MappingsRetrieval.loadMergedWeaveMappings(GameInfo.version.mappingName, vanillaJar)
         }.let { logger.info("Took ${it}ms to load mappings") }
 
         mappings

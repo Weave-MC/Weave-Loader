@@ -192,7 +192,7 @@ public class WeaveLoader(
             .build()
 
         val coords = "net.weavemc.api" +
-                ":api-v${GameInfo.version.mappingName.replace('.', '_')}" +
+                ":api-v${GameInfo.version.majorVersion.replace('.', '_')}" +
                 ":${weaveLoaderData["version"]}"
 
         val artifactRequest = ArtifactRequest().apply {
