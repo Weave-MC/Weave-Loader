@@ -18,3 +18,4 @@ rootProject.name = "api"
 
 include("v1_7")
 include("v1_8")
+include("v1_12")
