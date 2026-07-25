@@ -36,7 +36,18 @@ private fun Project.addMinecraftAssets(version: MinecraftVersion) {
     val client = versionInfo.downloads.client
     DownloadUtil.checksumAndDownload(URL(client.url), client.sha1, version.minecraftJarCache.toPath())
 
-    repositories.maven("https://libraries.minecraft.net/")
+    // prepend Mojang's repository so Gradle checks it before mavenCentral
+    // this is because some libraries may not exist in mavenCentral such as org.lwjgl:lwjgl-freetype:3.3.3:natives-macos-patch
+    val repositoryName = "MinecraftLibraries"
+    if (repositories.findByName(repositoryName) == null) {
+        val repository = repositories.maven {
+            it.name = repositoryName
+            it.url = uri("https://libraries.minecraft.net/")
+        }
+
+        repositories.remove(repository)
+        repositories.addFirst(repository)
+    }
 
     versionInfo.libraries.filter { "twitch-platform" !in it.name && "twitch-external" !in it.name }
         .forEach { dependencies.add("compileOnly", it.name) }
