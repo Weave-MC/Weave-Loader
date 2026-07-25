@@ -12,8 +12,8 @@ weave {
         name = "Weave-API"
         modId = "net.weavemc.api.${project.name}"
         hooks = listOf(
-            "ChatReceivedEventHook",
-            "ChatSentEventHook",
+            "ChatEventReceivedHook",
+            "ChatEventSentHook",
             "ClientConnectedToServerEventHook",
             "EntityListEventAddHook",
             "EntityListEventRemoveHook",

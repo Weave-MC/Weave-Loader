@@ -10,17 +10,17 @@ import net.weavemc.internals.named
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.LabelNode
 
-internal class ChatReceivedEventHook : Hook("net/minecraft/client/gui/GuiNewChat") {
+internal class ChatEventSentHook : Hook("net/minecraft/client/entity/EntityClientPlayerMP") {
     override fun transform(node: ClassNode, cfg: AssemblerConfig) {
-        node.methods.named("printChatMessageWithOptionalDeletion").instructions.insert(asm {
-            new(internalNameOf<ChatEvent.Received>())
+        node.methods.named("sendChatMessage").instructions.insert(asm {
+            new(internalNameOf<ChatEvent.Sent>())
             dup
             dup
             aload(1)
             invokespecial(
-                internalNameOf<ChatEvent.Received>(),
+                internalNameOf<ChatEvent.Sent>(),
                 "<init>",
-                "(Lnet/minecraft/util/IChatComponent;)V"
+                "(L${internalNameOf<String>()};)V"
             )
             postEvent()
 

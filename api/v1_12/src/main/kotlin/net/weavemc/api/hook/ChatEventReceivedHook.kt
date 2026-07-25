@@ -20,34 +20,7 @@ internal class ChatEventReceivedHook : Hook("net/minecraft/client/gui/GuiNewChat
             invokespecial(
                 internalNameOf<ChatEvent.Received>(),
                 "<init>",
-                "(Lnet/minecraft/util/IChatComponent;)V"
-            )
-            postEvent()
-
-            val end = LabelNode()
-
-            invokevirtual(internalNameOf<CancellableEvent>(), "isCancelled", "()Z")
-            ifeq(end)
-
-            _return
-
-            +end
-            f_same()
-        })
-    }
-}
-
-internal class ChatEventSentHook : Hook("net/minecraft/client/entity/EntityClientPlayerMP") {
-    override fun transform(node: ClassNode, cfg: AssemblerConfig) {
-        node.methods.named("sendChatMessage").instructions.insert(asm {
-            new(internalNameOf<ChatEvent.Sent>())
-            dup
-            dup
-            aload(1)
-            invokespecial(
-                internalNameOf<ChatEvent.Sent>(),
-                "<init>",
-                "(L${internalNameOf<String>()};)V"
+                "(Lnet/minecraft/util/text/ITextComponent;)V"
             )
             postEvent()
 
