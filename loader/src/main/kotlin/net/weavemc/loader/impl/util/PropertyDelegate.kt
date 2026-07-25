@@ -29,7 +29,24 @@ public class SystemPropertyDelegate<T>(
                 }
             }
         }
+
         return cachedValue as T
+    }
+
+    public operator fun setValue(thisRef: Any?, property: KProperty<*>, value: T?) {
+        val systemProperties = System.getProperties()!!
+
+        if (value == null) {
+            systemProperties.remove(key)
+        } else {
+            systemProperties[key] = value
+        }
+
+        if (cached) {
+            synchronized(this) {
+                cachedValue = value ?: parseValue()
+            }
+        }
     }
 
     private fun parseValue(): T {

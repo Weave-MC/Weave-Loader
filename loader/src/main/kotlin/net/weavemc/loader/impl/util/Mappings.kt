@@ -11,6 +11,7 @@ import me.xtrm.klog.dsl.klog
 import net.weavemc.internals.*
 import net.weavemc.internals.MappingsType.MCP
 import net.weavemc.internals.MappingsType.MOJANG
+import net.weavemc.internals.MappingsType.YARN
 import org.objectweb.asm.*
 import org.objectweb.asm.commons.ClassRemapper
 import org.objectweb.asm.commons.Remapper
@@ -47,6 +48,7 @@ public object MappingsHandler {
             when (GameInfo.client) {
                 MinecraftClient.LUNAR -> if (GameInfo.version < MinecraftVersion.V1_16_5) MCP.named else MOJANG.named
                 MinecraftClient.FORGE -> MCP.srg
+                MinecraftClient.FABRIC -> YARN.intermediary
                 MinecraftClient.VANILLA, MinecraftClient.LABYMOD, MinecraftClient.BADLION -> "official"
             }
         }
@@ -56,7 +58,7 @@ public object MappingsHandler {
         key = "weave.namespace.environment.classpath",
         defaultValueProvider = {
             when (GameInfo.client) {
-                MinecraftClient.LUNAR, MinecraftClient.VANILLA, MinecraftClient.FORGE, MinecraftClient.LABYMOD, MinecraftClient.BADLION -> "official"
+                else -> "official"
             }
         }
     )

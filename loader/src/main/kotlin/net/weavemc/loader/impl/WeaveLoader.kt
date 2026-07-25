@@ -7,6 +7,7 @@ import me.xtrm.klog.dsl.klog
 import net.weavemc.api.Hook
 import net.weavemc.api.ModInitializer
 import net.weavemc.internals.GameInfo
+import net.weavemc.internals.MinecraftClient
 import net.weavemc.internals.ModConfig
 import net.weavemc.internals.getOrCreateWeaveDir
 import net.weavemc.loader.impl.bootstrap.PublicButInternal
@@ -319,13 +320,39 @@ public class WeaveLoader(
     }
 
     private fun mixinForNamespace(namespace: String) = mixinInstances.getOrPut(namespace) {
+        var mixinServiceImpl: String? by systemProperty(
+            key = "mixin.service",
+            defaultValue = null
+        )
+        val originalMixinServiceImpl = mixinServiceImpl
+        var mixinBootstrapServiceImpl: String? by systemProperty(
+            key = "mixin.bootstrapService",
+            defaultValue = null
+        )
+        val originalMixinBootstrapServiceImpl = mixinBootstrapServiceImpl
+        val isFabric = GameInfo.client == MinecraftClient.FABRIC
+
         logger.debug("Creating a new SandboxedMixinLoader for namespace $namespace")
+
+        // Fabric's default mixin service and mixin bootstrap service are not compatible
+        if (isFabric) {
+            mixinServiceImpl = null
+            mixinBootstrapServiceImpl = null
+        }
+
         val parent = classLoader.weaveBacking
-        SandboxedMixinLoader(
+        val sandboxedMixinLoader = SandboxedMixinLoader(
             parent = parent,
             loader = ClasspathLoaders.fromLoader(parent)
                 .remappingNames(MappingsHandler.mergedMappings.mappings, "official", namespace),
         ).apply { state.initialize() }
+
+        if (isFabric) {
+            mixinServiceImpl = originalMixinServiceImpl
+            mixinBootstrapServiceImpl = originalMixinBootstrapServiceImpl
+        }
+
+        sandboxedMixinLoader
     }
 
     private fun populateMixinModifiers() {

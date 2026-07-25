@@ -1,15 +1,12 @@
 package net.weavemc.loader.impl.bootstrap
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import me.xtrm.klog.Level
 import me.xtrm.klog.dsl.klog
 import me.xtrm.klog.dsl.klogConfig
 import net.weavemc.api.Tweaker
 import net.weavemc.internals.GameInfo
+import net.weavemc.internals.MinecraftClient
 import net.weavemc.internals.MinecraftVersion
 import net.weavemc.internals.ModConfig
 import net.weavemc.loader.impl.WeaveLoader
@@ -51,8 +48,15 @@ public fun premain(opt: String?, inst: Instrumentation) {
     inst.retransformClasses(Class.forName("sun.management.RuntimeImpl", false, ClassLoader.getSystemClassLoader()))
     inst.removeTransformer(ArgumentSanitizer)
 
-    // Prevent ichor prebake
-    System.setProperty("ichor.prebakeClasses", "false")
+    when(GameInfo.client) {
+        // Force Fabric to use URLClassLoader implementation
+        MinecraftClient.FABRIC -> System.setProperty("fabric.loader.useCompatibilityClassLoader", "true")
+
+        // Prevent ichor prebake
+        MinecraftClient.LUNAR -> System.setProperty("ichor.prebakeClasses", "false")
+
+        else -> {}
+    }
 
     // Hack: sometimes the state is improperly initialized, which causes Swing to feel like it is headless?
     // Calling this solves the problem
