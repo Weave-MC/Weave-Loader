@@ -3,8 +3,7 @@ package net.weavemc.api.event
 import org.lwjgl.input.Keyboard
 
 /**
- * Keyboard Events are called when a key is pressed or released while [currentScreen][net.minecraft.client.Minecraft.currentScreen]
- * is `null`.
+ * Keyboard Events are called when a key is pressed or released.
  */
 public class KeyboardEvent : Event() {
     /**
