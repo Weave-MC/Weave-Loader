@@ -1,12 +1,28 @@
-package net.weavemc.loader.impl.bootstrap.cache
+package net.weavemc.loader.impl.util
 
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import me.xtrm.klog.dsl.klog
 import net.weavemc.internals.crc32sum
-import net.weavemc.loader.impl.util.systemProperty
 import java.nio.file.Path
-import java.util.*
-import kotlin.io.path.*
+import java.util.Random
+import kotlin.io.path.Path
+import kotlin.io.path.absolutePathString
+import kotlin.io.path.createDirectories
+import kotlin.io.path.createFile
+import kotlin.io.path.deleteExisting
+import kotlin.io.path.deleteIfExists
+import kotlin.io.path.div
+import kotlin.io.path.exists
+import kotlin.io.path.isRegularFile
+import kotlin.io.path.listDirectoryEntries
+import kotlin.io.path.name
+import kotlin.io.path.readText
+import kotlin.io.path.writeText
 import kotlin.math.abs
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.seconds
@@ -85,7 +101,7 @@ public class CacheManager(public val cacheDirectory: Path) {
         return lockFile
     }
 
-    public fun updateTime(): Unit {
+    public fun updateTime() {
         val now = System.currentTimeMillis()
 
         runCatching {

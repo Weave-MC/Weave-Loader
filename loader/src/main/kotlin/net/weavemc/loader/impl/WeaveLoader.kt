@@ -3,11 +3,14 @@ package net.weavemc.loader.impl
 import com.grappenmaker.mappings.ClasspathLoaders
 import com.grappenmaker.mappings.aw.*
 import com.grappenmaker.mappings.remappingNames
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.runBlocking
 import me.xtrm.klog.dsl.klog
 import net.weavemc.api.Hook
 import net.weavemc.api.ModInitializer
 import net.weavemc.internals.GameInfo
-import net.weavemc.internals.MinecraftClient
 import net.weavemc.internals.ModConfig
 import net.weavemc.internals.getOrCreateWeaveDir
 import net.weavemc.loader.impl.bootstrap.PublicButInternal
@@ -121,9 +124,42 @@ public class WeaveLoader(
         INSTANCE = this
         launchStart = System.currentTimeMillis()
         instrumentation.addTransformer(InjectionHandler)
-        addMinecraftApi()
 
         finalize()
+    }
+
+    private fun finalize() {
+        logger.trace("Finalizing Weave loading...")
+        addMinecraftApi()
+        mappedModJars.forEach { it.registerAsMod() }
+        logger.trace("Verifying dependencies")
+        verifyDependencies()
+        logger.trace("Populating mixin modifiers")
+        runBlocking { populateMixinModifiers() }
+        logger.trace("Setting up access wideners")
+        runBlocking { setupAccessWideners() }
+
+        logger.trace("Calling preInit() for mods")
+        // Invoke preInit() once everything is done.
+        mods.forEach { weaveMod ->
+            weaveMod.config.entryPoints.forEach { entrypoint ->
+                runCatching {
+                    logger.debug("Calling $entrypoint#preInit")
+                    instantiate<ModInitializer>(entrypoint)
+                }.onFailure {
+                    logger.error("Failed to instantiate $entrypoint#preInit: ${it.stackTraceToString()}")
+                }.onSuccess {
+                    runCatching {
+                        it.preInit(instrumentation)
+                    }.onFailure {
+                        logger.error("Exception thrown when invoking $entrypoint#preInit: ${it.stackTraceToString()}")
+                    }
+                }
+            }
+        }
+
+        logger.info("Weave initialized in ${System.currentTimeMillis() - launchStart}ms")
+        updateLaunchTimes()
     }
 
     private fun addMinecraftApi() {
@@ -222,40 +258,6 @@ public class WeaveLoader(
         }
     }
 
-    private fun finalize() {
-        logger.trace("Finalizing Weave loading...")
-        mappedModJars.forEach { it.registerAsMod() }
-        logger.trace("Verifying dependencies")
-        verifyDependencies()
-        logger.trace("Populating mixin modifiers")
-        populateMixinModifiers()
-        logger.trace("Setting up access wideners")
-        setupAccessWideners()
-
-        logger.trace("Calling preInit() for mods")
-        // TODO remove
-        // Invoke preInit() once everything is done.
-        mods.forEach { weaveMod ->
-            weaveMod.config.entryPoints.forEach { entrypoint ->
-                runCatching {
-                    logger.debug("Calling $entrypoint#preInit")
-                    instantiate<ModInitializer>(entrypoint)
-                }.onFailure {
-                    logger.error("Failed to instantiate $entrypoint#preInit: ${it.stackTraceToString()}")
-                }.onSuccess {
-                    runCatching {
-                        it.preInit(instrumentation)
-                    }.onFailure {
-                        logger.error("Exception thrown when invoking $entrypoint#preInit: ${it.stackTraceToString()}")
-                    }
-                }
-            }
-        }
-
-        logger.info("Weave initialized in ${System.currentTimeMillis() - launchStart}ms")
-        updateLaunchTimes()
-    }
-
     /**
      * Invokes Weave Mods' init. @see net.weavemc.api.ModInitializer
      * Invoked at the head of Minecraft's main method.
@@ -330,15 +332,12 @@ public class WeaveLoader(
             defaultValue = null
         )
         val originalMixinBootstrapServiceImpl = mixinBootstrapServiceImpl
-        val isFabric = GameInfo.client == MinecraftClient.FABRIC
-
-        logger.debug("Creating a new SandboxedMixinLoader for namespace $namespace")
 
         // Fabric's default mixin service and mixin bootstrap service are not compatible
-        if (isFabric) {
-            mixinServiceImpl = null
-            mixinBootstrapServiceImpl = null
-        }
+        mixinServiceImpl = null
+        mixinBootstrapServiceImpl = null
+
+        logger.debug("Creating a new SandboxedMixinLoader for namespace $namespace")
 
         val parent = classLoader.weaveBacking
         val sandboxedMixinLoader = SandboxedMixinLoader(
@@ -347,47 +346,79 @@ public class WeaveLoader(
                 .remappingNames(MappingsHandler.mergedMappings.mappings, "official", namespace),
         ).apply { state.initialize() }
 
-        if (isFabric) {
-            mixinServiceImpl = originalMixinServiceImpl
-            mixinBootstrapServiceImpl = originalMixinBootstrapServiceImpl
-        }
+        mixinServiceImpl = originalMixinServiceImpl
+        mixinBootstrapServiceImpl = originalMixinBootstrapServiceImpl
 
         sandboxedMixinLoader
     }
 
-    private fun populateMixinModifiers() {
-        for (ns in MappingsHandler.mergedMappings.mappings.namespaces) {
-            val state = mixinForNamespace(ns).state
-            val targets = state.findTargets(state.transformer)
-            if (targets.isEmpty()) continue
+    private suspend fun populateMixinModifiers() = coroutineScope {
+        val modifiers = MappingsHandler
+            .mergedMappings
+            .mappings
+            .namespaces
+            .map { ns ->
+                async {
+                    val state = mixinForNamespace(ns).state
+                    val targets = state.findTargets(state.transformer)
+                    if (targets.isEmpty()) return@async null
 
-            val mapper = MappingsHandler.mapper(ns, MappingsHandler.environmentRuntimeNamespace)
-            InjectionHandler.registerModifier(object : Modifier {
-                override val namespace = ns
-                override val targets = targets.mapTo(hashSetOf()) { mapper.map(it.replace('.', '/')) }
-                override fun apply(node: ClassNode, cfg: Hook.AssemblerConfig) {
-                    cfg.computeFrames()
-                    state.transform(node.name, node)
+                    val mapper = MappingsHandler.mapper(ns, MappingsHandler.environmentRuntimeNamespace)
+                    val mappedTargets = targets.mapTo(hashSetOf()) { mapper.map(it.replace('.', '/')) }
+
+                    object : Modifier {
+                        override val namespace = ns
+                        override val targets = mappedTargets
+                        override fun apply(node: ClassNode, cfg: Hook.AssemblerConfig) {
+                            cfg.computeFrames()
+                            state.transform(node.name, node)
+                        }
+                    }
                 }
-            })
+            }
+            .awaitAll()
+            .filterNotNull()
+
+        for (modifier in modifiers) {
+            InjectionHandler.registerModifier(modifier)
         }
     }
 
-    private fun setupAccessWideners() {
-        val tree = mods.asSequence().flatMap { it.config.accessWideners }.mapNotNull { aw ->
-            val res = javaClass.classLoader.getResourceAsStream(aw) ?: return@mapNotNull let {
-                logger.warn("Could not load access widener configuration $aw")
-                null
-            }
+    private suspend fun setupAccessWideners() = coroutineScope {
+        val widenerPaths = mods.flatMap { it.config.accessWideners }
+        if (widenerPaths.isEmpty()) {
+            return@coroutineScope
+        }
 
-            loadAccessWidener(res.readBytes().decodeToString().trim().lines())
-                .remap(MappingsHandler.mergedMappings.mappings, MappingsHandler.environmentRuntimeNamespace)
-        }.reduceOrNull { acc, curr -> acc + curr }?.toTree() ?: return
+        val remappedWideners = widenerPaths
+            .map { aw ->
+                async {
+                    val stream = javaClass.classLoader.getResourceAsStream(aw)
+                    if (stream == null) {
+                        logger.warn("Could not load access widener configuration $aw")
+                        return@async null
+                    }
+
+                    val lines = stream.use { it.readBytes().decodeToString().trim().lines() }
+
+                    loadAccessWidener(lines)
+                        .remap(
+                        MappingsHandler.mergedMappings.mappings,
+                        MappingsHandler.environmentRuntimeNamespace
+                    )
+                }
+            }
+            .awaitAll()
+            .filterNotNull()
+        if (remappedWideners.isEmpty()) {
+            return@coroutineScope
+        }
+
+        val tree = remappedWideners.reduce { acc, curr -> acc + curr }.toTree()
 
         InjectionHandler.registerModifier(object : Modifier {
             override val namespace = MappingsHandler.environmentRuntimeNamespace
             override val targets = tree.classes.mapTo(hashSetOf()) { it.key }
-
             override fun apply(node: ClassNode, cfg: Hook.AssemblerConfig) = node.applyWidener(tree)
         })
     }
