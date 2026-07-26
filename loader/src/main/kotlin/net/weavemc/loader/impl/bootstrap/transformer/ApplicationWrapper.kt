@@ -75,7 +75,12 @@ public object ApplicationWrapper {
                     "Therefore, the game will be wrapped into a new ClassLoader"
         )
 
-        val mainClass = WrappingLoader().loadClass(targetMain)
+        val wrappingLoader = WrappingLoader()
+
+        // for ServiceLoader to work properly
+        Thread.currentThread().contextClassLoader = wrappingLoader
+
+        val mainClass = wrappingLoader.loadClass(targetMain)
 
         try {
             val type = MethodType.methodType(Void::class.javaPrimitiveType, args::class.java)
