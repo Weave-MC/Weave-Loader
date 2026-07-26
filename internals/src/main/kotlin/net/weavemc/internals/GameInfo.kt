@@ -45,6 +45,7 @@ public enum class MinecraftClient(
 ) {
     VANILLA("Vanilla"),
     FORGE("Forge", "MinecraftForge", "Minecraft Forge"),
+    FABRIC("Fabric"),
     LABYMOD("LabyMod", "Laby"),
     LUNAR("Lunar Client", "Lunar", "LunarClient"),
     BADLION("Badlion Client", "BLC", "Badlion", "BadlionClient");
