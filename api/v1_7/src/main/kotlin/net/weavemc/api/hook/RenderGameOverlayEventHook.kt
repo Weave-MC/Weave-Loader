@@ -10,7 +10,7 @@ import net.weavemc.internals.named
 import org.objectweb.asm.Opcodes.RETURN
 import org.objectweb.asm.tree.ClassNode
 
-internal class RenderGameOverlayHook : Hook(
+internal class RenderGameOverlayEventHook : Hook(
     "net/minecraft/client/gui/GuiIngame",
     "net/minecraftforge/client/GuiIngameForge"
 ) {
@@ -40,7 +40,5 @@ internal class RenderGameOverlayHook : Hook(
             )
             postEvent()
         })
-
-        cfg.computeFrames()
     }
 }

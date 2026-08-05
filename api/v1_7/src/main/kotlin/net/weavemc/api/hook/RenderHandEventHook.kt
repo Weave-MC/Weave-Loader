@@ -29,9 +29,9 @@ internal class RenderHandEventHook : Hook("net/minecraft/client/renderer/EntityR
             asm {
                 new(internalNameOf<RenderHandEvent>())
                 dup
-                dup
                 fload(1)
                 invokespecial(internalNameOf<RenderHandEvent>(), "<init>", "(F)V")
+                dup
 
                 postEvent()
 

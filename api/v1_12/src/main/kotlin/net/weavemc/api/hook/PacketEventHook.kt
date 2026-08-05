@@ -16,9 +16,9 @@ internal class PacketEventHook : Hook("net/minecraft/network/NetworkManager") {
             it.instructions.insert(asm {
                 new(internalNameOf<PacketEvent.Send>())
                 dup
-                dup
                 aload(1)
                 invokespecial(internalNameOf<PacketEvent.Send>(), "<init>", "(Lnet/minecraft/network/Packet;)V")
+                dup
                 postEvent()
 
                 val end = LabelNode()
@@ -30,15 +30,15 @@ internal class PacketEventHook : Hook("net/minecraft/network/NetworkManager") {
                 +end
                 invokevirtual(internalNameOf<PacketEvent.Send>(), "getPacket", "()Lnet/minecraft/network/Packet;")
                 astore(1)
-                f_same()
             })
         }
 
         node.methods.named("channelRead0").instructions.insert(asm {
             new(internalNameOf<PacketEvent.Receive>())
-            dup; dup
+            dup
             aload(2)
             invokespecial(internalNameOf<PacketEvent.Receive>(), "<init>", "(Lnet/minecraft/network/Packet;)V")
+            dup
             postEvent()
 
             val end = LabelNode()
@@ -50,7 +50,6 @@ internal class PacketEventHook : Hook("net/minecraft/network/NetworkManager") {
             +end
             invokevirtual(internalNameOf<PacketEvent.Receive>(), "getPacket", "()Lnet/minecraft/network/Packet;")
             astore(2)
-            f_same()
         })
 
         cfg.computeFrames()

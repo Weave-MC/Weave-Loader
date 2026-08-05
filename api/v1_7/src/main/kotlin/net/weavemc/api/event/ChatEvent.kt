@@ -8,7 +8,7 @@ public sealed class ChatEvent : CancellableEvent() {
      *
      * @property message The message being received, in the form of a [Chat Component][IChatComponent].
      */
-    public class Received(public val message: IChatComponent) : ChatEvent()
+    public class Received(public var message: IChatComponent) : ChatEvent()
 
     /**
      * This cancellable event is called when your client sends a chat message to the server.
@@ -18,5 +18,5 @@ public sealed class ChatEvent : CancellableEvent() {
      *
      * @property message The message that is going to be sent.
      */
-    public class Sent(public val message: String) : ChatEvent()
+    public class Sent(public var message: String) : ChatEvent()
 }

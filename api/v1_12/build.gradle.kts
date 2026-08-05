@@ -22,7 +22,7 @@ weave {
             "MouseEventHook",
             "PacketEventHook",
             "PlayerListEventHook",
-            "RenderGameOverlayHook",
+            "RenderGameOverlayEventHook",
             "RenderHandEventHook",
             "RenderLivingEventHook",
             "RenderWorldEventHook",
