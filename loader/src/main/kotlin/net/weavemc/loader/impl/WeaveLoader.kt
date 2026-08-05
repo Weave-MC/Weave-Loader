@@ -2,7 +2,7 @@ package net.weavemc.loader.impl
 
 import com.grappenmaker.mappings.ClasspathLoaders
 import com.grappenmaker.mappings.aw.*
-import com.grappenmaker.mappings.remappingNames
+import com.grappenmaker.mappings.remapping
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -340,10 +340,13 @@ public class WeaveLoader(
         logger.debug("Creating a new SandboxedMixinLoader for namespace $namespace")
 
         val parent = classLoader.weaveBacking
+        val mapper = MappingsHandler.mapper("official", namespace)
+        val unmapper = mapper.reverse()
         val sandboxedMixinLoader = SandboxedMixinLoader(
             parent = parent,
             loader = ClasspathLoaders.fromLoader(parent)
-                .remappingNames(MappingsHandler.mergedMappings.mappings, "official", namespace),
+                .remapping(mapper)
+                .let { { s: String -> it(unmapper.map(s)) } }
         ).apply { state.initialize() }
 
         mixinServiceImpl = originalMixinServiceImpl
