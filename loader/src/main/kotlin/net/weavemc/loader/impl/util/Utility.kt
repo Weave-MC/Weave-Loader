@@ -209,7 +209,8 @@ internal fun setGameInfo() {
 
     val client = when {
         classExists("com.moonsworth.lunar.genesis.Genesis") -> "lunar client"
-        classExists("net.minecraftforge.fml.common.Loader") -> "forge"
+        classExists("net.minecraftforge.fml.common.Loader")
+                || classExists("cpw.mods.fml.common.Loader") -> "forge"
         classExists("net.fabricmc.loader.api.FabricLoader") -> "fabric"
         GameInfo.commandLineArgs.contains("labymod") -> "labymod"
         else -> "vanilla"
