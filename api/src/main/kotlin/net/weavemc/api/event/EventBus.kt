@@ -59,7 +59,10 @@ public object EventBus {
         var curr: Class<*> = event.javaClass
 
         while (curr != Any::class.java) {
-            getListeners(curr).filterIsInstance<Consumer<T>>().forEach(Consumer { it.accept(event) })
+            getListeners(curr)
+                .filterIsInstance<Consumer<T>>()
+                .forEach { it.accept(event) }
+
             curr = curr.superclass
         }
     }
@@ -93,6 +96,10 @@ public object EventBus {
     private fun getListeners(event: Class<*>) = map.computeIfAbsent(event) { CopyOnWriteArrayList() }
 
     private class ReflectEventConsumer(val obj: Any, val method: Method) : Consumer<Event?> {
+        init {
+            method.isAccessible = true
+        }
+
         override fun accept(event: Event?) {
             method.invoke(obj, event)
         }
