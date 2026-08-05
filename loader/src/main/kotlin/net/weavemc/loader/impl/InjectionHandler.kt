@@ -106,7 +106,9 @@ public object InjectionHandler : SafeTransformer {
 
                 node.remap(last, curr)
                 groupedModifiers[curr]?.forEach { modifier ->
-                    logger.trace("Applying modifier (${modifier.javaClass.simpleName}) on $className in namespace $curr")
+                    fun Modifier.displayName() = if (this is ModHook) "Hook: ${hook.javaClass.name}" else javaClass.name
+
+                    logger.trace("Applying modifier (${modifier.displayName()}) on $className in namespace $curr")
                     modifier.apply(node, hookConfig)
                 }
             }

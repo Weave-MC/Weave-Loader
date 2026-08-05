@@ -7,7 +7,6 @@ import net.weavemc.internals.ModConfig
 import net.weavemc.internals.crc32sum
 import net.weavemc.internals.getOrCreateWeaveDir
 import net.weavemc.loader.impl.WeaveLoader
-import net.weavemc.loader.impl.bootstrap.cache.CacheManager
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodNode
