@@ -15,6 +15,7 @@ dependencies {
 
     implementation(libs.bundles.asm)
     implementation(libs.kxser.json)
+    implementation(libs.kotlin.metadata)
     implementation(libs.mappings)
     implementation(libs.weave.internals)
 }

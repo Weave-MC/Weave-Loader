@@ -13,6 +13,29 @@ dependencies {
     implementation(libs.mappings)
 }
 
+subprojects {
+    plugins.withId("maven-publish") {
+        configure<PublishingExtension> {
+            publications {
+                create<MavenPublication>("maven") {
+                    from(components["java"])
+                    artifact(tasks.named("dokkaJavadocJar"))
+
+                    groupId = "net.weavemc.api"
+                    artifactId = "api-${project.name}"
+                    this.version = libs.versions.weave.get()
+                }
+            }
+        }
+    }
+}
+
+allprojects {
+    tasks.withType<GenerateModuleMetadata>().configureEach {
+        dependsOn(tasks.named("dokkaJavadocJar"))
+    }
+}
+
 kotlin {
     explicitApi()
 }
@@ -21,6 +44,7 @@ publishing {
     publications {
         create<MavenPublication>("maven") {
             from(components["java"])
+            artifact(tasks.named("dokkaJavadocJar"))
 
             groupId = "net.weavemc.api"
             artifactId = project.name

@@ -24,6 +24,8 @@ import org.gradle.kotlin.dsl.getByName
 import org.gradle.kotlin.dsl.named
 import org.gradle.kotlin.dsl.register
 
+internal lateinit var ext: WeaveMinecraftExtension
+
 /**
  * Gradle build system plugin used to automate the setup of a modding environment.
  */
@@ -37,7 +39,7 @@ public class WeaveGradle : Plugin<Project> {
         // Applying our default plugins
         project.pluginManager.apply(JavaPlugin::class.java)
 
-        val ext = project.extensions.create(Constants.WEAVE_EXTENSION, WeaveMinecraftExtension::class)
+        ext = project.extensions.create(Constants.WEAVE_EXTENSION, WeaveMinecraftExtension::class)
 
         project.afterEvaluate {
             val configuration = ext.configuration.orNull

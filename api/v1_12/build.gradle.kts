@@ -46,15 +46,3 @@ dependencies {
     implementation(libs.weave.internals)
     implementation(projects.api)
 }
-
-publishing {
-    publications {
-        create<MavenPublication>("maven") {
-            from(components["java"])
-
-            groupId = "net.weavemc.api"
-            artifactId = "api-${project.name}"
-            this.version = version
-        }
-    }
-}

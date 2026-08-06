@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
-
 plugins {
     `kotlin-dsl`
 }
@@ -12,13 +10,10 @@ dependencies {
     implementation(libs.bundles.asm)
     implementation(libs.bundles.kotlin.plugins)
     implementation(libs.gradle.shadow)
+    implementation(libs.dokka.core)
+    implementation(libs.dokka.javadoc)
 }
 
 kotlin {
     jvmToolchain(17)
-
-    compilerOptions {
-        languageVersion = KotlinVersion.KOTLIN_2_3
-        apiVersion = KotlinVersion.KOTLIN_2_3
-    }
 }
