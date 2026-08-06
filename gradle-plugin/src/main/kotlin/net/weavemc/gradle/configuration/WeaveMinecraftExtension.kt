@@ -36,15 +36,15 @@ public class ConfigurationBuilder {
     public var hooks: List<String> by mutatingProperty(backing.hooks) { copy(hooks = it) }
     public var mixinConfigs: List<String> by mutatingProperty(backing.mixinConfigs) { copy(mixinConfigs = it) }
 
-    public fun yarnMappings(): Unit {
+    public fun yarnMappings() {
         namespace = MappingsType.YARN.named
     }
 
-    public fun mojangMappings(): Unit {
+    public fun mojangMappings() {
         namespace = MappingsType.MOJANG.named
     }
 
-    public fun mcpMappings(): Unit {
+    public fun mcpMappings() {
         namespace = MappingsType.MCP.named
     }
 }

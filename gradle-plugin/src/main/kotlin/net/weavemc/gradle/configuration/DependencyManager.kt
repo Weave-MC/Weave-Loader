@@ -20,7 +20,7 @@ private inline fun <reified T> String?.decodeJSON() =
 /**
  * Pulls dependencies from [addMinecraftAssets] and [addMappedMinecraft]
  */
-public fun Project.pullDeps(ext: WeaveMinecraftExtension, version: MinecraftVersion, namespace: String): Unit {
+public fun Project.pullDeps(ext: WeaveMinecraftExtension, version: MinecraftVersion, namespace: String) {
     addMinecraftAssets(version)
     addMappedMinecraft(ext, version, namespace)
 }

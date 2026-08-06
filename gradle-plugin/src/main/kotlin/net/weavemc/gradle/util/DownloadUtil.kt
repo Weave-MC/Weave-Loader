@@ -74,7 +74,7 @@ public object DownloadUtil {
      * @param checksum The checksum to compare to.
      * @param path The path to download to.
      */
-    public fun checksumAndDownload(url: URL, checksum: String, path: Path): Unit {
+    public fun checksumAndDownload(url: URL, checksum: String, path: Path) {
         if (checksum(path) != checksum) download(url, path)
     }
 }
