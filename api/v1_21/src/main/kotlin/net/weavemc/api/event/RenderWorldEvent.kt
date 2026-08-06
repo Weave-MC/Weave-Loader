@@ -3,7 +3,7 @@ package net.weavemc.api.event
 import com.mojang.blaze3d.buffers.GpuBufferSlice
 import net.minecraft.client.render.Camera
 import net.minecraft.client.render.RenderTickCounter
-import net.minecraft.client.util.ObjectAllocator
+import net.minecraft.client.util.memory.ObjectAllocator
 import org.joml.Matrix4f
 import org.joml.Vector4f
 
