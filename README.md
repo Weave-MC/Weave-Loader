@@ -19,6 +19,7 @@ while supporting injection into clients that are somewhat closed-off to develope
 |---------|:------------------:|
 | Vanilla | :white_check_mark: |
 | Forge   | :white_check_mark: |
+| Fabric  | :white_check_mark: |
 | Lunar   | :white_check_mark: |
 | Badlion |        :x:         |
 | Feather |        :x:         |
@@ -26,21 +27,20 @@ while supporting injection into clients that are somewhat closed-off to develope
 
 </td><td>
     
-| Version |            Supported             |
-|---------|:--------------------------------:|
-| 1.7     | :white_check_mark:<sup>(1)</sub> |
-| 1.8     |        :white_check_mark:        |
-| 1.12    |        :white_check_mark:        |
-| 1.16    |        :white_check_mark:        |
-| 1.17    |        :white_check_mark:        |
-| 1.18    |        :white_check_mark:        |
-| 1.19    |        :white_check_mark:        |
-| 1.20    |        :white_check_mark:        |
+| Version |     Supported      |
+|---------|:------------------:|
+| 1.7     | :white_check_mark: |
+| 1.8     | :white_check_mark: |
+| 1.12    | :white_check_mark: |
+| 1.16    | :white_check_mark: |
+| 1.17    | :white_check_mark: |
+| 1.18    | :white_check_mark: |
+| 1.19    | :white_check_mark: |
+| 1.20    | :white_check_mark: |
+| 1.21    | :white_check_mark: |
 
 </td></tr>
 </table>
-
-<sup>(1)</sup>Currently, Weave does not work on Forge 1.7.
 
 **If you find any issues with supported clients, please report them to us.**
 
