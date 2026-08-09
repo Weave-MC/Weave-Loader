@@ -1,5 +1,6 @@
 package net.weavemc.loader.impl
 
+import com.grappenmaker.mappings.ClasspathLoader
 import com.grappenmaker.mappings.ClasspathLoaders
 import com.grappenmaker.mappings.aw.*
 import com.grappenmaker.mappings.remapping
@@ -340,7 +341,7 @@ public class WeaveLoader(
         logger.debug("Creating a new SandboxedMixinLoader for namespace $namespace")
 
         val parent = classLoader.weaveBacking
-        val mapper = MappingsHandler.mapper("official", namespace)
+        val mapper = MappingsHandler.mapper(MappingsHandler.environmentClasspathNamespace, namespace)
         val unmapper = mapper.reverse()
         val sandboxedMixinLoader = SandboxedMixinLoader(
             parent = parent,
