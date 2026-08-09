@@ -118,7 +118,7 @@ public class ConcurrentJarRemapper {
     }
 
     @OptIn(ExperimentalJarRemapper::class)
-    internal class ConcurrentContext(
+    private class ConcurrentContext(
         val mappings: Mappings,
         tasks: List<JarRemapTask>,
         val loader: ClasspathLoader,
