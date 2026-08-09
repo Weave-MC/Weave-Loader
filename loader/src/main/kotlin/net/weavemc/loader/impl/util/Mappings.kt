@@ -151,6 +151,11 @@ public object MappingsHandler {
         classpath: List<File> = listOf(),
         concurrentRemapping: Boolean = false,
     ) {
+        if (from == to) {
+            input.copyTo(output, overwrite = true)
+            return
+        }
+
         val jarsToUse = classpath.map { JarFile(it) }
 
         if (concurrentRemapping) {
