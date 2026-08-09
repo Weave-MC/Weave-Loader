@@ -6,12 +6,9 @@ import com.grappenmaker.mappings.asASMMapping
 import com.grappenmaker.mappings.format.Mappings
 import com.grappenmaker.mappings.remap.*
 import com.grappenmaker.mappings.remappingNames
-import kotlinx.coroutines.runBlocking
 import me.xtrm.klog.dsl.klog
 import net.weavemc.internals.*
-import net.weavemc.internals.MappingsType.MCP
-import net.weavemc.internals.MappingsType.MOJANG
-import net.weavemc.internals.MappingsType.YARN
+import net.weavemc.internals.MappingsType.*
 import org.objectweb.asm.*
 import org.objectweb.asm.commons.ClassRemapper
 import org.objectweb.asm.commons.Remapper
@@ -27,7 +24,7 @@ public object MappingsHandler {
     public val vanillaJar: File by lazy { FileManager.VANILLA_MINECRAFT_JAR }
     public val vanillaClassLoader: ClasspathLoader by lazy { ClasspathLoaders.fromJar(JarFile(vanillaJar)) }
     public val minecraftRuntimeJar: File by lazy {
-        vanillaJar.createRemappedCache(fromNamespace = "official", classpath = emptyList(), deleteOnExit = false)
+        vanillaJar.createRemappedCache(fromNamespace = "official", classpath = emptyList(), deleteOnExit = false, concurrentRemapping = true)
     }
 
     public val mergedMappings: WeaveMappings by lazy {
@@ -145,19 +142,36 @@ public object MappingsHandler {
     }
 
     @OptIn(ExperimentalJarRemapper::class)
-    public fun remapModJar(
+    public suspend fun remapModJar(
         mappings: Mappings,
         input: File,
         output: File,
         from: String = "official",
         to: String = environmentRuntimeNamespace,
         classpath: List<File> = listOf(),
+        concurrentRemapping: Boolean = false,
     ) {
         val jarsToUse = classpath.map { JarFile(it) }
 
-        runBlocking {
-            // TODO: we can make things a lot more efficient by using
-            // TODO: multithreading and grouping mods by namespace
+        if (concurrentRemapping) {
+            performConcurrentRemap {
+                copyResources = true
+                normalizeConstantPool = true
+                this.mappings = mappings
+                loader = ClasspathLoaders.compound(
+                    ClasspathLoaders.fromJars(jarsToUse).remappingNames(
+                        mappings = mergedMappings.mappings,
+                        from = "official",
+                        to = from,
+                    ),
+                    classLoaderBytesProvider(from)
+                )
+                extension(mixinUnmapperExtension)
+
+                task(input.toPath(), output.toPath(), from, to)
+                if (relocationRemapper != null) visitClasses { _, visitor -> ClassRemapper(visitor, relocationRemapper) }
+            }
+        } else {
             performRemap {
                 copyResources = true
                 normalizeConstantPool = true
@@ -176,6 +190,7 @@ public object MappingsHandler {
                 if (relocationRemapper != null) visitClasses { _, visitor -> ClassRemapper(visitor, relocationRemapper) }
             }
         }
+
 //        remapJar(
 //            mappings, input, output, from, to, ClasspathLoaders.fromJars(jarsToUse).remappingNames(
 //                mappings = mergedMappings.mappings,

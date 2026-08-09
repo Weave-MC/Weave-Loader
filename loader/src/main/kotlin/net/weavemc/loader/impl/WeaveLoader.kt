@@ -250,7 +250,7 @@ public class WeaveLoader(
 
         try {
             apiFile
-                .createRemappedCache(fromNamespace = JarFile(apiFile).configOrFatal().namespace)
+                .createRemappedCache(fromNamespace = JarFile(apiFile).configOrFatal().namespace, concurrentRemapping = false)
                 .registerAsMod()
             logger.info("Successfully registered Minecraft API ($coords)")
         } catch (e: Exception) {

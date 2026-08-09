@@ -105,7 +105,7 @@ private fun FileManager.ModJar.parseAndMap(): File =  JarFile(file).use {
         fatalError("Mod ${config.modId} was mapped in namespace ${config.namespace}, which is not available!")
     }
 
-    file.createRemappedCache(fromNamespace = config.namespace)
+    file.createRemappedCache(fromNamespace = config.namespace, concurrentRemapping = true)
 }
 
 private suspend fun retrieveMods() = withContext(Dispatchers.IO) {

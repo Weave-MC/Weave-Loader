@@ -1,5 +1,6 @@
 package net.weavemc.loader.impl.util
 
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import me.xtrm.klog.dsl.klog
 import net.weavemc.internals.GameInfo
@@ -128,10 +129,21 @@ public val cacheManager: CacheManager by lazy {
     )
 }
 
+@Deprecated("Use createRemappedCache() with concurrentRemappingOption instead")
 public fun File.createRemappedCache(
     fromNamespace: String,
     classpath: List<File> = listOf(MappingsHandler.minecraftRuntimeJar),
     deleteOnExit: Boolean = true,
+): File = createRemappedCache(fromNamespace, classpath, deleteOnExit, false)
+
+/**
+ * @param concurrentRemapping Set to `false` to avoid classloader locking.
+ */
+public fun File.createRemappedCache(
+    fromNamespace: String,
+    classpath: List<File> = listOf(MappingsHandler.minecraftRuntimeJar),
+    deleteOnExit: Boolean = true,
+    concurrentRemapping: Boolean = false,
 ): File {
     fun Path.createLock() {
         val lock = cacheManager.createLock(this, tryDeleteOnExit = deleteOnExit)
@@ -162,13 +174,16 @@ public fun File.createRemappedCache(
     klog.debug("Created temporary file for remapping at: ${copyTemp.absolutePathString()}")
 
     val time = measureTimeMillis {
-        MappingsHandler.remapModJar(
-            mappings = MappingsHandler.mergedMappings.mappings,
-            input = this,
-            output = copyTemp.toFile(),
-            classpath = classpath,
-            from = fromNamespace
-        )
+        runBlocking {
+            MappingsHandler.remapModJar(
+                mappings = MappingsHandler.mergedMappings.mappings,
+                input = this@createRemappedCache,
+                output = copyTemp.toFile(),
+                classpath = classpath,
+                from = fromNamespace,
+                concurrentRemapping = concurrentRemapping,
+            )
+        }
     }
 
     // ensure the file has been remapped successfully before copying to cache
