@@ -3,11 +3,37 @@ plugins {
     id("config-publish")
 }
 
+group = "net.weavemc.api"
+version = libs.versions.weave.get()
+
 dependencies {
     api(libs.bundles.asm)
-    implementation(libs.internals)
+    implementation(libs.weave.internals)
     implementation(libs.kxser.json)
     implementation(libs.mappings)
+}
+
+subprojects {
+    plugins.withId("maven-publish") {
+        configure<PublishingExtension> {
+            publications {
+                create<MavenPublication>("maven") {
+                    from(components["java"])
+                    artifact(tasks.named("dokkaJavadocJar"))
+
+                    groupId = "net.weavemc.api"
+                    artifactId = "api-${project.name}"
+                    this.version = libs.versions.weave.get()
+                }
+            }
+        }
+    }
+}
+
+allprojects {
+    tasks.withType<GenerateModuleMetadata>().configureEach {
+        dependsOn(tasks.named("dokkaJavadocJar"))
+    }
 }
 
 kotlin {
@@ -18,10 +44,11 @@ publishing {
     publications {
         create<MavenPublication>("maven") {
             from(components["java"])
+            artifact(tasks.named("dokkaJavadocJar"))
 
             groupId = "net.weavemc.api"
             artifactId = project.name
-            version = libs.versions.api.get().toString()
+            this.version = version
         }
     }
 }

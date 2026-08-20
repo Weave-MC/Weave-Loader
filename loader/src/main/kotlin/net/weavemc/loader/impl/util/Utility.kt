@@ -1,9 +1,12 @@
 package net.weavemc.loader.impl.util
 
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import me.xtrm.klog.dsl.klog
 import net.weavemc.internals.GameInfo
 import net.weavemc.internals.ModConfig
+import net.weavemc.internals.crc32sum
+import net.weavemc.internals.getOrCreateWeaveDir
 import net.weavemc.loader.impl.WeaveLoader
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.tree.ClassNode
@@ -11,30 +14,16 @@ import org.objectweb.asm.tree.MethodNode
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.Paths
 import java.security.AccessController
 import java.security.PrivilegedAction
-import java.util.Properties
+import java.util.*
 import java.util.jar.JarFile
 import javax.swing.JOptionPane
 import kotlin.io.path.*
+import kotlin.system.measureTimeMillis
 
-/**
- * Grabs the directory for the specified directory, creating it if it doesn't exist.
- * If the file exists as a file and not a directory, it will be deleted.
- *
- * @param directory The directory to grab.
- * @return The specified directory: `"~/.weave/<directory>"`
- */
-internal fun getOrCreateDirectory(directory: String): Path {
-    val dir = Paths.get(System.getProperty("user.home"), ".weave", directory)
-    if (dir.exists() && !dir.isDirectory()) Files.delete(dir)
-    if (!dir.exists()) dir.createDirectories()
-    return dir
-}
-
-internal fun ByteArray.asClassReader(): ClassReader = ClassReader(this)
-internal fun ClassReader.asClassNode(): ClassNode = ClassNode().also { this.accept(it, 0) }
+public fun ByteArray.asClassReader(): ClassReader = ClassReader(this)
+public fun ClassReader.asClassNode(): ClassNode = ClassNode().also { this.accept(it, 0) }
 
 internal val JSON = Json { ignoreUnknownKeys = true }
 
@@ -130,20 +119,87 @@ internal fun JarFile.fetchModConfig(json: Json): ModConfig {
     return json.decodeFromString<ModConfig>(getInputStream(configEntry).readBytes().decodeToString())
 }
 
-public fun File.createRemappedTemp(name: String, fromNamespace: String, suffix: String = "-weavemod.jar"): File {
-    val temp = File.createTempFile(name, suffix)
-    MappingsHandler.remapModJar(
-        mappings = MappingsHandler.mergedMappings.mappings,
-        input = this,
-        output = temp,
-        classpath = listOf(FileManager.getVanillaMinecraftJar()),
-        from = fromNamespace
+public val cacheManager: CacheManager by lazy {
+    CacheManager(
+        getOrCreateWeaveDir(
+            ".cache",
+            "jars",
+            "${MappingsHandler.environmentRuntimeNamespace}_${GameInfo.version.versionName}"
+        )
     )
+}
 
-    klog.debug("Remapped mod jar from ${temp.absolutePath} to ${temp.absolutePath}")
+@Deprecated("Use createRemappedCache() with concurrentRemappingOption instead")
+public fun File.createRemappedCache(
+    fromNamespace: String,
+    classpath: List<File> = listOf(MappingsHandler.minecraftRuntimeJar),
+    deleteOnExit: Boolean = true,
+): File = createRemappedCache(fromNamespace, classpath, deleteOnExit, false)
 
-    temp.deleteOnExit()
-    return temp
+/**
+ * @param concurrentRemapping Set to `false` to avoid classloader locking.
+ */
+public fun File.createRemappedCache(
+    fromNamespace: String,
+    classpath: List<File> = listOf(MappingsHandler.minecraftRuntimeJar),
+    deleteOnExit: Boolean = true,
+    concurrentRemapping: Boolean = false,
+): File {
+    fun Path.createLock() {
+        val lock = cacheManager.createLock(this, tryDeleteOnExit = deleteOnExit)
+        runCatching {
+            lock.writeText("original: $absolutePath")
+        }.onFailure { e ->
+            klog.warn("Failed to write lock metadata to $lock for $absolutePath", e)
+        }
+    }
+
+    val earlyCache = cacheManager.find(crc32sum)?.apply(Path::createLock)
+    if (earlyCache != null) {
+        klog.debug("Found cached remapped JAR for '$name' ($absolutePath) at '${earlyCache.absolutePathString()}'")
+        return earlyCache.toFile()
+    }
+
+    klog.info("Remapping JAR '$name' from namespace '$fromNamespace'...")
+
+    val copyTemp = try {
+        Files.createTempFile("weave-loader-remap", ".jar").apply {
+            toFile().deleteOnExit()
+        }
+    } catch (e: Exception) {
+        klog.error("Failed to create temporary file for remapping '$name'", e)
+        throw e
+    }
+
+    klog.debug("Created temporary file for remapping at: ${copyTemp.absolutePathString()}")
+
+    val time = measureTimeMillis {
+        runBlocking {
+            MappingsHandler.remapModJar(
+                mappings = MappingsHandler.mergedMappings.mappings,
+                input = this@createRemappedCache,
+                output = copyTemp.toFile(),
+                classpath = classpath,
+                from = fromNamespace,
+                concurrentRemapping = concurrentRemapping,
+            )
+        }
+    }
+
+    // ensure the file has been remapped successfully before copying to cache
+    val cache = cacheManager.create(toPath()).apply(Path::createLock)
+
+    try {
+        copyTemp.moveTo(cache, overwrite = true)
+        copyTemp.deleteIfExists()
+    } catch (e: Exception) {
+        klog.error("Failed to move remapped temp file '${copyTemp.absolutePathString()}' to cache location '${cache.absolutePathString()}'", e)
+        throw e
+    }
+
+    klog.debug("Successfully remapped '$name' ($absolutePath) to '${cache.absolutePathString()}' in ${time}ms")
+
+    return cache.toFile()
 }
 
 internal fun setGameInfo() {
@@ -168,7 +224,9 @@ internal fun setGameInfo() {
 
     val client = when {
         classExists("com.moonsworth.lunar.genesis.Genesis") -> "lunar client"
-        classExists("net.minecraftforge.fml.common.Loader") -> "forge"
+        classExists("net.minecraftforge.fml.common.Loader")
+                || classExists("cpw.mods.fml.common.Loader") -> "forge"
+        classExists("net.fabricmc.loader.api.FabricLoader") -> "fabric"
         GameInfo.commandLineArgs.contains("labymod") -> "labymod"
         else -> "vanilla"
     }

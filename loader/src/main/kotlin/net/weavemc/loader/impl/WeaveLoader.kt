@@ -1,11 +1,19 @@
 package net.weavemc.loader.impl
 
-import com.grappenmaker.mappings.*
-import me.xtrm.klog.Logger
+import com.grappenmaker.mappings.ClasspathLoader
+import com.grappenmaker.mappings.ClasspathLoaders
+import com.grappenmaker.mappings.aw.*
+import com.grappenmaker.mappings.remapping
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.runBlocking
+import me.xtrm.klog.dsl.klog
 import net.weavemc.api.Hook
 import net.weavemc.api.ModInitializer
 import net.weavemc.internals.GameInfo
 import net.weavemc.internals.ModConfig
+import net.weavemc.internals.getOrCreateWeaveDir
 import net.weavemc.loader.impl.bootstrap.PublicButInternal
 import net.weavemc.loader.impl.bootstrap.transformer.URLClassLoaderAccessor
 import net.weavemc.loader.impl.mixin.SandboxedMixinLoader
@@ -48,9 +56,7 @@ import org.eclipse.aether.transport.http.HttpTransporterFactory
 import org.objectweb.asm.tree.ClassNode
 import java.io.File
 import java.lang.instrument.Instrumentation
-import java.nio.file.Paths
 import java.util.jar.JarFile
-import kotlin.jvm.java
 
 /**
  * The main class of the Weave Loader.
@@ -60,7 +66,7 @@ public class WeaveLoader(
     private val instrumentation: Instrumentation,
     private val mappedModJars: List<File>
 ) {
-    private val logger = Logger(WeaveLoader::class.java.name)
+    private val logger by klog
 
     /**
      * Stored list of [WeaveMod]s.
@@ -78,7 +84,20 @@ public class WeaveLoader(
                 mixinConfigs = emptyList(),
                 hooks = emptyList(),
                 tweakers = emptyList(),
-                namespace = MappingsHandler.environmentNamespace,
+                namespace = MappingsHandler.environmentRuntimeNamespace,
+                dependencies = listOf("java"),
+                compiledFor = GameInfo.version.versionName
+            )
+        ),
+        WeaveMod(
+            modId = "java", config = ModConfig(
+                name = "Java",
+                modId = "java",
+                entryPoints = emptyList(),
+                mixinConfigs = emptyList(),
+                hooks = emptyList(),
+                tweakers = emptyList(),
+                namespace = MappingsHandler.environmentRuntimeNamespace,
                 dependencies = emptyList(),
                 compiledFor = GameInfo.version.versionName
             )
@@ -106,20 +125,69 @@ public class WeaveLoader(
         INSTANCE = this
         launchStart = System.currentTimeMillis()
         instrumentation.addTransformer(InjectionHandler)
-        addMinecraftApi()
 
         finalize()
     }
 
+    private fun finalize() {
+        logger.trace("Finalizing Weave loading...")
+        addMinecraftApi()
+        mappedModJars.forEach { it.registerAsMod() }
+        logger.trace("Verifying dependencies")
+        verifyDependencies()
+        logger.trace("Populating mixin modifiers")
+        runBlocking { populateMixinModifiers() }
+        logger.trace("Setting up access wideners")
+        runBlocking { setupAccessWideners() }
+
+        logger.trace("Calling preInit() for mods")
+        // Invoke preInit() once everything is done.
+        mods.forEach { weaveMod ->
+            weaveMod.config.entryPoints.forEach { entrypoint ->
+                runCatching {
+                    logger.debug("Calling $entrypoint#preInit")
+                    instantiate<ModInitializer>(entrypoint)
+                }.onFailure {
+                    logger.error("Failed to instantiate $entrypoint#preInit: ${it.stackTraceToString()}")
+                }.onSuccess {
+                    runCatching {
+                        it.preInit(instrumentation)
+                    }.onFailure {
+                        logger.error("Exception thrown when invoking $entrypoint#preInit: ${it.stackTraceToString()}")
+                    }
+                }
+            }
+        }
+
+        logger.info("Weave initialized in ${System.currentTimeMillis() - launchStart}ms")
+        updateLaunchTimes()
+    }
+
     private fun addMinecraftApi() {
+        val minecraftApiEnabled by systemProperty(
+            key = "weave.api.minecraft.enabled",
+            defaultValue = true
+        )
+        if (!minecraftApiEnabled) {
+            logger.warn("Minecraft API is disabled")
+            logger.warn("Consider enabling it, as disabling it may break mods")
+            return
+        }
+
         val localRepoPath by systemProperty(
             key = "weave.repo.local.path",
-            defaultValue = Paths.get(System.getProperty("user.home"), ".weave", "maven-repository").toString()
+            defaultValue = getOrCreateWeaveDir(".maven-repository").toString()
         )
         val remoteRepoUrl by systemProperty(
             key = "weave.repo.remote.url",
             defaultValue = "https://gitlab.com/api/v4/projects/80566527/packages/maven" // https://gitlab.com/weave-mc/weave
         )
+        val isOffline by systemProperty(
+            key = "weave.repo.offline.enabled",
+            defaultValue = false
+        )
+
+        logger.debug("Initialising Maven repository system (Local: $localRepoPath, Remote: $remoteRepoUrl, Offline: $isOffline)")
 
         val locator = MavenRepositorySystemUtils.newServiceLocator().apply {
             addService(RepositoryConnectorFactory::class.java, BasicRepositoryConnectorFactory::class.java)
@@ -142,81 +210,53 @@ public class WeaveLoader(
 
             setErrorHandler(object : DefaultServiceLocator.ErrorHandler() {
                 override fun serviceCreationFailed(type: Class<*>?, impl: Class<*>?, exception: Throwable?) {
-                    exception?.printStackTrace()
+                    logger.error("Failed to create Maven service component of type '${type?.name}' (impl: '${impl?.name}')", exception)
                 }
             })
         }
 
-        val system = locator.getService(RepositorySystem::class.java)
-            ?: throw IllegalStateException("Could not initialize RepositorySystem")
+        val system = checkNotNull(locator.getService(RepositorySystem::class.java)) {
+            "Could not initialise Maven RepositorySystem"
+        }
 
-        val session = MavenRepositorySystemUtils.newSession()
-        session.checksumPolicy = RepositoryPolicy.CHECKSUM_POLICY_FAIL
+        val session = MavenRepositorySystemUtils.newSession().apply {
+            checksumPolicy = RepositoryPolicy.CHECKSUM_POLICY_FAIL
+            localRepositoryManager = system.newLocalRepositoryManager(this, LocalRepository(localRepoPath))
+            this.isOffline = isOffline
+        }
 
-        // check local repo first
-        val localRepo = LocalRepository(localRepoPath)
-
-        session.localRepositoryManager = system.newLocalRepositoryManager(session, localRepo)
-
-        // in case it does not exist in the local repo
         val repo = RemoteRepository.Builder("weave-api-repo", "default", remoteRepoUrl)
             .setPolicy(RepositoryPolicy(true, RepositoryPolicy.UPDATE_POLICY_DAILY, RepositoryPolicy.CHECKSUM_POLICY_FAIL))
             .build()
 
         val coords = "net.weavemc.api" +
-                ":api-v${GameInfo.version.mappingName.replace('.', '_')}" +
+                ":api-v${GameInfo.version.majorVersion.replace('.', '_')}" +
                 ":${weaveLoaderData["version"]}"
+
         val artifactRequest = ArtifactRequest().apply {
             artifact = DefaultArtifact(coords)
             repositories = listOf(repo)
         }
 
-        logger.trace("Resolving Weave API ($coords)...")
-        val result = system.resolveArtifact(session, artifactRequest)
-
-        val apiFile = result.artifact.file
-
-        apiFile
-            .createRemappedTemp(
-                name = "weave-api",
-                fromNamespace = JarFile(apiFile).configOrFatal().namespace,
-                suffix = "weaveapi"
-            )
-            .registerAsMod()
-    }
-
-    private fun finalize() {
-        logger.trace("Finalizing Weave loading...")
-        mappedModJars.forEach { it.registerAsMod() }
-        logger.trace("Verifying dependencies")
-        verifyDependencies()
-        logger.trace("Populating mixin modifiers")
-        populateMixinModifiers()
-        logger.trace("Setting up access wideners")
-        setupAccessWideners()
-
-        logger.trace("Calling preInit() for mods")
-        // TODO remove
-        // Invoke preInit() once everything is done.
-        mods.forEach { weaveMod ->
-            weaveMod.config.entryPoints.forEach { entrypoint ->
-                runCatching {
-                    logger.debug("Calling $entrypoint#preInit")
-                    instantiate<ModInitializer>(entrypoint)
-                }.onFailure {
-                    logger.error("Failed to instantiate $entrypoint#preInit", it)
-                }.onSuccess {
-                    runCatching {
-                        it.preInit(instrumentation)
-                    }.onFailure {
-                        logger.error("Exception thrown when invoking $entrypoint#preInit", it)
-                    }
-                }
-            }
+        logger.debug("Resolving Weave API artefact ($coords)...")
+        val result = try {
+            system.resolveArtifact(session, artifactRequest)
+        } catch (e: Exception) {
+            logger.error("Failed to resolve Weave API artefact ($coords)", e)
+            return
         }
 
-        logger.info("Weave initialized in ${System.currentTimeMillis() - launchStart}ms")
-        updateLaunchTimes()
+        val apiFile = result.artifact.file
+        logger.debug("Successfully resolved Weave API artefact to: ${apiFile.absolutePath}")
+
+        try {
+            apiFile
+                .createRemappedCache(fromNamespace = JarFile(apiFile).configOrFatal().namespace, concurrentRemapping = false)
+                .registerAsMod()
+            logger.info("Successfully registered Minecraft API ($coords)")
+        } catch (e: Exception) {
+            logger.error("Failed to process and register Minecraft API ($coords) from file: ${apiFile.absolutePath}", e)
+        }
     }
 
     /**
@@ -242,6 +282,19 @@ public class WeaveLoader(
                     }
                 }
             }
+        }
+
+        tryCleanUpCache()
+    }
+
+    private fun tryCleanUpCache() {
+        val cacheCleanupEnabled by systemProperty(
+            key = "weave.cache.cleanup.enabled",
+            defaultValue = true
+        )
+
+        if (cacheCleanupEnabled) {
+            cacheManager.cleanup()
         }
     }
 
@@ -270,48 +323,106 @@ public class WeaveLoader(
     }
 
     private fun mixinForNamespace(namespace: String) = mixinInstances.getOrPut(namespace) {
+        var mixinServiceImpl: String? by systemProperty(
+            key = "mixin.service",
+            defaultValue = null
+        )
+        val originalMixinServiceImpl = mixinServiceImpl
+        var mixinBootstrapServiceImpl: String? by systemProperty(
+            key = "mixin.bootstrapService",
+            defaultValue = null
+        )
+        val originalMixinBootstrapServiceImpl = mixinBootstrapServiceImpl
+
+        // Fabric's default mixin service and mixin bootstrap service are not compatible
+        mixinServiceImpl = null
+        mixinBootstrapServiceImpl = null
+
         logger.debug("Creating a new SandboxedMixinLoader for namespace $namespace")
+
         val parent = classLoader.weaveBacking
-        SandboxedMixinLoader(
+        val mapper = MappingsHandler.mapper(MappingsHandler.environmentClasspathNamespace, namespace)
+        val unmapper = mapper.reverse()
+        val sandboxedMixinLoader = SandboxedMixinLoader(
             parent = parent,
             loader = ClasspathLoaders.fromLoader(parent)
-                .remappingNames(MappingsHandler.mergedMappings.mappings, "official", namespace),
+                .remapping(mapper)
+                .let { { s: String -> it(unmapper.map(s)) } }
         ).apply { state.initialize() }
+
+        mixinServiceImpl = originalMixinServiceImpl
+        mixinBootstrapServiceImpl = originalMixinBootstrapServiceImpl
+
+        sandboxedMixinLoader
     }
 
-    private fun populateMixinModifiers() {
-        for (ns in MappingsHandler.mergedMappings.mappings.namespaces) {
-            val state = mixinForNamespace(ns).state
-            val targets = state.findTargets(state.transformer)
-            if (targets.isEmpty()) continue
+    private suspend fun populateMixinModifiers() = coroutineScope {
+        val modifiers = MappingsHandler
+            .mergedMappings
+            .mappings
+            .namespaces
+            .map { ns ->
+                async {
+                    val state = mixinForNamespace(ns).state
+                    val targets = state.findTargets(state.transformer)
+                    if (targets.isEmpty()) return@async null
 
-            val mapper = MappingsHandler.mapper(ns, MappingsHandler.environmentNamespace)
-            InjectionHandler.registerModifier(object : Modifier {
-                override val namespace = ns
-                override val targets = targets.mapTo(hashSetOf()) { mapper.map(it.replace('.', '/')) }
-                override fun apply(node: ClassNode, cfg: Hook.AssemblerConfig) {
-                    cfg.computeFrames()
-                    state.transform(node.name, node)
+                    val mapper = MappingsHandler.mapper(ns, MappingsHandler.environmentRuntimeNamespace)
+                    val mappedTargets = targets.mapTo(hashSetOf()) { mapper.map(it.replace('.', '/')) }
+
+                    object : Modifier {
+                        override val namespace = ns
+                        override val targets = mappedTargets
+                        override fun apply(node: ClassNode, cfg: Hook.AssemblerConfig) {
+                            cfg.computeFrames()
+                            state.transform(node.name, node)
+                        }
+                    }
                 }
-            })
+            }
+            .awaitAll()
+            .filterNotNull()
+
+        for (modifier in modifiers) {
+            InjectionHandler.registerModifier(modifier)
         }
     }
 
-    private fun setupAccessWideners() {
-        val tree = mods.asSequence().flatMap { it.config.accessWideners }.mapNotNull { aw ->
-            val res = javaClass.classLoader.getResourceAsStream(aw) ?: return@mapNotNull let {
-                println("[Weave] Could not load access widener configuration $aw")
-                null
-            }
+    private suspend fun setupAccessWideners() = coroutineScope {
+        val widenerPaths = mods.flatMap { it.config.accessWideners }
+        if (widenerPaths.isEmpty()) {
+            return@coroutineScope
+        }
 
-            loadAccessWidener(res.readBytes().decodeToString().trim().lines())
-                .remap(MappingsHandler.mergedMappings.mappings, MappingsHandler.environmentNamespace)
-        }.reduceOrNull { acc, curr -> acc + curr }?.toTree() ?: return
+        val remappedWideners = widenerPaths
+            .map { aw ->
+                async {
+                    val stream = javaClass.classLoader.getResourceAsStream(aw)
+                    if (stream == null) {
+                        logger.warn("Could not load access widener configuration $aw")
+                        return@async null
+                    }
+
+                    val lines = stream.use { it.readBytes().decodeToString().trim().lines() }
+
+                    loadAccessWidener(lines)
+                        .remap(
+                        MappingsHandler.mergedMappings.mappings,
+                        MappingsHandler.environmentRuntimeNamespace
+                    )
+                }
+            }
+            .awaitAll()
+            .filterNotNull()
+        if (remappedWideners.isEmpty()) {
+            return@coroutineScope
+        }
+
+        val tree = remappedWideners.reduce { acc, curr -> acc + curr }.toTree()
 
         InjectionHandler.registerModifier(object : Modifier {
-            override val namespace = MappingsHandler.environmentNamespace
+            override val namespace = MappingsHandler.environmentRuntimeNamespace
             override val targets = tree.classes.mapTo(hashSetOf()) { it.key }
-
             override fun apply(node: ClassNode, cfg: Hook.AssemblerConfig) = node.applyWidener(tree)
         })
     }
@@ -323,6 +434,8 @@ public class WeaveLoader(
         logger.trace("Registering mod $name")
         classLoader.addWeaveURL(this.toURI().toURL())
 
+        cacheManager.activeCacheFiles.add(toPath())
+
         JarFile(this).use { jar ->
             val config = jar.configOrFatal()
             val modId = config.modId
@@ -331,6 +444,7 @@ public class WeaveLoader(
             instrumentation.appendToSystemClassLoaderSearch(jar)
 
             config.hooks.forEach { hook ->
+                // TODO: Check if it's a hook
                 logger.trace("Registering hook $hook")
                 InjectionHandler.registerModifier(ModHook(config.namespace, instantiate(hook)))
             }

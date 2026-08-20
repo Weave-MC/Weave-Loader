@@ -1,8 +1,8 @@
 package net.weavemc.api.hook
 
 import net.weavemc.api.Hook
-import net.weavemc.api.TickEvent
 import net.weavemc.api.bytecode.postEvent
+import net.weavemc.api.event.TickEvent
 import net.weavemc.internals.asm
 import net.weavemc.internals.getSingleton
 import net.weavemc.internals.named

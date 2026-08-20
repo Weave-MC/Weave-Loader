@@ -2,8 +2,8 @@ name: Build
 on:
   push:
   pull_request:
-  release:
-    types: [ published ]
+#  release:
+#    types: [ published ]
 
 concurrency:
   # Maximum of one running workflow per pull request on source branches.
@@ -57,12 +57,13 @@ jobs:
           name: weave-${{ matrix.module }}
           path: ${{ matrix.module }}/build/libs/
 
-      - name: Create release
-        if: github.event_name == 'release'
-        working-directory: loader/build/libs
-        run: |
-          agent=weave-loader-${{github.event.release.name}}-all.jar
-          sha256sum $agent > $agent.sha256
-          gh release upload ${{github.ref_name}} $agent $agent.sha256
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Create release
+        # if: github.event_name == 'release'
+        # if: false
+        # working-directory: loader/build/libs
+        # run: |
+        #   agent=weave-loader-${{github.event.release.name}}-all.jar
+        #   sha256sum $agent > $agent.sha256
+        #   gh release upload ${{github.ref_name}} $agent $agent.sha256
+        # env:
+        #   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

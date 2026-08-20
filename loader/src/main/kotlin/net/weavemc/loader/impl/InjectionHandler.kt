@@ -1,10 +1,13 @@
 package net.weavemc.loader.impl
 
-import com.grappenmaker.mappings.LambdaAwareRemapper
-import com.grappenmaker.mappings.remap
+import com.grappenmaker.mappings.ClasspathLoader
+import com.grappenmaker.mappings.ClasspathLoaders
+import com.grappenmaker.mappings.remap.LambdaAwareRemapper
+import com.grappenmaker.mappings.remap.remap
 import me.xtrm.klog.dsl.klog
 import net.weavemc.api.Hook
 import net.weavemc.internals.dump
+import net.weavemc.loader.impl.bootstrap.Bootstrap
 import net.weavemc.loader.impl.bootstrap.transformer.SafeTransformer
 import net.weavemc.loader.impl.util.*
 import org.objectweb.asm.ClassReader
@@ -17,22 +20,29 @@ import kotlin.random.Random
 import kotlin.random.nextUInt
 
 public object InjectionHandler : SafeTransformer {
+    private val logger by klog
+
     /**
      * JVM argument to dump bytecode to disk. Can be enabled by adding
-     * `-DdumpBytecode=true` to your JVM arguments when launching with Weave.
+     * `-Dweave.dump.bytecode.enabled=true` to your JVM arguments when launching with Weave.
      *
      * Defaults to `false`.
      */
-    public val dumpBytecode: Boolean = System.getProperty("dumpBytecode")?.toBoolean() ?: false
+    public val dumpBytecode: Boolean by systemProperty("weave.dump.bytecode.enabled", false)
 
     private val modifiers = mutableListOf<Modifier>()
 
     public fun registerModifier(modifier: Modifier) {
+        logger.debug("Registering modifier for namespace '${modifier.namespace}' targeting ${modifier.targets.size} classes")
         modifiers += modifier
     }
 
     private fun ClassNode.remap(from: String, to: String) {
-        if (from != to) remap(MappingsHandler.mapper(from, to))
+        if (from != to) {
+            val oldName = name
+            remap(MappingsHandler.mapper(from, to))
+            logger.trace("Remapped class $oldName -> $name (from $from to $to)")
+        }
     }
 
     override fun transform(
@@ -42,6 +52,8 @@ public object InjectionHandler : SafeTransformer {
     ): ByteArray? {
         val groupedModifiers = modifiers.filter { className in it.targets }.groupBy { it.namespace }
         if (groupedModifiers.isEmpty()) return null
+
+        logger.debug("Transforming $className with ${groupedModifiers.values.sumOf { it.size }} modifiers across ${groupedModifiers.size} namespaces")
 
         with(MappingsHandler) {
             val classReader = originalClass.asClassReader()
@@ -58,8 +70,12 @@ public object InjectionHandler : SafeTransformer {
                 inverseConflictsMapping["${node.name}.${tempName}${m.desc}"] = m.name
             }
 
+            if (conflictsMapping.isNotEmpty()) {
+                logger.trace("Preserving ${conflictsMapping.size} potential MixinMerged conflicts in $className")
+            }
+
             // Hack: SimpleRemapper.map() can return null, and that breaks remap()
-            node.remap(object : SimpleRemapper(conflictsMapping) {
+            node.remap(object : SimpleRemapper(Opcodes.ASM9, conflictsMapping) {
                 override fun map(key: String): String {
                     return super.map(key) ?: key.run {
                         // for an unknown reason, `key` isn't just internal name only
@@ -78,26 +94,45 @@ public object InjectionHandler : SafeTransformer {
 
             // first FROM env namespace to all other namespaces to apply modifiers,
             // then finally remap to env namespace and apply its modifiers, instantly done.
-            val nsOrder = (listOf(environmentNamespace) + (modNs - environmentNamespace)) + environmentNamespace
+            val nsOrder = buildList {
+                add(environmentRuntimeNamespace)
+                addAll(modNs - environmentRuntimeNamespace)
+                add(environmentRuntimeNamespace)
+            }
 
-            nsOrder.windowed(2).forEach { (last, curr) ->
+            for (i in 0..<nsOrder.lastIndex) {
+                val last = nsOrder[i]
+                val curr = nsOrder[i + 1]
+
                 node.remap(last, curr)
-                groupedModifiers[curr]?.forEach { it.apply(node, hookConfig) }
+                groupedModifiers[curr]?.forEach { modifier ->
+                    fun Modifier.displayName() = if (this is ModHook) "Hook: ${hook.javaClass.name}" else javaClass.name
+
+                    logger.trace("Applying modifier (${modifier.displayName()}) on $className in namespace $curr")
+                    modifier.apply(node, hookConfig)
+                }
             }
 
             val classWriter = InjectionClassWriter(hookConfig.classWriterFlags, classReader)
-            node.accept(LambdaAwareRemapper(classWriter, SimpleRemapper(inverseConflictsMapping)))
+            node.accept(LambdaAwareRemapper(
+                classWriter,
+                SimpleRemapper(Opcodes.ASM9, inverseConflictsMapping)
+            ))
+
+            val transformedBytes = classWriter.toByteArray()
 
             if (dumpBytecode) {
                 val bytecodeOut = FileManager.DUMP_DIRECTORY.resolve("$className.class")
                     .also { it.parent.createDirectories() }.toFile()
 
                 runCatching {
-                    classWriter.toByteArray().dump(bytecodeOut.absolutePath)
-                }.onFailure { klog.error("Failed to dump bytecode for $bytecodeOut", it) }
+                    logger.trace("Dumping transformed bytecode for $className to $bytecodeOut")
+                    transformedBytes.dump(bytecodeOut.absolutePath)
+                }.onFailure { logger.error("Failed to dump bytecode for $bytecodeOut", it) }
             }
 
-            return classWriter.toByteArray()
+            logger.debug("Successfully transformed $className")
+            return transformedBytes
         }
     }
 }
@@ -116,7 +151,7 @@ public data class ModHook(
     val hook: Hook,
     // TODO: jank
     override val targets: Set<String> = hook.targets.mapTo(hashSetOf()) {
-        MappingsHandler.mapper(namespace, MappingsHandler.environmentNamespace).map(it)
+        MappingsHandler.mapper(namespace, MappingsHandler.environmentRuntimeNamespace).map(it)
     }
 ): Modifier {
     override fun apply(node: ClassNode, cfg: Hook.AssemblerConfig): Unit = hook.transform(node, cfg)
@@ -133,11 +168,14 @@ public class AssemblerConfigImpl : Hook.AssemblerConfig {
         get() = if (computeFrames) ClassWriter.COMPUTE_FRAMES else ClassWriter.COMPUTE_MAXS
 }
 
-private class InjectionClassWriter(
+public class InjectionClassWriter(
     flags: Int,
     reader: ClassReader? = null,
 ) : ClassWriter(reader, flags) {
-    val bytesProvider = MappingsHandler.classLoaderBytesProvider(MappingsHandler.environmentNamespace)
+    public val bytesProvider: ClasspathLoader = ClasspathLoaders.compound(
+        MappingsHandler.classLoaderBytesProvider(MappingsHandler.environmentRuntimeNamespace),
+        ClasspathLoaders.fromLoader(Bootstrap.minecraftBootstrapClassLoader ?: error("Somehow minecraftBootstrapClassLoader is null"))
+    )
 
     private fun ClassNode.isInterface(): Boolean = (this.access and Opcodes.ACC_INTERFACE) != 0
     private fun ClassReader.isAssignableFrom(target: ClassReader): Boolean {
@@ -156,18 +194,24 @@ private class InjectionClassWriter(
     }
 
     override fun getCommonSuperClass(type1: String, type2: String): String {
-        var class1 = bytesProvider(type1)?.asClassReader() ?: error("Failed to find type1 $type1")
-        val class2 = bytesProvider(type2)?.asClassReader() ?: error("Failed to find type2 $type2")
+        fun getClassReader(type: String): ClassReader =
+            bytesProvider(type)?.asClassReader() ?: error("Failed to find class bytes for type: $type")
+
+        var class1 = getClassReader(type1)
+        val class2 = getClassReader(type2)
 
         return when {
             class1.isAssignableFrom(class2) -> type1
             class2.isAssignableFrom(class1) -> type2
             class1.asClassNode().isInterface() || class2.asClassNode().isInterface() -> "java/lang/Object"
             else -> {
-                while (!class1.isAssignableFrom(class2))
-                    class1 = bytesProvider(class1.superName)!!.asClassReader()
+                while (!class1.isAssignableFrom(class2)) {
+                    val superName = class1.superName
+                    class1 = bytesProvider(superName)?.asClassReader()
+                        ?: error("Failed to load superclass $superName while computing common superclass for $type1 and $type2")
+                }
 
-                return class1.className
+                class1.className
             }
         }
     }

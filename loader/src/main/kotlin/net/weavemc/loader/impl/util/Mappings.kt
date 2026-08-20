@@ -1,11 +1,14 @@
 package net.weavemc.loader.impl.util
 
-import com.grappenmaker.mappings.*
+import com.grappenmaker.mappings.ClasspathLoader
+import com.grappenmaker.mappings.ClasspathLoaders
+import com.grappenmaker.mappings.asASMMapping
+import com.grappenmaker.mappings.format.Mappings
+import com.grappenmaker.mappings.remap.*
+import com.grappenmaker.mappings.remappingNames
 import me.xtrm.klog.dsl.klog
 import net.weavemc.internals.*
-import net.weavemc.internals.MappingsType.MCP
-import net.weavemc.internals.MappingsType.MOJANG
-import net.weavemc.loader.impl.WeaveLoader
+import net.weavemc.internals.MappingsType.*
 import org.objectweb.asm.*
 import org.objectweb.asm.commons.ClassRemapper
 import org.objectweb.asm.commons.Remapper
@@ -18,7 +21,11 @@ import kotlin.system.measureTimeMillis
 public object MappingsHandler {
     private val logger by klog
     public val relocationRemapper: Remapper? by lazy { createRelocationRemapper() }
-    public val vanillaJar: File by lazy { FileManager.getVanillaMinecraftJar() }
+    public val vanillaJar: File by lazy { FileManager.VANILLA_MINECRAFT_JAR }
+    public val vanillaClassLoader: ClasspathLoader by lazy { ClasspathLoaders.fromJar(JarFile(vanillaJar)) }
+    public val minecraftRuntimeJar: File by lazy {
+        vanillaJar.createRemappedCache(fromNamespace = "official", classpath = emptyList(), deleteOnExit = false, concurrentRemapping = true)
+    }
 
     public val mergedMappings: WeaveMappings by lazy {
         logger.info("Loading merged mappings for ${GameInfo.version.versionName}")
@@ -26,32 +33,52 @@ public object MappingsHandler {
 
         val mappings: WeaveMappings
         measureTimeMillis {
-            mappings = MappingsRetrieval.loadMergedWeaveMappings(GameInfo.version.versionName, vanillaJar)
+            mappings = MappingsRetrieval.loadMergedWeaveMappings(GameInfo.version.mappingName, vanillaJar)
         }.let { logger.info("Took ${it}ms to load mappings") }
 
         mappings
     }
 
-    public val environmentNamespace: String by lazy {
-        System.getProperty("weave.environment.namespace") ?: when (GameInfo.client) {
-            MinecraftClient.LUNAR -> if (GameInfo.version < MinecraftVersion.V1_16_5) MCP.named else MOJANG.named
-            MinecraftClient.FORGE -> MCP.srg
-            MinecraftClient.VANILLA, MinecraftClient.LABYMOD, MinecraftClient.BADLION -> "official"
+    public val environmentRuntimeNamespace: String by systemProperty(
+        key = "weave.namespace.environment.runtime",
+        defaultValueProvider = {
+            when (GameInfo.client) {
+                MinecraftClient.LUNAR -> if (GameInfo.version < MinecraftVersion.V1_16_5) MCP.named else MOJANG.named
+                MinecraftClient.FORGE -> MCP.srg
+                MinecraftClient.FABRIC -> YARN.intermediary
+                MinecraftClient.VANILLA, MinecraftClient.LABYMOD, MinecraftClient.BADLION -> "official"
+            }
         }
-    }
+    )
+
+    public val environmentClasspathNamespace: String by systemProperty(
+        key = "weave.namespace.environment.classpath",
+        defaultValueProvider = {
+            when (GameInfo.client) {
+                else -> "official"
+            }
+        }
+    )
 
     public fun classLoaderBytesProvider(expectedNamespace: String): (String) -> ByteArray? {
-        val names = if (expectedNamespace != "official") mergedMappings.mappings.asASMMapping(
+        val namesFrom = if (expectedNamespace != environmentClasspathNamespace) mergedMappings.mappings.asASMMapping(
             from = expectedNamespace,
-            to = "official",
+            to = environmentClasspathNamespace,
             includeMethods = false,
             includeFields = false
         ) else emptyMap()
 
-        val mapper = SimpleRemapper(names.toList().associate { (k, v) -> v to k })
-        val callback = ClasspathLoaders.fromLoader(WeaveLoader::class.java.classLoader)
+        val mapper = SimpleRemapper(Opcodes.ASM9, namesFrom.toList().associate { (k, v) -> v to k })
+        val cl = ClasspathLoaders.compound(
+            vanillaClassLoader,
+            ClasspathLoaders.fromSystemLoader().remappingNames(
+                mappings = mergedMappings.mappings,
+                from = environmentClasspathNamespace,
+                to = "official"
+            )
+        )
 
-        return { name -> callback(names[name] ?: name)?.remap(mapper) }
+        return { name -> cl(namesFrom[name] ?: name)?.remap(mapper) }
     }
 
     private val cachedMappers = mutableMapOf<Pair<String, String>, MappingsRemapper>()
@@ -60,20 +87,10 @@ public object MappingsHandler {
         MappingsRemapper(mergedMappings.mappings, from, to, loader = classLoaderBytesProvider(from))
     }
 
-    public val environmentRemapper: MappingsRemapper = mapper("official", environmentNamespace)
-    public val environmentUnmapper: MappingsRemapper = environmentRemapper.reverse()
-
-    private val mappable by lazy {
-        val id = mergedMappings.mappings.namespace("official")
-        mergedMappings.mappings.classes.mapTo(hashSetOf()) { it.names[id] }
-    }
-
-    public fun ByteArray.remap(remapper: Remapper, bypassMappableCheck: Boolean = false): ByteArray {
+    public fun ByteArray.remap(remapper: Remapper): ByteArray {
         val reader = ClassReader(this)
-        if (reader.className !in mappable && !bypassMappableCheck) return this
-
-        val writer = ClassWriter(reader, 0)
-        reader.accept(MinecraftRemapper(writer, remapper), 0)
+        val writer = ClassWriter(0)
+        reader.accept(MinecraftRemapper(writer, remapper), ClassReader.SKIP_CODE)
 
         return writer.toByteArray()
     }
@@ -124,23 +141,63 @@ public object MappingsHandler {
         }
     }
 
-    public fun remapModJar(
+    @OptIn(ExperimentalJarRemapper::class)
+    public suspend fun remapModJar(
         mappings: Mappings,
         input: File,
         output: File,
         from: String = "official",
-        to: String = environmentNamespace,
+        to: String = environmentRuntimeNamespace,
         classpath: List<File> = listOf(),
+        concurrentRemapping: Boolean = false,
     ) {
-        val jarsToUse = (classpath + input).map { JarFile(it) }
+        val jarsToUse = classpath.map { JarFile(it) }
 
-        remapJar(
-            mappings, input, output, from, to, ClasspathLoaders.fromJars(jarsToUse).remappingNames(
-                mappings = mergedMappings.mappings,
-                from = "official",
-                to = from,
-            )
-        ) { if (relocationRemapper != null) ClassRemapper(it, relocationRemapper) else it }
+        if (concurrentRemapping) {
+            performConcurrentRemap {
+                copyResources = true
+                normalizeConstantPool = true
+                this.mappings = mappings
+                loader = ClasspathLoaders.compound(
+                    ClasspathLoaders.fromJars(jarsToUse).remappingNames(
+                        mappings = mergedMappings.mappings,
+                        from = "official",
+                        to = from,
+                    ),
+                    classLoaderBytesProvider(from)
+                )
+                extension(mixinUnmapperExtension)
+
+                task(input.toPath(), output.toPath(), from, to)
+                if (relocationRemapper != null) visitClasses { _, visitor -> ClassRemapper(visitor, relocationRemapper) }
+            }
+        } else {
+            performRemap {
+                copyResources = true
+                normalizeConstantPool = true
+                this.mappings = mappings
+                loader = ClasspathLoaders.compound(
+                    ClasspathLoaders.fromJars(jarsToUse).remappingNames(
+                        mappings = mergedMappings.mappings,
+                        from = "official",
+                        to = from,
+                    ),
+                    classLoaderBytesProvider(from)
+                )
+                extension(mixinUnmapperExtension)
+
+                task(input.toPath(), output.toPath(), from, to)
+                if (relocationRemapper != null) visitClasses { _, visitor -> ClassRemapper(visitor, relocationRemapper) }
+            }
+        }
+
+//        remapJar(
+//            mappings, input, output, from, to, ClasspathLoaders.fromJars(jarsToUse).remappingNames(
+//                mappings = mergedMappings.mappings,
+//                from = "official",
+//                to = from,
+//            )
+//        ) { if (relocationRemapper != null) ClassRemapper(it, relocationRemapper) else it }
 
         jarsToUse.forEach { it.close() }
     }
@@ -170,7 +227,60 @@ private fun createRelocationRemapper(): Remapper? {
     val mapping = packages.associateWith { "$relocatePrefix/${it.substringAfterLast("/")}" }
     fun findMapping(name: String) = mapping.entries.find { (k) -> name.startsWith("$k/") }
 
-    return object : Remapper() {
+    return object : Remapper(Opcodes.ASM9) {
         override fun map(name: String) = findMapping(name)?.let { (k, v) -> name.replaceFirst(k, v) } ?: name
+    }
+}
+
+@OptIn(ExperimentalJarRemapper::class)
+private val mixinUnmapperExtension = RemapperExtension { classpathLoader, _ ->
+    JarClassVisitor { name, parent ->
+        object : ClassVisitor(Opcodes.ASM9, parent) {
+            val spongepoweredPackage = "org/spongepowered"
+            val mixinPackage = "$spongepoweredPackage/asm/mixin"
+
+            var isMixin = false
+
+            var methodIndex = 0
+
+            val classNode by lazy { classpathLoader(name)?.asClassReader()?.asClassNode() ?: error("Cannot find class $name") }
+
+            override fun visitAnnotation(
+                descriptor: String,
+                visible: Boolean
+            ): AnnotationVisitor? {
+                val mixinDesc = "L$mixinPackage/Mixin;"
+                if (descriptor.contains(mixinDesc)) {
+                    isMixin = true
+                }
+
+                return super.visitAnnotation(descriptor, visible)
+            }
+
+            override fun visitMethod(
+                access: Int,
+                name: String,
+                descriptor: String,
+                signature: String?,
+                exceptions: Array<out String?>?
+            ): MethodVisitor? {
+                val methodIndex = methodIndex++
+
+                fun createSuperMethodVisitor(methodName: String = name) =
+                    super.visitMethod(access, methodName, descriptor, signature, exceptions)
+
+                if (!isMixin) {
+                    return createSuperMethodVisitor()
+                }
+
+                val methodNode = classNode.methods[methodIndex]
+                val annotations = methodNode.visibleAnnotations ?: emptyList()
+                if (!annotations.any { it.desc == "L$mixinPackage/Shadow;" }) {
+                    return createSuperMethodVisitor()
+                }
+
+                return createSuperMethodVisitor(methodNode.name)
+            }
+        }
     }
 }

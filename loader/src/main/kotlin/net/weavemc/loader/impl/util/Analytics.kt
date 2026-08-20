@@ -4,12 +4,9 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import net.weavemc.internals.getOrCreateWeaveDir
 import java.nio.file.Path
-import java.nio.file.Paths
-import kotlin.io.path.createFile
-import kotlin.io.path.exists
-import kotlin.io.path.readText
-import kotlin.io.path.writeText
+import kotlin.io.path.*
 
 private fun <T> Iterable<T>.atMost(capacity: Int) = when (this) {
     is Collection<T> -> if (size <= capacity) this else take(capacity)
@@ -88,7 +85,7 @@ internal fun updateLaunchTimes() {
 }
 
 private fun getOrCreateAnalyticsFile(): Path {
-    val file = Paths.get(System.getProperty("user.home"), ".weave", "analytics.json")
+    val file = getOrCreateWeaveDir() / "analytics.json"
     if (!file.exists()) file.createFile()
 
     return file

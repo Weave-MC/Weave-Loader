@@ -1,25 +1,22 @@
 [versions]
+weave = "1.4.0"
 kotlin = "2.3.0"
 
-internals = "1.1.0"
-loader = "1.1.0"
-api = "1.1.0"
-plugin = "1.1.0"
-
-asm = "9.7"
+asm = "9.9.1"
 mixin = "0.13.4+mixin.0.8.5"
 
 kxser = "1.7.1"
 maven-resolver = "1.9.27"
 maven-resolver-provider = "3.9.14"
-mappings-util = "0.1.7"
+mappings-util = "0.2.1"
 gradle-shadow = "9.4.0"
 klog = "0.0.5"
+dokka = "2.2.0"
 
 [libraries]
-internals = { group = "net.weavemc", name = "internals", version.ref = "internals" }
-api = { group = "net.weavemc.api", name = "api", version.ref = "api" }
-loader = { group = "net.weavemc", name = "loader", version.ref = "loader" }
+weave-internals = { module = "net.weavemc:internals", version.ref = "weave" }
+weave-api = { module = "net.weavemc.api:api", version.ref = "weave" }
+weave-loader = { module = "net.weavemc:loader", version.ref = "weave" }
 
 asm = { module = "org.ow2.asm:asm", version.ref = "asm" }
 asm-tree = { module = "org.ow2.asm:asm-tree", version.ref = "asm" }
@@ -28,20 +25,24 @@ asm-util = { module = "org.ow2.asm:asm-util", version.ref = "asm" }
 klog = { module = "me.xtrm:klog", version.ref = "klog" }
 mixin = { module = "net.fabricmc:sponge-mixin", version.ref = "mixin" }
 kxser-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kxser" }
-mappings = { module = "io.github.770grappenmaker:mappings-util", version.ref = "mappings-util" }
+mappings = { module = "nl.koenoostveen:mappings-util", version.ref = "mappings-util" }
 gradle-shadow = { module = "com.gradleup.shadow:com.gradleup.shadow.gradle.plugin", version.ref = "gradle-shadow" }
 kotlin-compiler = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 kotlin-serialization = { module = "org.jetbrains.kotlin:kotlin-serialization", version.ref = "kotlin" }
+kotlin-metadata = { module = "org.jetbrains.kotlin:kotlin-metadata-jvm", version.ref = "kotlin" }
 maven-resolver-api = { group = "org.apache.maven.resolver", name = "maven-resolver-api", version.ref = "maven-resolver" }
 maven-resolver-impl = { group = "org.apache.maven.resolver", name = "maven-resolver-impl", version.ref = "maven-resolver" }
 maven-resolver-connector-basic = { group = "org.apache.maven.resolver", name = "maven-resolver-connector-basic", version.ref = "maven-resolver" }
 maven-resolver-transport-http = { group = "org.apache.maven.resolver", name = "maven-resolver-transport-http", version.ref = "maven-resolver" }
 maven-resolver-provider = { group = "org.apache.maven", name = "maven-resolver-provider", version.ref = "maven-resolver-provider" }
+dokka-core = { module = "org.jetbrains.dokka:dokka-gradle-plugin", version.ref = "dokka" }
+dokka-javadoc = { module = "org.jetbrains.dokka-javadoc:org.jetbrains.dokka-javadoc.gradle.plugin", version.ref = "dokka" }
 
 [plugins]
 gradle-shadow = { id = "com.gradleup.shadow", version.ref = "gradle-shadow" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 serialization-dsl = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
 
 [bundles]
 asm = ["asm", "asm-tree", "asm-commons", "asm-util"]

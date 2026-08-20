@@ -1,9 +1,9 @@
 package net.weavemc.api.hook
 
 import net.weavemc.api.Hook
-import net.weavemc.api.RenderLivingEvent
 import net.weavemc.api.bytecode.postEvent
 import net.weavemc.api.event.CancellableEvent
+import net.weavemc.api.event.RenderLivingEvent
 import net.weavemc.internals.asm
 import net.weavemc.internals.internalNameOf
 import net.weavemc.internals.named
@@ -26,7 +26,6 @@ internal class RenderLivingEventHook : Hook("net/minecraft/client/renderer/entit
         mn.instructions.insert(asm {
             new(internalNameOf<RenderLivingEvent.Pre>())
             dup
-            dup
             aload(0)
             aload(1)
             dload(2)
@@ -38,6 +37,7 @@ internal class RenderLivingEventHook : Hook("net/minecraft/client/renderer/entit
                 "<init>",
                 "(Lnet/minecraft/client/renderer/entity/RendererLivingEntity;Lnet/minecraft/entity/EntityLivingBase;DDDF)V"
             )
+            dup
             postEvent()
 
             val end = LabelNode()
@@ -50,9 +50,9 @@ internal class RenderLivingEventHook : Hook("net/minecraft/client/renderer/entit
             +end
             f_same()
         })
+
         mn.instructions.insertBefore(mn.instructions.findLast { it.opcode == Opcodes.RETURN }, asm {
             new(internalNameOf<RenderLivingEvent.Post>())
-            dup
             dup
             aload(0)
             aload(1)
@@ -65,6 +65,7 @@ internal class RenderLivingEventHook : Hook("net/minecraft/client/renderer/entit
                 "<init>",
                 "(Lnet/minecraft/client/renderer/entity/RendererLivingEntity;Lnet/minecraft/entity/EntityLivingBase;DDDF)V"
             )
+            dup
             postEvent()
         })
     }

@@ -1,15 +1,14 @@
 package net.weavemc.gradle.configuration
 
-import com.grappenmaker.mappings.*
+import com.grappenmaker.mappings.aw.*
+import com.grappenmaker.mappings.remap.remapJar
 import kotlinx.serialization.Serializable
-import net.weavemc.gradle.WeaveGradle.Companion.ext
 import net.weavemc.gradle.loadMergedMappings
 import net.weavemc.gradle.sourceSets
 import net.weavemc.gradle.util.*
 import net.weavemc.internals.MinecraftVersion
 import org.gradle.api.Project
 import org.gradle.api.logging.LogLevel
-import org.gradle.kotlin.dsl.get
 import org.gradle.kotlin.dsl.maven
 import org.objectweb.asm.ClassVisitor
 import java.io.File
@@ -21,9 +20,9 @@ private inline fun <reified T> String?.decodeJSON() =
 /**
  * Pulls dependencies from [addMinecraftAssets] and [addMappedMinecraft]
  */
-fun Project.pullDeps(version: MinecraftVersion, namespace: String) {
+public fun Project.pullDeps(ext: WeaveMinecraftExtension, version: MinecraftVersion, namespace: String) {
     addMinecraftAssets(version)
-    addMappedMinecraft(version, namespace)
+    addMappedMinecraft(ext, version, namespace)
 }
 
 /**
@@ -37,13 +36,24 @@ private fun Project.addMinecraftAssets(version: MinecraftVersion) {
     val client = versionInfo.downloads.client
     DownloadUtil.checksumAndDownload(URL(client.url), client.sha1, version.minecraftJarCache.toPath())
 
-    repositories.maven("https://libraries.minecraft.net/")
+    // prepend Mojang's repository so Gradle checks it before mavenCentral
+    // this is because some libraries may not exist in mavenCentral such as org.lwjgl:lwjgl-freetype:3.3.3:natives-macos-patch
+    val repositoryName = "MinecraftLibraries"
+    if (repositories.findByName(repositoryName) == null) {
+        val repository = repositories.maven {
+            it.name = repositoryName
+            it.url = uri("https://libraries.minecraft.net/")
+        }
+
+        repositories.remove(repository)
+        repositories.addFirst(repository)
+    }
 
     versionInfo.libraries.filter { "twitch-platform" !in it.name && "twitch-external" !in it.name }
         .forEach { dependencies.add("compileOnly", it.name) }
 }
 
-private fun Project.retrieveWideners(): List<File> {
+private fun Project.retrieveWideners(ext: WeaveMinecraftExtension): List<File> {
     // Cursed code
     val wideners = ext.configuration.get().accessWideners.toHashSet()
     val widenerFiles = mutableListOf<File>()
@@ -65,9 +75,9 @@ private fun Project.retrieveWideners(): List<File> {
 
 private fun File.loadWidener() = loadAccessWidener(readText().trim().lines())
 
-private fun Project.addMappedMinecraft(version: MinecraftVersion, namespace: String) = runCatching {
+private fun Project.addMappedMinecraft(ext: WeaveMinecraftExtension, version: MinecraftVersion, namespace: String) = runCatching {
     val fullMappings = version.loadMergedMappings()
-    val allWideners = retrieveWideners().map { it.loadWidener().remap(fullMappings, namespace) }
+    val allWideners = retrieveWideners(ext).map { it.loadWidener().remap(fullMappings, namespace) }
     val joinedWideners = allWideners.takeIf { it.isNotEmpty() }?.join()
     val joinedFile = localGradleCache().file("joined.accesswidener").asFile
     val mapped = mappedJarCache(namespace, version)

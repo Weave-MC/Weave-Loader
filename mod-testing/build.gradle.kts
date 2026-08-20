@@ -22,8 +22,8 @@ repositories {
 }
 
 dependencies {
-    implementation(libs.internals)
-    implementation(libs.loader)
+    implementation(libs.weave.internals)
+    implementation(libs.weave.loader)
     testImplementation(kotlin("test"))
 }
 

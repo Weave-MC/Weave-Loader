@@ -18,7 +18,8 @@ while supporting injection into clients that are somewhat closed-off to develope
 | Client  |     Supported      |
 |---------|:------------------:|
 | Vanilla | :white_check_mark: |
-| Forge   |        :x:         |
+| Forge   | :white_check_mark: |
+| Fabric  | :white_check_mark: |
 | Lunar   | :white_check_mark: |
 | Badlion |        :x:         |
 | Feather |        :x:         |
@@ -36,10 +37,12 @@ while supporting injection into clients that are somewhat closed-off to develope
 | 1.18    | :white_check_mark: |
 | 1.19    | :white_check_mark: |
 | 1.20    | :white_check_mark: |
+| 1.21    | :white_check_mark: |
 
 </td></tr>
 </table>
 
+**If you find any issues with supported clients, please report them to us.**
 
 ## Installation
 
@@ -54,8 +57,6 @@ the [releases page](https://github.com/Weave-MC/Weave-Loader/releases), or build
 git clone --recursive https://github.com/Weave-MC/Weave-Loader
 cd Weave-Loader
 ```
-
-Building Weave-Loader requires a JDK of version 17 or higher. A good JDK distribution can be downloaded from [Adoptium.net](https://adoptium.net/temurin/releases?version=17&os=any&arch=any), but any OpenJDK compatible JDK suffices.
 
 You then need to give permission to the Gradle wrapper and run the `build` task. This can be done a bit differently
 depending on your operating system:
@@ -77,7 +78,7 @@ chmod +x ./gradlew
 ```
 </details>
 
-Once built, the Weave-Loader artifacts will be generated in `loader/build/libs/`. This includes the ready-to-use fat JAR (`weave-loader-<version>-all.jar`).
+Lastly, the finalised Loader Agent JAR can be found at `loader/build/libs/weave-loader-<version>-all.jar`.
 
 ## Usage
 

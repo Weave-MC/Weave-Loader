@@ -4,30 +4,34 @@ plugins {
     id("net.weavemc.gradle")
 }
 
+group = "net.weavemc.api"
+version = libs.versions.weave.get()
+
 weave {
     configure {
         name = "Weave-API"
-        modId = "net.weavemc.api"
+        modId = "net.weavemc.api.${project.name}"
         hooks = listOf(
-            "ChatReceivedEventHook",
-            "ChatSentEventHook",
+            "ChatEventReceivedHook",
+            "ChatEventSentHook",
+            "ClientConnectedToServerEventHook",
             "EntityListEventAddHook",
             "EntityListEventRemoveHook",
             "GuiOpenEventHook",
             "KeyboardEventHook",
             "MouseEventHook",
+            "PacketEventHook",
             "PlayerListEventHook",
-            "RenderGameOverlayHook",
+            "RenderGameOverlayEventHook",
             "RenderHandEventHook",
             "RenderLivingEventHook",
             "RenderWorldEventHook",
-            "ServerConnectEventHook",
             "ShutdownEventHook",
             "StartGameEventHook",
             "TickEventHook",
             "WorldEventHook",
-            "PacketEventHook",
         ).map { "net.weavemc.api.hook.$it" }
+        accessWideners = listOf("net.weave.api.v1_8.accesswidener.txt")
         mcpMappings()
     }
     version("1.8.9")
@@ -39,18 +43,6 @@ repositories {
 
 dependencies {
     api(libs.bundles.asm)
-    implementation(libs.internals)
-    implementation(libs.api)
-}
-
-publishing {
-    publications {
-        create<MavenPublication>("maven") {
-            from(components["java"])
-
-            groupId = "net.weavemc.api"
-            artifactId = "api-${project.name}"
-            version = libs.versions.api.get().toString()
-        }
-    }
+    implementation(libs.weave.internals)
+    implementation(projects.api)
 }

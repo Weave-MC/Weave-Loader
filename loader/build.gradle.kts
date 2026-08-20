@@ -1,5 +1,6 @@
 @file:Suppress("VulnerableLibrariesLocal")
 
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar.Companion.shadowJar
 import java.util.*
 
 plugins {
@@ -8,7 +9,10 @@ plugins {
     id("config-publish")
 }
 
-val loaderVersion = libs.versions.loader.get().toString()
+allprojects {
+    group = "net.weavemc"
+    version = libs.versions.weave.get()
+}
 
 repositories {
     maven("https://maven.fabricmc.net/")
@@ -22,8 +26,8 @@ kotlin {
 }
 
 dependencies {
-    shade(libs.internals)
-    shade(libs.api)
+    shade(libs.weave.internals)
+    shade(libs.weave.api)
     shade(libs.klog)
     shade(libs.kxser.json)
     shade(libs.bundles.asm)
@@ -61,8 +65,8 @@ tasks {
             Properties().also { it += props }
     }
 
-    val addWeaveLoaderProperties by creating(AddWeaveLoaderPropertiesTask::class) {
-        version = loaderVersion
+    val addWeaveLoaderProperties by registering(AddWeaveLoaderPropertiesTask::class) {
+        this.version = project.version.toString()
     }
 
     shadowJar {
@@ -82,7 +86,7 @@ tasks {
                 "Specification-Version" to "0", // we're still in beta, so this is 0
                 "Specification-Vendor" to "WeaveMC",
                 "Implementation-Title" to "Weave Loader",
-                "Implementation-Version" to loaderVersion,
+                "Implementation-Version" to version,
                 "Implementation-Vendor" to "WeaveMC",
             ), "net.weavemc.loader.impl"
         )
@@ -95,7 +99,7 @@ publishing {
             from(components["java"])
             groupId = "net.weavemc"
             artifactId = "loader"
-            version = loaderVersion
+            this.version = project.version.toString()
         }
     }
 }

@@ -3,6 +3,11 @@ plugins {
     id("config-publish")
 }
 
+allprojects {
+    group = "net.weavemc"
+    version = libs.versions.weave.get()
+}
+
 dependencies {
     api(libs.bundles.asm)
     implementation(libs.kxser.json)
@@ -15,7 +20,7 @@ publishing {
             from(components["java"])
             groupId = "net.weavemc"
             artifactId = "internals"
-            version = libs.versions.internals.get().toString()
+            this.version = version
         }
     }
 }

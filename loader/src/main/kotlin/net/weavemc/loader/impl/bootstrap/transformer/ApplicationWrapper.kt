@@ -75,7 +75,11 @@ public object ApplicationWrapper {
                     "Therefore, the game will be wrapped into a new ClassLoader"
         )
 
-        val mainClass = WrappingLoader().loadClass(targetMain)
+        val wrappingLoader = WrappingLoader()
+        val mainClass = wrappingLoader.loadClass(targetMain)
+
+        // for ServiceLoader to work properly
+        Thread.currentThread().contextClassLoader = wrappingLoader
 
         try {
             val type = MethodType.methodType(Void::class.javaPrimitiveType, args::class.java)
@@ -112,7 +116,7 @@ public object ApplicationWrapper {
             ) return parent.loadClass(name)
 
             val internalName = name.replace('.', '/')
-            val bytes = getResourceAsStream("$internalName.class")?.readBytes() ?: throw ClassNotFoundException()
+            val bytes = getResourceAsStream("$internalName.class")?.readBytes() ?: throw ClassNotFoundException("Cannot find $internalName")
 
             // bye-bye protectiondomain!
             // also we need a urlclassloader

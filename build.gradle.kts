@@ -1,3 +1,5 @@
+version = libs.versions.weave.get()
+
 tasks.register("clean") {
     group = "build"
     description = "Cleans all included builds"

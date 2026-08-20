@@ -24,9 +24,11 @@ public object EventBus {
      */
     @JvmStatic
     public fun subscribe(obj: Any) {
-        obj.javaClass.declaredMethods
-            .filter { it.isAnnotationPresent(SubscribeEvent::class.java) && it.parameterCount == 1 }
-            .forEach { getListeners(it.parameterTypes.first()) += ReflectEventConsumer(obj, it) }
+        generateSequence(obj.javaClass) { it.superclass }.toList().forEach { currentClass ->
+            currentClass.declaredMethods
+                .filter { it.isAnnotationPresent(SubscribeEvent::class.java) && it.parameterCount == 1 }
+                .forEach { getListeners(it.parameterTypes.first()) += ReflectEventConsumer(obj, it) }
+        }
     }
 
     /**
@@ -41,6 +43,13 @@ public object EventBus {
     }
 
     /**
+     * Subscribe a listener to the event bus.
+     *
+     * @param handler The Consumer to handle that event.
+     */
+    public inline fun <reified T : Event?> subscribe(noinline handler: (T) -> Unit): Unit = subscribe(T::class.java, handler)
+
+    /**
      * Post an event for all the listeners listening for it.
      *
      * @param event The event to call.
@@ -50,7 +59,10 @@ public object EventBus {
         var curr: Class<*> = event.javaClass
 
         while (curr != Any::class.java) {
-            getListeners(curr).filterIsInstance<Consumer<T>>().forEach(Consumer { it.accept(event) })
+            getListeners(curr)
+                .filterIsInstance<Consumer<T>>()
+                .forEach { it.accept(event) }
+
             curr = curr.superclass
         }
     }
@@ -84,6 +96,10 @@ public object EventBus {
     private fun getListeners(event: Class<*>) = map.computeIfAbsent(event) { CopyOnWriteArrayList() }
 
     private class ReflectEventConsumer(val obj: Any, val method: Method) : Consumer<Event?> {
+        init {
+            method.isAccessible = true
+        }
+
         override fun accept(event: Event?) {
             method.invoke(obj, event)
         }

@@ -13,24 +13,22 @@ plugins {
 
 rootProject.name = "Weave-Loader"
 
+fun ConfigurableIncludedBuild.setDependencySubstitution(module: String) {
+    dependencySubstitution {
+        substitute(module(module))
+            .using(project(":"))
+    }
+}
+
 includeBuild("build-logic")
 includeBuild("internals") {
-    dependencySubstitution {
-        substitute(module("net.weavemc:internals"))
-            .using(project(":"))
-    }
+    setDependencySubstitution("net.weavemc:internals")
 }
 includeBuild("api") {
-    dependencySubstitution {
-        substitute(module("net.weavemc.api:api"))
-            .using(project(":"))
-    }
+    setDependencySubstitution("net.weavemc.api:api")
 }
 includeBuild("loader") {
-    dependencySubstitution {
-        substitute(module("net.weavemc:loader"))
-            .using(project(":"))
-    }
+    setDependencySubstitution("net.weavemc:loader")
 }
 includeBuild("gradle-plugin")
 includeBuild("mod-testing")

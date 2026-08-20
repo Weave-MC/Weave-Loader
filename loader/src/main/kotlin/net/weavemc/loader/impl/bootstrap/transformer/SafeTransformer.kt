@@ -28,7 +28,8 @@ internal interface SafeTransformer : ClassFileTransformer {
             ?.also { if (checkBytecode) verifyBytes(className, classfileBuffer, it) }
     }.getOrElse {
         it.printStackTrace()
-        logger.fatal("An error occurred while transforming {} (from {})", className, javaClass.name, it)
+        logger.fatal("An error occurred while transforming {} (from {})", className, javaClass.name)
+        logger.fatal(it.stackTraceToString())
         exit(1)
     }
 

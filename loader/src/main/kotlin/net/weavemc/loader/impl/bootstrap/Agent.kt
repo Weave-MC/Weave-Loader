@@ -1,10 +1,12 @@
 package net.weavemc.loader.impl.bootstrap
 
+import kotlinx.coroutines.*
 import me.xtrm.klog.Level
 import me.xtrm.klog.dsl.klog
 import me.xtrm.klog.dsl.klogConfig
 import net.weavemc.api.Tweaker
 import net.weavemc.internals.GameInfo
+import net.weavemc.internals.MinecraftClient
 import net.weavemc.internals.MinecraftVersion
 import net.weavemc.internals.ModConfig
 import net.weavemc.loader.impl.WeaveLoader
@@ -36,7 +38,7 @@ public fun premain(opt: String?, inst: Instrumentation) {
 
     setGameInfo()
 
-    val mods = retrieveMods()
+    val mods = runBlocking { retrieveMods() }
     callTweakers(inst, mods)
 
     inst.addTransformer(URLClassLoaderTransformer)
@@ -46,8 +48,15 @@ public fun premain(opt: String?, inst: Instrumentation) {
     inst.retransformClasses(Class.forName("sun.management.RuntimeImpl", false, ClassLoader.getSystemClassLoader()))
     inst.removeTransformer(ArgumentSanitizer)
 
-    // Prevent ichor prebake
-    System.setProperty("ichor.prebakeClasses", "false")
+    when(GameInfo.client) {
+        // Force Fabric to use URLClassLoader implementation
+        MinecraftClient.FABRIC -> System.setProperty("fabric.loader.useCompatibilityClassLoader", "true")
+
+        // Prevent ichor prebake
+        MinecraftClient.LUNAR -> System.setProperty("ichor.prebakeClasses", "false")
+
+        else -> {}
+    }
 
     // Hack: sometimes the state is improperly initialized, which causes Swing to feel like it is headless?
     // Calling this solves the problem
@@ -78,32 +87,33 @@ private fun callTweakers(inst: Instrumentation, mods: List<File>) {
     }
 }
 
-private fun FileManager.ModJar.parseAndMap(): File {
-    val fileName = file.name.substringBeforeLast('.')
+private fun FileManager.ModJar.parseAndMap(): File =  JarFile(file).use {
+    val config = it.configOrFatal()
+    val compiledFor = config.compiledFor
 
-    return JarFile(file).use {
-        val config = it.configOrFatal()
-        val compiledFor = config.compiledFor
+    if (compiledFor != null && GameInfo.version != MinecraftVersion.parse(compiledFor)) {
+        val extra = if (!isVersionSpecific) {
+            " Hint: this mod was placed in the general mods folder. Consider putting mods in a version-specific mods folder"
+        } else ""
 
-        if (compiledFor != null && GameInfo.version != MinecraftVersion.fromVersionName(compiledFor)) {
-            val extra = if (!isSpecific) {
-                " Hint: this mod was placed in the general mods folder. Consider putting mods in a version-specific mods folder"
-            } else ""
-
-            fatalError(
-                "Mod ${config.modId} was compiled for version $compiledFor, current version is ${GameInfo.version.versionName}.$extra"
-            )
-        }
-
-        if (!MappingsHandler.isNamespaceAvailable(config.namespace)) {
-            fatalError("Mod ${config.modId} was mapped in namespace ${config.namespace}, which is not available!")
-        }
-
-        file.createRemappedTemp(fileName, config.namespace)
+        fatalError(
+            "Mod ${config.modId} was compiled for version $compiledFor, current version is ${GameInfo.version.versionName}.$extra"
+        )
     }
+
+    if (!MappingsHandler.isNamespaceAvailable(config.namespace)) {
+        fatalError("Mod ${config.modId} was mapped in namespace ${config.namespace}, which is not available!")
+    }
+
+    file.createRemappedCache(fromNamespace = config.namespace, concurrentRemapping = true)
 }
 
-private fun retrieveMods() = FileManager.getMods().map { it.parseAndMap() }
+private suspend fun retrieveMods() = withContext(Dispatchers.IO) {
+    FileManager
+        .mods
+        .map { mod -> async { mod.parseAndMap() } }
+        .awaitAll()
+}
 
 public fun main() {
     fatalError("This is not how you use Weave! Please refer to the readme for instructions.")

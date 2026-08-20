@@ -4,8 +4,10 @@ plugins {
     id("config-publish")
 }
 
-group = "net.weavemc.gradle"
-version = libs.versions.plugin.get().toString()
+allprojects {
+    group = "net.weavemc.gradle"
+    version = libs.versions.weave.get()
+}
 
 dependencies {
     compileOnly(gradleApi())
@@ -13,8 +15,9 @@ dependencies {
 
     implementation(libs.bundles.asm)
     implementation(libs.kxser.json)
+    implementation(libs.kotlin.metadata)
     implementation(libs.mappings)
-    implementation(libs.internals)
+    implementation(libs.weave.internals)
 }
 
 gradlePlugin {

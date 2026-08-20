@@ -1,5 +1,6 @@
 package net.weavemc.gradle
 
+import com.grappenmaker.mappings.format.Mappings
 import kotlinx.serialization.encodeToString
 import net.weavemc.gradle.configuration.WeaveMinecraftExtension
 import net.weavemc.gradle.configuration.pullDeps
@@ -10,30 +11,25 @@ import net.weavemc.internals.MappingsRetrieval
 import net.weavemc.internals.MinecraftVersion
 import net.weavemc.internals.ModConfig
 import org.gradle.api.DefaultTask
-import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
-import org.gradle.api.tasks.CacheableTask
-import org.gradle.api.tasks.Delete
-import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.Internal
-import org.gradle.api.tasks.OutputFile
-import org.gradle.api.tasks.SourceSetContainer
-import org.gradle.api.tasks.TaskAction
+import org.gradle.api.tasks.*
 import org.gradle.api.tasks.bundling.Jar
 import org.gradle.kotlin.dsl.create
 import org.gradle.kotlin.dsl.getByName
 import org.gradle.kotlin.dsl.named
 import org.gradle.kotlin.dsl.register
 
+internal lateinit var ext: WeaveMinecraftExtension
+
 /**
  * Gradle build system plugin used to automate the setup of a modding environment.
  */
-class WeaveGradle : Plugin<Project> {
+public class WeaveGradle : Plugin<Project> {
     /**
      * [Plugin.apply]
      *
@@ -46,16 +42,20 @@ class WeaveGradle : Plugin<Project> {
         ext = project.extensions.create(Constants.WEAVE_EXTENSION, WeaveMinecraftExtension::class)
 
         project.afterEvaluate {
-            if (!ext.configuration.isPresent) throw GradleException(
-                "Configuration is missing, make sure to add a configuration through the weave {} block!"
-            )
+            val configuration = ext.configuration.orNull
+            val versionProvider = ext.version.orNull
 
-            if (!ext.version.isPresent) throw GradleException(
-                "Set a Minecraft version through the weave {} block!"
-            )
+            if (configuration == null) {
+                project.logger.warn("WARNING: Configuration is missing! Make sure to add a configuration through the weave { } block.")
+                return@afterEvaluate
+            }
 
-            val version = ext.version.getOrElse(MinecraftVersion.V1_8_9)
-            it.pullDeps(version, ext.configuration.get().namespace)
+            if (versionProvider == null) {
+                project.logger.warn("WARNING: Minecraft version is missing in the weave { } block. Defaulting to 1.8.9.")
+            }
+
+            val version = versionProvider ?: MinecraftVersion.V1_8_9
+            it.pullDeps(ext, version, configuration.namespace)
         }
 
         val writeModConfig = project.tasks.register<WriteModConfig>("writeModConfig") {
@@ -72,9 +72,9 @@ class WeaveGradle : Plugin<Project> {
     }
 
     @CacheableTask
-    abstract class WriteModConfig : DefaultTask() {
+    public abstract class WriteModConfig : DefaultTask() {
         @get:Internal
-        abstract val configuration: Property<ModConfig>
+        public abstract val configuration: Property<ModConfig>
 
         @get:Input
         protected val configurationJson: Provider<String> = configuration.map {
@@ -82,23 +82,20 @@ class WeaveGradle : Plugin<Project> {
         }
 
         @get:OutputFile
-        abstract val output: RegularFileProperty
+        public abstract val output: RegularFileProperty
 
         @TaskAction
-        fun run() {
+        public fun run() {
             val json = configurationJson.get()
             val outputFile = output.get().asFile
             outputFile.parentFile?.mkdirs()
             outputFile.writeText(json)
         }
     }
-
-    companion object {
-        lateinit var ext: WeaveMinecraftExtension
-    }
 }
 
-fun MinecraftVersion.loadMergedMappings() =
-    MappingsRetrieval.loadMergedWeaveMappings(versionName, minecraftJarCache).mappings
+public fun MinecraftVersion.loadMergedMappings(): Mappings =
+    MappingsRetrieval.loadMergedWeaveMappings(mappingName, minecraftJarCache).mappings
 
-val Project.sourceSets get() = extensions.getByName<SourceSetContainer>("sourceSets")
+public val Project.sourceSets: SourceSetContainer
+    get() = extensions.getByName<SourceSetContainer>("sourceSets")
