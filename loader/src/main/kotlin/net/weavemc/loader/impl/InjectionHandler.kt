@@ -65,7 +65,7 @@ public object InjectionHandler : SafeTransformer {
             val inverseConflictsMapping = hashMapOf<String, String>()
 
             for (m in potentialConflicts) {
-                val tempName = "potentialConflict${Random.nextUInt()}"
+                val tempName = $$"$weave_potentialConflict$$${m.name}"
                 conflictsMapping["${node.name}.${m.name}${m.desc}"] = tempName
                 inverseConflictsMapping["${node.name}.${tempName}${m.desc}"] = m.name
             }
