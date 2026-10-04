@@ -20,6 +20,7 @@ while supporting injection into clients that are somewhat closed-off to develope
 | Vanilla | :white_check_mark: |
 | Forge   | :white_check_mark: |
 | Fabric  | :white_check_mark: |
+| Ornithe | :white_check_mark: |
 | Lunar   | :white_check_mark: |
 | Badlion |        :x:         |
 | Feather |        :x:         |

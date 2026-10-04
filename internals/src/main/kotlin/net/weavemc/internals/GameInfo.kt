@@ -46,6 +46,7 @@ public enum class MinecraftClient(
     VANILLA("Vanilla"),
     FORGE("Forge", "MinecraftForge", "Minecraft Forge"),
     FABRIC("Fabric"),
+    ORNITHE("Ornithe"),
     LABYMOD("LabyMod", "Laby"),
     LUNAR("Lunar Client", "Lunar", "LunarClient"),
     BADLION("Badlion Client", "BLC", "Badlion", "BadlionClient");
@@ -87,6 +88,8 @@ public enum class MappingsType(public val id: String) {
     MOJANG("mojmap"),
     MCP("mcp"),
     YARN("yarn"),
+    FEATHER("feather"),
+    CALAMUS("calamus"),
     MERGED("merged");
 
     public companion object {

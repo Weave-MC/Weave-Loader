@@ -46,6 +46,7 @@ public object MappingsHandler {
                 MinecraftClient.LUNAR -> if (GameInfo.version < MinecraftVersion.V1_16_5) MCP.named else MOJANG.named
                 MinecraftClient.FORGE -> MCP.srg
                 MinecraftClient.FABRIC -> YARN.intermediary
+                MinecraftClient.ORNITHE -> CALAMUS.intermediary
                 MinecraftClient.VANILLA, MinecraftClient.LABYMOD, MinecraftClient.BADLION -> "official"
             }
         }

@@ -35,6 +35,8 @@ public fun getVanillaMinecraftJar(version: String): File {
 public object MappingsRetrieval {
     private val forgeMavenRoot = "https://maven.minecraftforge.net/de/oceanlabs/mcp"
     private val yarnMavenRoot = "https://maven.fabricmc.net/net/fabricmc/yarn"
+    private val featherMavenRoot = "https://maven.ornithemc.net/releases/net/ornithemc/feather"
+    private val calamusMavenRoot = "https://maven.ornithemc.net/releases/net/ornithemc/calamus-intermediary-gen2"
 
     public data class MCPVersion(
         public val version: String,
@@ -86,7 +88,7 @@ public object MappingsRetrieval {
     }
 
     public fun mcpMappingsStream(version: String, gameJar: File): InputStream? {
-        val versionDecimal = version.substringAfter("1.").toDouble()
+        val versionDecimal = parseMinecraftVersion(version).let { (major, minor, patch) -> if (major == 1) "$minor.$patch".toDouble() else return null }
 
         // apparently the MCP mappings for 1.12.2 is called 1.12
         val mcpInternalVersion = if (versionDecimal == 12.2) "1.12" else version
@@ -136,6 +138,18 @@ public object MappingsRetrieval {
     private val versionRegex = """<version>(.*?)</version>""".toRegex()
     public fun String.parseXMLVersions(): List<String> = versionRegex.findAll(this).map { it.groupValues[1] }.toList()
 
+    public fun parseMinecraftVersion(version: String): Triple<Int, Int, Int> {
+        val cleaned = version.replace(Regex("[^\\d.]"), "")
+
+        val parts = cleaned.split(".")
+
+        val major = parts.getOrNull(0)?.toIntOrNull() ?: 0
+        val minor = parts.getOrNull(1)?.toIntOrNull() ?: 0
+        val patch = parts.getOrNull(2)?.toIntOrNull() ?: 0
+
+        return Triple(major, minor, patch)
+    }
+
     public fun parseMCPVersions(url: String): Map<String, MCPVersion> {
         val text = URL(url).readText()
         val versionsString = text.parseXMLVersions()
@@ -152,24 +166,41 @@ public object MappingsRetrieval {
         }
     }
 
-    public fun yarnMappingsStream(version: String, gameJar: File): InputStream? {
-        return mappingsCache(YARN, version).getOrPut {
-            val versions = URL("$yarnMavenRoot/maven-metadata.xml").readText().parseXMLVersions()
+    public fun yarnMappingsStream(version: String, gameJar: File): InputStream? =
+        fabricMappingsStream(version, gameJar, YARN, yarnMavenRoot)
+
+    public fun featherMappingsStream(version: String, gameJar: File): InputStream? =
+        fabricMappingsStream(version, gameJar, FEATHER, featherMavenRoot)
+
+    public fun calamusMappingsStream(version: String, gameJar: File): InputStream? =
+        fabricMappingsStream(version, gameJar, CALAMUS, calamusMavenRoot, "calamus-intermediary-gen2")
+
+    private fun fabricMappingsStream(
+        version: String,
+        gameJar: File,
+        mappingType: MappingsType,
+        mavenRoot: String,
+        mavenPackageName: String = mappingType.id,
+    ): InputStream? {
+        return mappingsCache(mappingType, version).getOrPut {
+            val versions = URL("$mavenRoot/maven-metadata.xml").readText().parseXMLVersions()
             val targetVersion = versions
                 .filter { it.substringBefore('+') == version }
                 .maxByOrNull { it.substringAfterLast('.').toInt() }
                 ?: return null
 
             val versionEncoded = URLEncoder.encode(targetVersion, "UTF-8")
-            val url = "$yarnMavenRoot/$versionEncoded/yarn-$versionEncoded.jar"
-            val pathInJar = "mappings/mappings.tiny"
-            val entries = ZipInputStream(URL(url).openStream()).readEntries()
+            val url = "$mavenRoot/$versionEncoded/$mavenPackageName-$versionEncoded.jar"
 
-            JarFile(gameJar).use { jar ->
-                MappingsLoader.loadMappings(entries.getValue(pathInJar).decodeToString().lines())
-                    .removeRedundancy(jar)
-                    .asTinyMappings(v2 = true)
-                    .write()
+            ZipInputStream(URL(url).openStream()).use { zipStream ->
+                val entries = zipStream.readEntries()
+
+                JarFile(gameJar).use { jar ->
+                    MappingsLoader.loadMappings(entries.getValue("mappings/mappings.tiny").decodeToString().lines())
+                        .removeRedundancy(jar)
+                        .asTinyMappings(v2 = true)
+                        .write()
+                }
             }
         }
     }
@@ -249,6 +280,8 @@ public object MappingsRetrieval {
 
     public fun loadWeaveMappings(mappings: MappingsType, version: String, gameJar: File): WeaveMappings? = when (mappings) {
         YARN -> yarnMappingsStream(version, gameJar)
+        FEATHER -> featherMappingsStream(version, gameJar)
+        CALAMUS -> calamusMappingsStream(version, gameJar)
         MCP -> mcpMappingsStream(version, gameJar)
         MOJANG -> mojangMappingsStream(version, gameJar)
         MERGED -> mergedMappingsStream(version, gameJar)

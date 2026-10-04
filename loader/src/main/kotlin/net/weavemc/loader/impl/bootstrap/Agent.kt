@@ -50,7 +50,7 @@ public fun premain(opt: String?, inst: Instrumentation) {
 
     when(GameInfo.client) {
         // Force Fabric to use URLClassLoader implementation
-        MinecraftClient.FABRIC -> System.setProperty("fabric.loader.useCompatibilityClassLoader", "true")
+        MinecraftClient.FABRIC, MinecraftClient.ORNITHE -> System.setProperty("fabric.loader.useCompatibilityClassLoader", "true")
 
         // Prevent ichor prebake
         MinecraftClient.LUNAR -> System.setProperty("ichor.prebakeClasses", "false")

@@ -4,6 +4,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import me.xtrm.klog.dsl.klog
 import net.weavemc.internals.GameInfo
+import net.weavemc.internals.MappingsRetrieval
 import net.weavemc.internals.ModConfig
 import net.weavemc.internals.crc32sum
 import net.weavemc.internals.getOrCreateWeaveDir
@@ -226,7 +227,9 @@ internal fun setGameInfo() {
         classExists("com.moonsworth.lunar.genesis.Genesis") -> "lunar client"
         classExists("net.minecraftforge.fml.common.Loader")
                 || classExists("cpw.mods.fml.common.Loader") -> "forge"
-        classExists("net.fabricmc.loader.api.FabricLoader") -> "fabric"
+        classExists("net.fabricmc.loader.api.FabricLoader") ->
+            if (MappingsRetrieval.parseMinecraftVersion(version).let { (major, minor, patch) -> major == 1 && "$minor.$patch".toDouble() <= 14.4 }) "ornithe"
+            else "fabric"
         GameInfo.commandLineArgs.contains("labymod") -> "labymod"
         else -> "vanilla"
     }
