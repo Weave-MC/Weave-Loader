@@ -4,6 +4,11 @@ import com.grappenmaker.mappings.*
 import com.grappenmaker.mappings.format.GenericMappings
 import com.grappenmaker.mappings.format.Mappings
 import com.grappenmaker.mappings.format.MappingsLoader
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -265,12 +270,17 @@ public object MappingsRetrieval {
     @Serializable
     private data class VersionDownload(val url: String, val sha1: String)
 
-    private fun allMappings(version: String, gameJar: File) =
-        (entries - MERGED).mapNotNull { loadWeaveMappings(it, version, gameJar) }
+    private suspend fun allMappings(version: String, gameJar: File) =
+        withContext(Dispatchers.IO) {
+            (entries - MERGED)
+                .map { async { loadWeaveMappings(it, version, gameJar) } }
+                .awaitAll()
+                .filterNotNull()
+        }
 
     private fun mergedMappingsStream(version: String, gameJar: File): InputStream =
         mappingsCache(MERGED, version).getOrPut {
-            val joined = allMappings(version, gameJar).map { (id, mappings) ->
+            val joined = runBlocking { allMappings(version, gameJar) }.map { (id, mappings) ->
                 mappings.renameNamespaces(mappings.namespaces.map { if (it == "official") it else id.resolve(it) })
             }.join("official")
 
