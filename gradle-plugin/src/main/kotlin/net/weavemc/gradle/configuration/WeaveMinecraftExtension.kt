@@ -40,6 +40,10 @@ public class ConfigurationBuilder {
         namespace = MappingsType.YARN.named
     }
 
+    public fun featherMappings() {
+        namespace = MappingsType.FEATHER.named
+    }
+
     public fun mojangMappings() {
         namespace = MappingsType.MOJANG.named
     }
